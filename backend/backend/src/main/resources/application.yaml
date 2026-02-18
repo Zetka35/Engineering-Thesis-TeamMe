@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/teamme
+    username: app
+    password: zetka
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+
+logging:
+  level:
+    org.springframework: INFO
+
+jwt:
+  secret: "Z7s9KpR2xM4Qe8HfA1cD0LwY5nB6JtV3"
+  expiration: 86400000
+
+
+

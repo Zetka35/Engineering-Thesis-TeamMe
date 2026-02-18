@@ -1,0 +1,6 @@
+docker run --name teamme-pg \
+  -e POSTGRES_USER=app \
+  -e POSTGRES_PASSWORD=app \
+  -e POSTGRES_DB=teamme \
+  -p 5432:5432 \
+  -d postgres:16

@@ -1,0 +1,51 @@
+.layout {
+  display: flex;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.sidebar {
+  width: 240px;
+  background: #f3fbfd;
+  padding: 20px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  margin: 10px 0;
+  cursor: pointer;
+}
+
+.sidebar .active {
+  background: #cdeef6;
+  padding: 6px;
+  border-radius: 12px;
+}
+
+.main {
+  flex: 1;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: #6bb2c7;
+}
+
+.teams-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px;
+}
+
+.teams-table th,
+.teams-table td {
+  border-bottom: 2px solid black;
+  padding: 12px;
+  text-align: left;
+}
