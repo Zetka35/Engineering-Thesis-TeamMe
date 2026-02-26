@@ -3,5 +3,5 @@ export interface Team {
   name: string;
   role: string;
   members: string[];
-  meetingDate: string;
+  meetingDate: string; // ISO
 }

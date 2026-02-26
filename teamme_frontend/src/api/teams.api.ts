@@ -1,7 +1,6 @@
 import type { Team } from "../models/Team";
 import { get } from "./http";
 
-// Mock – backend jeszcze nie istnieje
 const MOCK = true;
 
 const mockTeams: Team[] = [
@@ -10,18 +9,25 @@ const mockTeams: Team[] = [
     name: "Super Zespół",
     role: "Implementer",
     members: ["Jan Kowalski [S]"],
-    meetingDate: "2025-05-15T14:00:00"
+    meetingDate: "2025-05-15T14:00:00",
   },
   {
     id: 2,
     name: "Prezentacja",
     role: "Implementer",
     members: ["Anna Kowalska [P]"],
-    meetingDate: "2025-05-22T10:00:00"
-  }
+    meetingDate: "2025-05-22T10:00:00",
+  },
 ];
 
-export function fetchTeams(): Promise<Team[]> {
-  if (MOCK) return Promise.resolve(mockTeams);
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export async function fetchTeams(): Promise<Team[]> {
+  if (MOCK) {
+    await sleep(350);
+    return mockTeams;
+  }
   return get<Team[]>("/teams");
 }

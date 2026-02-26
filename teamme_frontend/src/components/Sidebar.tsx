@@ -1,57 +1,37 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import { TeamMeLogo } from "./icons";
 
-interface SidebarProps {
-  user: { username: string } | null;
-  setUser: (user: { username: string } | null) => void;
-}
+const items = [
+  { to: "/dashboard", label: "Strona główna" },
+  { to: "/tasks", label: "Zadania" },
+  { to: "/messages", label: "Skrzynka wiadomości" },
+  { to: "/team-search", label: "Szukaj zespołu" },
+  { to: "/teams", label: "Moje zespoły" },
+  { to: "/history", label: "Historia pracy" },
+  { to: "/workspace", label: "Przestrzeń robocza" },
+  { to: "/network", label: "Nawiązywanie kontaktów" },
+  { to: "/profile", label: "Profil" },
+];
 
-export default function Sidebar({ user, setUser }: SidebarProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isActive = (path: string) => location.pathname === path;
-
-  const handleLogout = () => {
-    setUser(null);
-    navigate("/");
-  };
-
+export default function Sidebar() {
   return (
     <aside className="sidebar">
-      <h2>Team Me</h2>
-      <ul>
-        <li className={isActive("/") ? "active" : ""}>
-          <Link to="/">Strona główna</Link>
-        </li>
+      <div className="sidebar-brand">
+        <TeamMeLogo />
+      </div>
 
-        {user ? (
-          <>
-            <li className={isActive("/teams") ? "active" : ""}>
-              <Link to="/teams">Moje zespoły</Link>
-            </li>
-            <li className={isActive("/search") ? "active" : ""}>
-              <Link to="/search">Szukaj zespołu</Link>
-            </li>
-            <li className={isActive("/profile") ? "active" : ""}>
-              <Link to="/profile">Profil</Link>
-            </li>
-            <li>
-              <button onClick={handleLogout} style={{ cursor: "pointer" }}>
-                Wyloguj
-              </button>
-            </li>
-          </>
-        ) : (
-          <>
-            <li className={isActive("/login") ? "active" : ""}>
-              <Link to="/login">Logowanie</Link>
-            </li>
-            <li className={isActive("/register") ? "active" : ""}>
-              <Link to="/register">Rejestracja</Link>
-            </li>
-          </>
-        )}
-      </ul>
+      <nav className="sidebar-nav" aria-label="Menu boczne">
+        {items.map((it) => (
+          <NavLink
+            key={it.to}
+            to={it.to}
+            className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
+          >
+            {it.label}
+          </NavLink>
+        ))}
+      </nav>
     </aside>
   );
 }

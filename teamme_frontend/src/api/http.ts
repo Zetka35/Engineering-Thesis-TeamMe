@@ -1,12 +1,11 @@
-const BASE_URL = "http://localhost:8080/api";
+const API_BASE = import.meta?.env?.VITE_API_URL ?? "http://localhost:8080";
 
-export async function get<T>(url: string): Promise<T> {
-  try {
-    const response = await fetch(`${BASE_URL}${url}`);
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-    return await response.json();
-  } catch (err) {
-    console.error("Fetch failed:", err);
-    throw err;
-  }
+export async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as T;
 }
