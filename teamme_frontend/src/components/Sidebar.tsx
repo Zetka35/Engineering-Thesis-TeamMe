@@ -18,7 +18,11 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <TeamMeLogo />
+        <div className="sidebar-brand-box">
+          <div className="sidebar-brand-scale">
+            <TeamMeLogo />
+          </div>
+        </div>
       </div>
 
       <nav className="sidebar-nav" aria-label="Menu boczne">

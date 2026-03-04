@@ -2,9 +2,8 @@ import React from "react";
 import logo from "../assets/logo.png";
 import teamowork from "../assets/teamwork.png";
 
-export function TeamMeLogo({ size = 28 }: { size?: number }) {
+export function TeamMeLogo({ size = 70 }: { size?: number }) {
   return (
-    <div className="tm-logo" aria-label="TeamMe">
       <img
         src={logo}
         alt="TeamMe"
@@ -12,8 +11,6 @@ export function TeamMeLogo({ size = 28 }: { size?: number }) {
         height={size}
         className="tm-logo-img"
       />
-      <span className="tm-logo-text">TeamMe</span>
-    </div>
   );
 }
 
