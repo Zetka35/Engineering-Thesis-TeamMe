@@ -33,7 +33,7 @@ export default function Register() {
     setBusy(true);
     try {
       await register(username.trim(), password);
-      nav("/teams");
+      nav("/onboarding");
     } catch (err: any) {
       setError(err?.message ?? "Nie udało się zarejestrować.");
     } finally {

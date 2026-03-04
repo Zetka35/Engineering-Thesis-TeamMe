@@ -495,6 +495,121 @@
   margin-top: 2px;
 }
 
+.survey-list{
+  display: grid;
+  gap: 14px;
+}
+
+.survey-item{
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.survey-q{
+  font-weight: 900;
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.survey-no{
+  color: var(--brand-600);
+}
+
+.survey-scale{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.survey-pill{
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 900;
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.survey-pill input{ display:none; }
+
+.survey-pill.active{
+  background: rgba(111,168,199,.18);
+  border-color: rgba(111,168,199,.45);
+}
+
+.result-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.result-box{
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.result-list{
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.muted{
+  color: var(--muted);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.role-picks{
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.role-pick{
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.role-pick input{
+  margin-top: 3px;
+}
+
+.role-pick.active{
+  background: rgba(111,168,199,.18);
+  border-color: rgba(111,168,199,.45);
+}
+
+.role-name{
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.profile-block{
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.profile-block-title{
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px){
+  .result-grid{ grid-template-columns: 1fr; }
+}
+
 /* Avatar jako zdjęcie */
 .avatar.has-photo{
   background-size: cover;

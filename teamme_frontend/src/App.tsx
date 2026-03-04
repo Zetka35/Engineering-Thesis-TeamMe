@@ -11,6 +11,9 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Teams from "./pages/Teams";
 import Placeholder from "./pages/Placeholder";
+import OnboardingSurvey from "./pages/OnboardingSurvey";
+import Survey from "./pages/Survey";
+import Profile from "./pages/Profile";
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -34,8 +37,10 @@ function AppShell() {
             <Route path="/history" element={<Placeholder title="Historia pracy" />} />
             <Route path="/workspace" element={<Placeholder title="Przestrzeń robocza" />} />
             <Route path="/network" element={<Placeholder title="Nawiązywanie kontaktów" />} />
-            <Route path="/profile" element={<Placeholder title="Profil" />} />
             <Route path="*" element={<Navigate to="/teams" replace />} />
+            <Route path="/onboarding" element={<OnboardingSurvey />} />
+            <Route path="/survey" element={<Survey />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
         </div>
       </div>

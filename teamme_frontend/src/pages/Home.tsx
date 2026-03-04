@@ -39,14 +39,14 @@ export default function Home() {
           <h2>O nas</h2>
           <p>
             TeamMe to narzędzie wspierające proces tworzenia ról zespołowych i organizację pracy w zespole.
-            (Tu możesz wkleić treści do pracy inżynierskiej / opisu systemu).
+            (Opisu systemu).
           </p>
         </section>
 
         <section id="role" className="public-section">
           <h2>Role zespołowe</h2>
           <p>
-            Miejsce na opis ról (np. Belbin) i logikę dopasowania ról do członków zespołu.
+            Miejsce na opis ról i logikę dopasowania ról do członków zespołu.
           </p>
         </section>
 
