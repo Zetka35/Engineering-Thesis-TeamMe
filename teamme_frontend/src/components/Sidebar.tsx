@@ -7,10 +7,10 @@ const items = [
   { to: "/tasks", label: "Zadania" },
   { to: "/messages", label: "Skrzynka wiadomości" },
   { to: "/team-search", label: "Szukaj zespołu" },
+  { to: "/network", label: "Nawiązywanie kontaktów" },
   { to: "/teams", label: "Moje zespoły" },
   { to: "/history", label: "Historia pracy" },
   { to: "/workspace", label: "Przestrzeń robocza" },
-  { to: "/network", label: "Nawiązywanie kontaktów" },
   { to: "/profile", label: "Profil" },
 ];
 
