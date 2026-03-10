@@ -1,0 +1,22 @@
+spring:
+  flyway:
+    enabled: false
+
+  datasource:
+    url: jdbc:h2:mem:teamme_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  jwt:
+    secret: "TEST_SECRET_32_CHARS_MINIMUM_1234567890"
+    issuer: "teamme-test"
+    accessTokenMinutes: 120
+
+cors:
+  allowedOrigins: "http://localhost:5173,http://localhost:3000"

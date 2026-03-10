@@ -26,6 +26,7 @@ dependencies {
 	implementation("org.flywaydb:flyway-core")
 	implementation("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
+	implementation("org.flywaydb:flyway-database-postgresql")
 
 	annotationProcessor("org.projectlombok:lombok")
 
@@ -37,6 +38,7 @@ dependencies {
 	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+	testImplementation("com.h2database:h2")
 }
 
 tasks.withType<Test> {

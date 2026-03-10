@@ -3,29 +3,23 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/teamme
+    url: jdbc:postgresql://localhost:5433/teamme
     username: app
     password: zetka
     driver-class-name: org.postgresql.Driver
 
+  flyway:
+    enabled: true
+
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate.format_sql: true
+      ddl-auto: validate
 
-  flyway:
-    enabled: false
-    locations: classpath:db/migration
+app:
+  jwt:
+    secret: "CHANGE_ME_SUPER_SECRET_32_CHARS_MINIMUM_123456"
+    issuer: "teamme"
+    accessTokenMinutes: 120
 
-logging:
-  level:
-    org.springframework: INFO
-
-jwt:
-  secret: "Z7s9KpR2xM4Qe8HfA1cD0LwY5nB6JtV3"
-  expiration: 86400000
-
-
-
+cors:
+  allowedOrigins: "http://localhost:5173,http://localhost:3000"
