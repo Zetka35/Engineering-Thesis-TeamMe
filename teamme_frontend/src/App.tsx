@@ -16,8 +16,11 @@ import Survey from "./pages/Survey";
 import Profile from "./pages/Profile";
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) return <div style={{ padding: 20 }}>Ładowanie…</div>;
   if (!user) return <Navigate to="/login" replace />;
+
   return <>{children}</>;
 }
 

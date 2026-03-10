@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import * as authApi from "../api/auth.api";
+import { me as meApi } from "../api/auth.api";
 
 export interface User {
   username: string;
@@ -12,6 +13,7 @@ interface AuthContextValue {
   register: (username: string, password: string) => Promise<User>;
   logout: () => void;
   updateAvatar: (avatarDataUrl: string | undefined) => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -19,6 +21,7 @@ const STORAGE_KEY = "teamme:user";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -31,6 +34,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+  let mounted = true;
+
+  (async () => {
+    try {
+      const u = await meApi();     // <-- pobierz usera z backendu na podstawie cookie
+      if (mounted) setUser(u);
+    } catch {
+      if (mounted) setUser(null);  // brak sesji -> user null
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  })();
+  
+
+  return () => {
+    mounted = false;
+  };
+}, []);
+
   const persist = (u: User | null) => {
     if (!u) localStorage.removeItem(STORAGE_KEY);
     else localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
@@ -39,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(() => {
     return {
       user,
+      loading,
       login: async (username, password) => {
         const u = await authApi.login(username, password);
         // jeśli jest zapisany avatar z poprzedniej sesji, zachowaj go (opcjonalnie)
@@ -75,6 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     };
   }, [user]);
+
+  if (loading) {
+  return <div style={{ padding: 20 }}>Ładowanie…</div>;
+}
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

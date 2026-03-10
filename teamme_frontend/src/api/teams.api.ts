@@ -1,7 +1,7 @@
 import type { Team } from "../models/Team";
 import { get } from "./http";
 
-const MOCK = true;
+const MOCK = false;
 
 const mockTeams: Team[] = [
   {
@@ -26,8 +26,10 @@ function sleep(ms: number) {
 
 export async function fetchTeams(): Promise<Team[]> {
   if (MOCK) {
-    await sleep(350);
+    await sleep(250);
     return mockTeams;
   }
-  return get<Team[]>("/teams");
+
+  // backend: GET /api/teams
+  return await get<Team[]>("/api/teams");
 }

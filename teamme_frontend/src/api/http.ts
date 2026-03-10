@@ -6,6 +6,11 @@ export async function get<T>(path: string): Promise<T> {
     headers: { "Content-Type": "application/json" },
     credentials: "include",
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(msg || `HTTP ${res.status}`);
+  }
+
   return (await res.json()) as T;
 }
