@@ -11,7 +11,6 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   });
 
   if (!res.ok) {
-    // backend zwykle zwraca komunikat; uprośćmy:
     let msg = "Wystąpił błąd";
     try {
       const text = await res.text();

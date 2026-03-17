@@ -7,6 +7,10 @@ CREATE TABLE users (
   selected_role VARCHAR(60),
   avatar_url TEXT,
 
+  first_name VARCHAR(80),
+  last_name VARCHAR(80),
+  bio TEXT,
+
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -2,7 +2,7 @@ import type { SurveyResult, Likert } from "../survey/miniIpip";
 import { computeSurveyResult } from "../survey/miniIpip";
 import { get } from "./http";
 
-// ustaw true, jeśli chcesz lokalny mock (bez backendu)
+// ustaw true, jeśli chcesz lokalny mock 
 const MOCK = false;
 
 const key = (username: string) => `teamme:miniipip:${username}`;

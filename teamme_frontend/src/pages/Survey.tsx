@@ -3,12 +3,25 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { MINI_IPIP_QUESTIONS, type Likert } from "../survey/miniIpip";
 import { fetchMySurvey, submitMySurvey } from "../api/survey.api";
+import { updateSelectedRole } from "../api/user.api";
 
 const PER_PAGE = 5;
 const SCALE: Likert[] = [1, 2, 3, 4, 5];
 
+type StoredRole = {
+  key: string;
+  score: number;
+  explanation: string;
+};
+
+type StoredResult = {
+  answers: Likert[];
+  topRoles: StoredRole[];
+  completedAt: string;
+};
+
 export default function Survey() {
-  const { user } = useAuth();
+  const { user, setSelectedRole } = useAuth();
   const nav = useNavigate();
 
   if (!user) return null;
@@ -16,24 +29,25 @@ export default function Survey() {
 
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<(Likert | null)[]>(Array(20).fill(null));
-  const [step, setStep] = useState(0); // 0..3
+  const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [resultMode, setResultMode] = useState(false);
-  const [error, setError] = useState<string>("");
-
-  // wynik pobrany/zapisany
-  const [storedResult, setStoredResult] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [storedResult, setStoredResult] = useState<StoredResult | null>(null);
+  const [savingRole, setSavingRole] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+
     fetchMySurvey(username)
       .then((r) => {
         if (!mounted) return;
         if (r?.answers?.length === 20) {
           setAnswers(r.answers);
           setStoredResult(r);
-          setResultMode(true); // jeśli już była ankieta, pokazujemy wynik
+          setResultMode(true);
         }
       })
       .catch((e) => {
@@ -89,10 +103,13 @@ export default function Survey() {
 
   async function finish() {
     setError("");
+    setSuccessMsg("");
+
     if (missingTotal > 0) {
       setError("Uzupełnij wszystkie odpowiedzi (brakuje: " + missingTotal + ").");
       return;
     }
+
     setSubmitting(true);
     try {
       const res = await submitMySurvey(username, answers as Likert[]);
@@ -102,6 +119,22 @@ export default function Survey() {
       setError(e?.message ?? "Nie udało się zapisać ankiety.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function chooseRole(roleKey: string) {
+    setError("");
+    setSuccessMsg("");
+    setSavingRole(true);
+
+    try {
+      const updatedUser = await updateSelectedRole(roleKey);
+      setSelectedRole(updatedUser.selectedRole ?? null);
+      setSuccessMsg(`Wybrana rola została zapisana: ${updatedUser.selectedRole}`);
+    } catch (e: any) {
+      setError(e?.message ?? "Nie udało się zapisać wybranej roli.");
+    } finally {
+      setSavingRole(false);
     }
   }
 
@@ -115,68 +148,106 @@ export default function Survey() {
     );
   }
 
-  // ===== Widok wyniku =====
-if (resultMode && storedResult) {
-  const r = storedResult;
-  const top3 = (r.topRoles ?? []).slice(0, 3) as { key: string; score: number; explanation: string }[];
+  if (resultMode && storedResult) {
+    const r = storedResult;
+    const top3 = (r.topRoles ?? []).slice(0, 3) as {
+      key: string;
+      score: number;
+      explanation: string;
+    }[];
 
-  return (
-    <div className="page">
-      <section className="card">
-        <div className="card-header">
-          <h2 className="card-title">Proponowane role</h2>
-          <p className="card-subtitle">
-            Poniżej 3 role o najwyższym dopasowaniu. Skala dopasowania: 0–1 (im wyżej, tym lepiej).
-          </p>
-        </div>
-
-        <div className="card-body">
-          {error && <div className="alert">{error}</div>}
-
-          <div className="result-box">
-            <h3>Top 3 role (dopasowanie 0–1)</h3>
-
-            <ol className="result-list">
-              {top3.map((x) => (
-                <li key={x.key} style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
-                    <b>{x.key}</b>
-                    <span className="pill">dopasowanie: {Math.max(0, Math.min(1, x.score)).toFixed(3)}</span>
-                  </div>
-                  <div className="muted">{x.explanation}</div>
-                </li>
-              ))}
-            </ol>
+    return (
+      <div className="page">
+        <section className="card">
+          <div className="card-header">
+            <h2 className="card-title">Proponowane role</h2>
+            <p className="card-subtitle">
+              Poniżej 3 role o najwyższym dopasowaniu. Kliknij jedną z nich, aby zapisać ją na profilu.
+            </p>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-            <button className="btn btn-solid" onClick={() => nav("/teams")}>
-              Przejdź do zespołów
-            </button>
-            <button
-              className="btn btn-ghost"
-              onClick={() => {
-                setResultMode(false);
-                setStep(0);
-              }}
-            >
-              Zmień odpowiedzi
-            </button>
-            <button className="btn btn-ghost" onClick={() => nav("/profile")}>
-              Profil
-            </button>
+          <div className="card-body">
+            {error && <div className="alert">{error}</div>}
+            {successMsg && <div className="alert" style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}>{successMsg}</div>}
+
+            <div className="result-box">
+              <h3>Top 3 role (dopasowanie 0–1)</h3>
+
+              <ol className="result-list">
+                {top3.map((x) => {
+                  const isSelected = user.selectedRole === x.key;
+
+                  return (
+                    <li
+                      key={x.key}
+                      style={{
+                        marginBottom: 12,
+                        padding: 12,
+                        borderRadius: 14,
+                        border: isSelected ? "2px solid var(--accent, #111827)" : "1px solid var(--border, #e5e7eb)",
+                        background: isSelected ? "rgba(0,0,0,0.03)" : "transparent",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+                        <b>{x.key}</b>
+                        <span className="pill">
+                          dopasowanie: {Math.max(0, Math.min(1, x.score)).toFixed(3)}
+                        </span>
+                        {isSelected && <span className="pill">wybrana rola</span>}
+                      </div>
+
+                      <div className="muted" style={{ marginTop: 6 }}>
+                        {x.explanation}
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <button
+                          className={isSelected ? "btn btn-solid" : "btn btn-ghost"}
+                          onClick={() => chooseRole(x.key)}
+                          disabled={savingRole}
+                        >
+                          {savingRole
+                            ? "Zapisywanie…"
+                            : isSelected
+                            ? "Rola wybrana"
+                            : "Wybierz tę rolę"}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+              <button className="btn btn-solid" onClick={() => nav("/teams")}>
+                Przejdź do zespołów
+              </button>
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setResultMode(false);
+                  setStep(0);
+                  setSuccessMsg("");
+                  setError("");
+                }}
+              >
+                Zmień odpowiedzi
+              </button>
+              <button className="btn btn-ghost" onClick={() => nav("/profile")}>
+                Profil
+              </button>
+            </div>
+
+            <p style={{ marginTop: 10, color: "var(--muted)", fontWeight: 700 }}>
+              Zapisano: {new Date(r.completedAt).toLocaleString("pl-PL")}
+            </p>
           </div>
+        </section>
+      </div>
+    );
+  }
 
-          <p style={{ marginTop: 10, color: "var(--muted)", fontWeight: 700 }}>
-            Zapisano: {new Date(r.completedAt).toLocaleString("pl-PL")}
-          </p>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-  // ===== Widok kroków =====
   return (
     <div className="page">
       <section className="card">
