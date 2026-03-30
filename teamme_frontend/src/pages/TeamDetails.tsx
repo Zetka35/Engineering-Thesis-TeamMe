@@ -135,25 +135,8 @@ export default function TeamDetails() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="page">
-        <section className="card">
-          <div className="card-body">Ładowanie zespołu…</div>
-        </section>
-      </div>
-    );
-  }
-
-  if (!team) {
-    return (
-      <div className="page">
-        <section className="card">
-          <div className="card-body">Nie znaleziono zespołu.</div>
-        </section>
-      </div>
-    );
-  }
+  if (loading) return <div className="page"><section className="card"><div className="card-body">Ładowanie zespołu…</div></section></div>;
+  if (!team) return <div className="page"><section className="card"><div className="card-body">Nie znaleziono zespołu.</div></section></div>;
 
   return (
     <div className="page">
@@ -213,15 +196,6 @@ export default function TeamDetails() {
                 </button>
               </div>
             </form>
-
-            <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-              {team.meetings.map((m) => (
-                <div key={m.id}>
-                  <b>{m.title}</b> · {new Date(m.startsAt).toLocaleString("pl-PL")}
-                  {m.location ? ` · ${m.location}` : ""}
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="profile-block">
@@ -251,16 +225,6 @@ export default function TeamDetails() {
                 </button>
               </div>
             </form>
-
-            <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-              {team.tasks.map((t) => (
-                <div key={t.id}>
-                  <b>{t.title}</b> · {t.status}
-                  {t.assigneeUsername ? ` · przypisane do @${t.assigneeUsername}` : " · dla całego zespołu"}
-                  {t.dueAt ? ` · termin: ${new Date(t.dueAt).toLocaleString("pl-PL")}` : ""}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
