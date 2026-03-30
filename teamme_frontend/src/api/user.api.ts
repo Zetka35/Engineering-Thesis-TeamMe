@@ -11,12 +11,8 @@ async function putJson<T>(path: string, body: unknown): Promise<T> {
   });
 
   if (!res.ok) {
-    let msg = "Wystąpił błąd";
-    try {
-      const text = await res.text();
-      if (text) msg = text;
-    } catch {}
-    throw new Error(msg);
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `HTTP ${res.status} ${res.statusText}`);
   }
 
   return (await res.json()) as T;

@@ -26,9 +26,10 @@ public class AuthService {
 
   public User authenticate(String username, String password) {
     User u = userRepository.findByUsername(username)
-        .orElseThrow(() -> new IllegalArgumentException("Błędne dane logowania"));
+            .orElseThrow(() -> new java.util.NoSuchElementException("NO_SUCH_USER"));
+
     if (!encoder.matches(password, u.getPasswordHash())) {
-      throw new IllegalArgumentException("Błędne dane logowania");
+      throw new IllegalArgumentException("BAD_PASSWORD");
     }
     return u;
   }

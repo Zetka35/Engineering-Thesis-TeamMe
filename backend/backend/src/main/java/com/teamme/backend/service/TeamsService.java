@@ -163,6 +163,7 @@ public class TeamsService {
     Team saved = teamRepository.save(team);
 
     TeamMember ownerMembership = new TeamMember();
+    ownerMembership.setId(new TeamMemberId(saved.getId(), owner.getId()));
     ownerMembership.setTeam(saved);
     ownerMembership.setUser(owner);
     ownerMembership.setRoleLabel("Owner");

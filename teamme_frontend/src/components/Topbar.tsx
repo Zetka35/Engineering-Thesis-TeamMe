@@ -161,11 +161,7 @@ function scheduleCloseAvatarMenu() {
               </button>
               <button className="menu-item" type="button" onClick={() => alert("Powiadomienia – w przygotowaniu")}>
                 Powiadomienia
-              </button>
-              <div className="menu-sep" />
-              <button className="menu-item danger" type="button" onClick={handleLogout}>
-                Wyloguj
-              </button>
+              </button> 
             </div>
           )}
         </div>

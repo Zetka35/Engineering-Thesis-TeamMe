@@ -24,9 +24,9 @@ export default function Login() {
     setBusy(true);
     try {
       await login(username.trim(), password);
-      nav("/teams");
-    } catch (err: any) {
-      setError(err?.message ?? "Nie udało się zalogować.");
+      nav("/profile");
+    } catch (e: any) {
+  setError(e?.message ?? "Wystąpił błąd logowania");
     } finally {
       setBusy(false);
     }
@@ -56,7 +56,18 @@ export default function Login() {
             />
           </label>
 
-          {error && <div className="alert">{error}</div>}
+          {error && (
+  <div className="alert">
+    {(() => {
+      try {
+        const parsed = JSON.parse(error) as { message?: string };
+        return parsed?.message ?? error;
+      } catch {
+        return error;
+      }
+    })()}
+  </div>
+)}
 
           <button className="btn btn-solid btn-wide" disabled={busy} type="submit">
             {busy ? "Logowanie…" : "Zaloguj"}
