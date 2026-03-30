@@ -1,35 +1,48 @@
-import type { Team } from "../models/Team";
-import { get } from "./http";
+import type { TeamDetails, TeamSummary } from "../models/Team";
+import { get, post, put } from "./http";
 
-const MOCK = false;
+export type TeamUpsertPayload = {
+  name: string;
+  description: string;
+  expectedTimeText: string;
+  maxMembers: number;
+};
 
-const mockTeams: Team[] = [
-  {
-    id: 1,
-    name: "Super Zespół",
-    role: "Implementer",
-    members: ["Jan Kowalski [S]"],
-    meetingDate: "2025-05-15T14:00:00",
-  },
-  {
-    id: 2,
-    name: "Prezentacja",
-    role: "Implementer",
-    members: ["Anna Kowalska [P]"],
-    meetingDate: "2025-05-22T10:00:00",
-  },
-];
+export type MeetingCreatePayload = {
+  title: string;
+  description: string;
+  startsAt: string;
+  endsAt?: string;
+  location: string;
+};
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+export type TaskCreatePayload = {
+  title: string;
+  description: string;
+  dueAt?: string;
+  assigneeUserId?: number | null;
+};
+
+export function fetchTeams(): Promise<TeamSummary[]> {
+  return get<TeamSummary[]>("/api/teams");
 }
 
-export async function fetchTeams(): Promise<Team[]> {
-  if (MOCK) {
-    await sleep(250);
-    return mockTeams;
-  }
+export function fetchTeam(teamId: number): Promise<TeamDetails> {
+  return get<TeamDetails>(`/api/teams/${teamId}`);
+}
 
-  // backend: GET /api/teams
-  return await get<Team[]>("/api/teams");
+export function createTeam(payload: TeamUpsertPayload): Promise<TeamDetails> {
+  return post<TeamDetails>("/api/teams", payload);
+}
+
+export function updateTeam(teamId: number, payload: TeamUpsertPayload): Promise<TeamDetails> {
+  return put<TeamDetails>(`/api/teams/${teamId}`, payload);
+}
+
+export function createMeeting(teamId: number, payload: MeetingCreatePayload): Promise<TeamDetails> {
+  return post<TeamDetails>(`/api/teams/${teamId}/meetings`, payload);
+}
+
+export function createTask(teamId: number, payload: TaskCreatePayload): Promise<TeamDetails> {
+  return post<TeamDetails>(`/api/teams/${teamId}/tasks`, payload);
 }

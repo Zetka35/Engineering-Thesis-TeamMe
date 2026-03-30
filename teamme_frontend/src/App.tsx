@@ -14,6 +14,7 @@ import Placeholder from "./pages/Placeholder";
 import OnboardingSurvey from "./pages/OnboardingSurvey";
 import Survey from "./pages/Survey";
 import Profile from "./pages/Profile";
+import TeamDetails from "./pages/TeamDetails";
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,6 +45,7 @@ function AppShell() {
             <Route path="/onboarding" element={<OnboardingSurvey />} />
             <Route path="/survey" element={<Survey />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/teams/:teamId" element={<TeamDetails />} />
           </Routes>
         </div>
       </div>
