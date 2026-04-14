@@ -1,15 +1,11 @@
 package com.teamme.backend.controller;
 
 import com.teamme.backend.service.SurveyService;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Size;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/surveys/mini-ipip")
+@RequestMapping("/api/surveys/team-role")
 public class SurveyController {
 
   private final SurveyService surveyService;
@@ -18,39 +14,26 @@ public class SurveyController {
     this.surveyService = surveyService;
   }
 
-  public record SubmitRequest(@Size(min = 20, max = 20) List<@Min(1) @Max(5) Integer> answers) {}
-  public record RoleScoreDto(String key, double score, String explanation) {}
-  public record SurveyResponse(List<Integer> answers, List<RoleScoreDto> topRoles, String completedAt) {}
-
   @GetMapping("/me")
-  public SurveyResponse myLatest() {
-    String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
-            .getAuthentication().getName();
-
-    return surveyService.getMySurvey(username)
-            .map(s -> new SurveyResponse(
-                    s.answers(),
-                    s.topRoles().stream()
-                            .map(r -> new RoleScoreDto(r.key(), r.score(), r.explanation()))
-                            .toList(),
-                    s.completedAt()
-            ))
-            .orElse(null);
+  public SurveyService.SurveyStateDto me() {
+    return surveyService.getMySurveyState(currentUsername());
   }
 
-  @PostMapping
-  public SurveyResponse submit(@RequestBody SubmitRequest req) {
-    String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
-            .getAuthentication().getName();
+  @PutMapping("/me/draft")
+  public SurveyService.SurveyStateDto saveDraft(
+          @RequestBody SurveyService.SaveDraftRequest req
+  ) {
+    return surveyService.saveDraft(currentUsername(), req);
+  }
 
-    var saved = surveyService.saveMySurvey(username, req.answers());
+  @PostMapping("/me/complete")
+  public SurveyService.SurveyStateDto complete(
+          @RequestBody SurveyService.CompleteRequest req
+  ) {
+    return surveyService.complete(currentUsername(), req);
+  }
 
-    return new SurveyResponse(
-            saved.answers(),
-            saved.topRoles().stream()
-                    .map(r -> new RoleScoreDto(r.key(), r.score(), r.explanation()))
-                    .toList(),
-            saved.completedAt()
-    );
+  private String currentUsername() {
+    return SecurityContextHolder.getContext().getAuthentication().getName();
   }
 }

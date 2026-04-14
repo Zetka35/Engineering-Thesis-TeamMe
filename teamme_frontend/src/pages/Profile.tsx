@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import type { SurveyResult } from "../survey/miniIpip";
-import { fetchMySurvey } from "../api/survey.api";
+import { getMySurveyState, type SurveyStateDto } from "../api/survey.api";
 import {
   getMyProfile,
   updateMyProfile,
@@ -140,12 +139,38 @@ function availabilityLabel(value?: string | null) {
   }
 }
 
+function surveyActionLabel(surveyState?: SurveyStateDto | null) {
+  switch (surveyState?.status) {
+    case "COMPLETED":
+      return "Zobacz wyniki ankiety";
+    case "IN_PROGRESS":
+      return "Dokończ ankietę";
+    case "NOT_STARTED":
+    default:
+      return "Uruchom ankietę";
+  }
+}
+
+function surveyStatusText(surveyState?: SurveyStateDto | null) {
+  switch (surveyState?.status) {
+    case "COMPLETED":
+      return surveyState.completedAt
+        ? `ankieta wykonana ${new Date(surveyState.completedAt).toLocaleString("pl-PL")}`
+        : "ankieta wykonana";
+    case "IN_PROGRESS":
+      return "ankieta rozpoczęta — możesz ją dokończyć";
+    case "NOT_STARTED":
+    default:
+      return "ankieta jeszcze niewykonana";
+  }
+}
+
 export default function Profile() {
   const { user, mergeUser } = useAuth();
   const nav = useNavigate();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [survey, setSurvey] = useState<SurveyResult | null>(null);
+  const [surveyState, setSurveyState] = useState<SurveyStateDto | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -161,12 +186,12 @@ export default function Profile() {
 
     Promise.all([
       getMyProfile(),
-      fetchMySurvey(user.username).catch(() => null),
+      getMySurveyState(),
     ])
       .then(([profileResult, surveyResult]) => {
         if (!mounted) return;
         setProfile(normalizeProfile(profileResult));
-        setSurvey(surveyResult);
+        setSurveyState(surveyResult);
       })
       .catch((e: any) => {
         if (!mounted) return;
@@ -224,23 +249,26 @@ export default function Profile() {
   }
 
   async function reloadProfile() {
-    if (!user?.username) return;
-    setLoading(true);
-    setError("");
-    setSuccessMsg("");
-    try {
-      const [profileResult, surveyResult] = await Promise.all([
-        getMyProfile(),
-        fetchMySurvey(user.username).catch(() => null),
-      ]);
-      setProfile(normalizeProfile(profileResult));
-      setSurvey(surveyResult);
-    } catch (e: any) {
-      setError(e?.message ?? "Nie udało się odświeżyć profilu.");
-    } finally {
-      setLoading(false);
-    }
+  if (!user?.username) return;
+
+  setLoading(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const [profileResult, surveyResult] = await Promise.all([
+      getMyProfile(),
+      getMySurveyState(),
+    ]);
+
+    setProfile(normalizeProfile(profileResult));
+    setSurveyState(surveyResult);
+  } catch (e: any) {
+    setError(e?.message ?? "Nie udało się odświeżyć profilu.");
+  } finally {
+    setLoading(false);
   }
+}
 
   async function saveProfile() {
     if (!profile) return;
@@ -392,7 +420,7 @@ export default function Profile() {
                 Odśwież dane
               </button>
               <button className="btn btn-ghost" onClick={() => nav("/survey")}>
-                {survey ? "Powtórz ankietę" : "Uruchom ankietę"}
+                {surveyActionLabel(surveyState)}
               </button>
             </div>
           </div>
@@ -960,35 +988,42 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="profile-block">
-            <div className="profile-block-title">Ankieta „Moja rola w zespole”</div>
+         <div className="profile-block">
+  <div className="profile-block-title">Ankieta „Moja rola w zespole”</div>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <div>
-                <b>Status:</b>{" "}
-                {survey ? (
-                  <>ankieta wykonana {new Date(survey.completedAt).toLocaleString("pl-PL")}</>
-                ) : (
-                  <>ankieta jeszcze niewykonana</>
-                )}
-              </div>
+  <div style={{ display: "grid", gap: 10 }}>
+    <div>
+      <b>Status:</b> {surveyStatusText(surveyState)}
+    </div>
 
-              {survey && (
-                <div>
-                  <b>Top 3 role:</b>{" "}
-                  {survey.topRoles
-                    .map((x) => `${x.key} (${Math.max(0, Math.min(1, x.score)).toFixed(3)})`)
-                    .join(", ")}
-                </div>
-              )}
+    {surveyState?.status === "IN_PROGRESS" && (
+      <div className="muted">
+        Ankieta została rozpoczęta i zapisana roboczo. Możesz wrócić do niej w dowolnym momencie.
+      </div>
+    )}
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button className="btn btn-solid" onClick={() => nav("/survey")}>
-                  {survey ? "Powtórz ankietę" : "Uruchom ankietę"}
-                </button>
-              </div>
-            </div>
-          </div>
+    {surveyState?.status === "COMPLETED" && surveyState.result?.topRoles?.length ? (
+      <>
+        <div>
+          <b>Top 3 role:</b>{" "}
+          {surveyState.result.topRoles
+            .map((x) => `${x.key} (${Math.max(0, Math.min(1, x.finalScore)).toFixed(3)})`)
+            .join(", ")}
+        </div>
+
+        <div className="muted">
+          Ankieta pokazuje pełną listę 7 ról, a trzy najlepiej dopasowane są oznaczone jako rekomendowane.
+        </div>
+      </>
+    ) : null}
+
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <button className="btn btn-solid" onClick={() => nav("/survey")}>
+        {surveyActionLabel(surveyState)}
+      </button>
+    </div>
+  </div>
+</div>
 
           <div className="profile-block">
             <div className="profile-block-title">Historia projektów</div>
