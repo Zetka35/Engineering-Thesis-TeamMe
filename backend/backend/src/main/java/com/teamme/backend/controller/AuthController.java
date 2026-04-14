@@ -29,7 +29,13 @@ public class AuthController {
           String selectedRole,
           String firstName,
           String lastName,
-          String bio
+          String bio,
+          String headline,
+          String location,
+          String availabilityStatus,
+          String githubUrl,
+          String linkedinUrl,
+          String portfolioUrl
   ) {}
 
   @PostMapping("/register")
@@ -88,7 +94,13 @@ public class AuthController {
             u.getSelectedRole(),
             u.getFirstName(),
             u.getLastName(),
-            u.getBio()
+            u.getBio(),
+            u.getHeadline(),
+            u.getLocation(),
+            u.getAvailabilityStatus(),
+            u.getGithubUrl(),
+            u.getLinkedinUrl(),
+            u.getPortfolioUrl()
     );
   }
 

@@ -13,4 +13,8 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, TeamMemb
     boolean existsByTeam_IdAndUser_Username(Long teamId, String username);
     boolean existsByTeam_IdAndUser_Id(Long teamId, Long userId);
     long countByTeam_Id(Long teamId);
+
+    List<TeamMember> findByUser_UsernameOrderByJoinedAtDesc(String username);
+    Optional<TeamMember> findFirstByUser_IdAndLeftAtIsNullOrderByJoinedAtDesc(Long userId);
+    Optional<TeamMember> findFirstByUser_IdOrderByJoinedAtDesc(Long userId);
 }

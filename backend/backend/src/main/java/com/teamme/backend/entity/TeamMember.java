@@ -26,6 +26,9 @@ public class TeamMember {
     @Column(name = "joined_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime joinedAt;
 
+    @Column(name = "left_at")
+    private OffsetDateTime leftAt;
+
     public TeamMemberId getId() { return id; }
     public void setId(TeamMemberId id) { this.id = id; }
 
@@ -39,4 +42,7 @@ public class TeamMember {
     public void setRoleLabel(String roleLabel) { this.roleLabel = roleLabel; }
 
     public OffsetDateTime getJoinedAt() { return joinedAt; }
+
+    public OffsetDateTime getLeftAt() { return leftAt; }
+    public void setLeftAt(OffsetDateTime leftAt) { this.leftAt = leftAt; }
 }

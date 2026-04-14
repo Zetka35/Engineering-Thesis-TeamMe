@@ -10,6 +10,13 @@ export interface User {
   firstName?: string | null;
   lastName?: string | null;
   bio?: string | null;
+
+  headline?: string | null;
+  location?: string | null;
+  availabilityStatus?: string | null;
+  githubUrl?: string | null;
+  linkedinUrl?: string | null;
+  portfolioUrl?: string | null;
 }
 
 interface AuthContextValue {
