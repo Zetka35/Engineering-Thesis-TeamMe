@@ -39,14 +39,14 @@ public class AuthController {
   ) {}
 
   @PostMapping("/register")
-  public UserDto register(@RequestBody RegisterRequest req) {
+  public UserDto register(@jakarta.validation.Valid @RequestBody RegisterRequest req) {
     User u = authService.register(req.username().trim(), req.password());
     String token = jwtUtil.generateToken(u.getUsername());
     return setCookieAndReturnDto(u, token);
   }
 
   @PostMapping("/login")
-  public UserDto login(@RequestBody LoginRequest req) {
+  public UserDto login(@jakarta.validation.Valid @RequestBody LoginRequest req) {
     User u = authService.authenticate(req.username().trim(), req.password());
     String token = jwtUtil.generateToken(u.getUsername());
     return setCookieAndReturnDto(u, token);

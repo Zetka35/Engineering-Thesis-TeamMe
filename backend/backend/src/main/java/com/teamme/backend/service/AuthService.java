@@ -36,6 +36,6 @@ public class AuthService {
 
   public User loadByUsername(String username) {
     return userRepository.findByUsername(username)
-        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            .orElseThrow(() -> new java.util.NoSuchElementException("NO_SUCH_USER"));
   }
 }

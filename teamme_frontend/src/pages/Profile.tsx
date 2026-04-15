@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { extractApiFieldErrors, extractApiMessage, pickFieldErrors } from "../api/http";
 import { getMySurveyState, type SurveyStateDto } from "../api/survey.api";
 import {
   getMyProfile,
@@ -175,6 +176,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
@@ -192,6 +194,7 @@ export default function Profile() {
         if (!mounted) return;
         setProfile(normalizeProfile(profileResult));
         setSurveyState(surveyResult);
+        setFieldErrors({});
       })
       .catch((e: any) => {
         if (!mounted) return;
@@ -211,6 +214,28 @@ export default function Profile() {
     const value = [profile.firstName, profile.lastName].filter(Boolean).join(" ").trim();
     return value || profile.username;
   }, [profile]);
+
+  function renderFieldErrors(...fieldNames: string[]) {
+  const messages = pickFieldErrors(fieldErrors, ...fieldNames);
+  if (!messages.length) return null;
+
+  return (
+    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+      {messages.map((msg, index) => (
+        <div
+          key={`${fieldNames.join("-")}-${index}`}
+          style={{
+            color: "#8a1f1f",
+            fontWeight: 700,
+            fontSize: 13,
+          }}
+        >
+          {msg}
+        </div>
+      ))}
+    </div>
+  );
+}
 
   function patchProfile(patch: Partial<UserProfile>) {
     setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -249,11 +274,13 @@ export default function Profile() {
   }
 
   async function reloadProfile() {
+    
   if (!user?.username) return;
 
   setLoading(true);
   setError("");
   setSuccessMsg("");
+  setFieldErrors({});
 
   try {
     const [profileResult, surveyResult] = await Promise.all([
@@ -271,11 +298,13 @@ export default function Profile() {
 }
 
   async function saveProfile() {
+    
     if (!profile) return;
 
     setSaving(true);
     setError("");
     setSuccessMsg("");
+    setFieldErrors({});
 
     try {
       const updated = await updateMyProfile({
@@ -334,8 +363,9 @@ export default function Profile() {
       });
 
       setSuccessMsg("Profil został zapisany.");
-    } catch (e: any) {
-      setError(e?.message ?? "Nie udało się zapisać profilu.");
+    } catch (e: unknown) {
+      setError(extractApiMessage(e));
+      setFieldErrors(extractApiFieldErrors(e));
     } finally {
       setSaving(false);
     }
@@ -441,6 +471,7 @@ export default function Profile() {
                   onChange={(e) => patchProfile({ firstName: e.target.value })}
                   maxLength={80}
                 />
+                {renderFieldErrors("firstName")}
               </div>
 
               <div>
@@ -451,6 +482,7 @@ export default function Profile() {
                   onChange={(e) => patchProfile({ lastName: e.target.value })}
                   maxLength={80}
                 />
+                {renderFieldErrors("lastName")}
               </div>
 
               <div>
@@ -462,6 +494,7 @@ export default function Profile() {
                   maxLength={160}
                   placeholder="Np. Frontend Developer / UX"
                 />
+                {renderFieldErrors("headline")}
               </div>
 
               <div>
@@ -473,6 +506,7 @@ export default function Profile() {
                   maxLength={120}
                   placeholder="Np. Warszawa"
                 />
+                {renderFieldErrors("location")}
               </div>
 
               <div>
@@ -506,6 +540,7 @@ export default function Profile() {
                 maxLength={2000}
                 placeholder="Napisz kilka zdań o sobie, swoich zainteresowaniach i preferowanej roli w zespole."
               />
+              {renderFieldErrors("bio")}
             </div>
           </div>
 
@@ -526,6 +561,7 @@ export default function Profile() {
                   onChange={(e) => patchProfile({ githubUrl: e.target.value })}
                   placeholder="https://github.com/..."
                 />
+                {renderFieldErrors("githubUrl")}
               </div>
 
               <div>
@@ -536,6 +572,7 @@ export default function Profile() {
                   onChange={(e) => patchProfile({ linkedinUrl: e.target.value })}
                   placeholder="https://linkedin.com/in/..."
                 />
+                {renderFieldErrors("linkedinUrl")}
               </div>
 
               <div>
@@ -546,6 +583,7 @@ export default function Profile() {
                   onChange={(e) => patchProfile({ portfolioUrl: e.target.value })}
                   placeholder="https://twoja-strona.pl"
                 />
+                {renderFieldErrors("portfolioUrl")}
               </div>
             </div>
           </div>
@@ -575,6 +613,8 @@ export default function Profile() {
                 Dodaj doświadczenie
               </button>
             </div>
+
+            {renderFieldErrors("experiences")}
 
             <div style={{ display: "grid", gap: 12 }}>
               {profile.experiences.length === 0 && (
@@ -708,7 +748,7 @@ export default function Profile() {
                 Dodaj edukację
               </button>
             </div>
-
+            {renderFieldErrors("educations")}
             <div style={{ display: "grid", gap: 12 }}>
               {profile.educations.length === 0 && (
                 <div className="muted">Brak wpisów. Dodaj edukację.</div>
@@ -841,7 +881,7 @@ export default function Profile() {
                 Dodaj umiejętność
               </button>
             </div>
-
+            {renderFieldErrors("skills")}
             <div style={{ display: "grid", gap: 10 }}>
               {profile.skills.length === 0 && (
                 <div className="muted">Brak wpisów. Dodaj umiejętności.</div>
@@ -937,7 +977,7 @@ export default function Profile() {
                 Dodaj język
               </button>
             </div>
-
+            {renderFieldErrors("languages")}
             <div style={{ display: "grid", gap: 10 }}>
               {profile.languages.length === 0 && (
                 <div className="muted">Brak wpisów. Dodaj języki.</div>
