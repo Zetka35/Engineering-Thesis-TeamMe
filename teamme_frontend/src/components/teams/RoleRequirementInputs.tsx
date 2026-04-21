@@ -1,10 +1,11 @@
 import React from "react";
-import type { RoleRequirementDraft } from "./TeamForm.tsx";
+import type { RoleRequirementDraft } from "./TeamForm";
 
 type Props = {
   items: RoleRequirementDraft[];
   onChange: (items: RoleRequirementDraft[]) => void;
   title?: string;
+  subtitle?: string;
 };
 
 function emptyRoleRequirement(): RoleRequirementDraft {
@@ -20,6 +21,7 @@ export default function RoleRequirementInputs({
   items,
   onChange,
   title = "Poszukiwane role",
+  subtitle = "",
 }: Props) {
   function updateItem(index: number, patch: Partial<RoleRequirementDraft>) {
     onChange(items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
@@ -38,19 +40,11 @@ export default function RoleRequirementInputs({
   }
 
   return (
-    <div className="profile-block" style={{ margin: 0 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-          flexWrap: "wrap",
-          marginBottom: 12,
-        }}
-      >
-        <div className="profile-block-title" style={{ marginBottom: 0 }}>
-          {title}
+    <div className="form-section">
+      <div className="form-section-header">
+        <div>
+          <h4 className="form-section-title">{title}</h4>
+          {subtitle ? <p className="form-section-subtitle">{subtitle}</p> : null}
         </div>
 
         <button type="button" className="btn btn-ghost" onClick={addItem}>
@@ -58,38 +52,52 @@ export default function RoleRequirementInputs({
         </button>
       </div>
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div className="form-inline-note">
+        Opisuj role prostym językiem. Kandydat powinien szybko zrozumieć,
+        kogo szukacie i czego będzie dotyczyć jego praca.
+      </div>
+
+      <div className="form-grid">
         {items.map((roleRequirement, index) => (
-          <div
-            key={`role-${index}`}
-            style={{
-              border: "1px solid var(--line)",
-              borderRadius: 12,
-              padding: 12,
-              display: "grid",
-              gap: 12,
-            }}
-          >
+          <div key={`role-${index}`} className="form-card">
+            <div className="form-card-header">
+              <div className="form-card-title">Rola {index + 1}</div>
+
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => removeItem(index)}
+              >
+                Usuń
+              </button>
+            </div>
+
             <div
               style={{
                 display: "grid",
                 gap: 12,
-                gridTemplateColumns: "2fr 1fr 1fr auto",
-                alignItems: "end",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
               }}
             >
-              <div>
-                <label><b>Rola</b></label>
+              <div className="field">
+                <label className="field-label">
+                  Nazwa roli
+                </label>
                 <input
                   className="input"
                   value={roleRequirement.roleName}
                   onChange={(e) => updateItem(index, { roleName: e.target.value })}
-                  placeholder="Np. Backend Developer"
+                  placeholder="Np. Frontend Developer"
                 />
+                <p className="field-help">
+                  Podaj nazwę roli tak, jak zobaczy ją kandydat.
+                </p>
               </div>
 
-              <div>
-                <label><b>Liczba miejsc</b></label>
+              <div className="field">
+                <label className="field-label">
+                  Liczba miejsc
+                </label>
                 <input
                   className="input"
                   type="number"
@@ -102,10 +110,15 @@ export default function RoleRequirementInputs({
                     })
                   }
                 />
+                <p className="field-help">
+                  Ile osób chcesz pozyskać do tej roli.
+                </p>
               </div>
 
-              <div>
-                <label><b>Priorytet</b></label>
+              <div className="field">
+                <label className="field-label">
+                  Priorytet
+                </label>
                 <select
                   className="input"
                   value={roleRequirement.priority}
@@ -115,28 +128,32 @@ export default function RoleRequirementInputs({
                     })
                   }
                 >
-                  <option value="1">1</option>
+                  <option value="1">1 — niski</option>
                   <option value="2">2</option>
-                  <option value="3">3</option>
+                  <option value="3">3 — średni</option>
                   <option value="4">4</option>
-                  <option value="5">5</option>
+                  <option value="5">5 — bardzo wysoki</option>
                 </select>
+                <p className="field-help">
+                  Wyższy priorytet oznacza ważniejszą rolę dla rekrutacji.
+                </p>
               </div>
-
-              <button type="button" className="btn btn-ghost" onClick={() => removeItem(index)}>
-                Usuń
-              </button>
             </div>
 
-            <div>
-              <label><b>Opis roli</b></label>
+            <div className="field">
+              <label className="field-label">
+                Krótki opis roli
+              </label>
               <textarea
                 className="input"
                 rows={3}
                 value={roleRequirement.description}
                 onChange={(e) => updateItem(index, { description: e.target.value })}
-                placeholder="Krótko opisz oczekiwania wobec tej roli."
+                placeholder="Np. osoba odpowiedzialna za logikę backendu, integrację API i model danych."
               />
+              <p className="field-help">
+                Napisz krótko, za co będzie odpowiadać ta osoba.
+              </p>
             </div>
           </div>
         ))}

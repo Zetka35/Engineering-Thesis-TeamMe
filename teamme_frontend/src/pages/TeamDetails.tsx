@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import type { TeamDetails as TeamDetailsModel } from "../models/Team";
 import {
@@ -123,6 +123,7 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
 export default function TeamDetails() {
   const { teamId } = useParams();
   const nav = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const numericTeamId = Number(teamId);
 
@@ -196,6 +197,15 @@ export default function TeamDetails() {
     void load();
   }, [numericTeamId]);
 
+  useEffect(() => {
+  const state = location.state as { successMessage?: string } | null;
+
+  if (state?.successMessage) {
+    setSuccessMsg(state.successMessage);
+    nav(location.pathname, { replace: true, state: null });
+  }
+}, [location.pathname, location.state, nav]);
+
   const teamFormInitialValue = useMemo(() => {
     return team ? toTeamFormValue(team) : undefined;
   }, [team]);
@@ -208,14 +218,18 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      const updated = await updateTeam(team.id, toPayload(form));
-      setTeam(updated);
-      setSuccessMsg("Profil zespołu został zapisany.");
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingProfile(false);
-    }
+  const updated = await updateTeam(team.id, toPayload(form));
+  setTeam(updated);
+  setSuccessMsg(
+    "Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów."
+  );
+} catch (e: unknown) {
+  setError(
+    `Nie udało się zapisać zmian w profilu zespołu. ${extractApiMessage(e)}`
+  );
+} finally {
+  setSavingProfile(false);
+}
   }
 
   async function handleApply(payload: { targetRoleName?: string | null; message?: string }) {
@@ -226,14 +240,18 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      await applyToTeam(team.id, payload);
-      setSuccessMsg("Aplikacja do zespołu została wysłana.");
-      await load();
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingApply(false);
-    }
+  await applyToTeam(team.id, payload);
+  setSuccessMsg(
+    "Aplikacja została wysłana. Gdy właściciel zespołu podejmie decyzję, zobaczysz jej status w sekcji aplikacji i zaproszeń."
+  );
+  await load();
+} catch (e: unknown) {
+  setError(
+    `Nie udało się wysłać aplikacji do zespołu. ${extractApiMessage(e)}`
+  );
+} finally {
+  setSavingApply(false);
+}
   }
 
   async function handleInvite(payload: {
@@ -248,14 +266,18 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      await inviteToTeam(team.id, payload);
-      setSuccessMsg("Zaproszenie zostało wysłane.");
-      await load();
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingInvite(false);
-    }
+  await inviteToTeam(team.id, payload);
+  setSuccessMsg(
+    "Zaproszenie zostało wysłane. Odpowiedź zaproszonej osoby pojawi się na liście zgłoszeń i zaproszeń."
+  );
+  await load();
+} catch (e: unknown) {
+  setError(
+    `Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`
+  );
+} finally {
+  setSavingInvite(false);
+}
   }
 
   async function handleRespondRequest(
@@ -267,14 +289,16 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      await respondToRequest(requestId, { decision });
-      setSuccessMsg("Status zgłoszenia został zaktualizowany.");
-      await load();
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setActingRequestId(null);
-    }
+  await respondToRequest(requestId, { decision });
+  setSuccessMsg("Status zgłoszenia został zaktualizowany.");
+  await load();
+} catch (e: unknown) {
+  setError(
+    `Nie udało się zaktualizować statusu zgłoszenia. ${extractApiMessage(e)}`
+  );
+} finally {
+  setActingRequestId(null);
+}
   }
 
   async function onCreateMeeting(e: React.FormEvent) {
@@ -286,26 +310,28 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      const updated = await createMeeting(team.id, {
-        title: meetingTitle,
-        description: meetingDescription,
-        startsAt: toIso(meetingStartsAt)!,
-        endsAt: toIso(meetingEndsAt),
-        location: meetingLocation,
-      });
+  const updated = await createMeeting(team.id, {
+    title: meetingTitle,
+    description: meetingDescription,
+    startsAt: toIso(meetingStartsAt)!,
+    endsAt: toIso(meetingEndsAt),
+    location: meetingLocation,
+  });
 
-      setTeam(updated);
-      setMeetingTitle("");
-      setMeetingDescription("");
-      setMeetingStartsAt("");
-      setMeetingEndsAt("");
-      setMeetingLocation("");
-      setSuccessMsg("Spotkanie zostało dodane.");
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingMeeting(false);
-    }
+  setTeam(updated);
+  setMeetingTitle("");
+  setMeetingDescription("");
+  setMeetingStartsAt("");
+  setMeetingEndsAt("");
+  setMeetingLocation("");
+  setSuccessMsg("Spotkanie zostało dodane do harmonogramu zespołu.");
+} catch (e: unknown) {
+  setError(
+    `Nie udało się dodać spotkania. ${extractApiMessage(e)}`
+  );
+} finally {
+  setSavingMeeting(false);
+}
   }
 
   async function onCreateTask(e: React.FormEvent) {
@@ -317,24 +343,26 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      const updated = await createTask(team.id, {
-        title: taskTitle,
-        description: taskDescription,
-        dueAt: toIso(taskDueAt),
-        assigneeUserId: assigneeUserId === "" ? null : assigneeUserId,
-      });
+  const updated = await createTask(team.id, {
+    title: taskTitle,
+    description: taskDescription,
+    dueAt: toIso(taskDueAt),
+    assigneeUserId: assigneeUserId === "" ? null : assigneeUserId,
+  });
 
-      setTeam(updated);
-      setTaskTitle("");
-      setTaskDescription("");
-      setTaskDueAt("");
-      setAssigneeUserId("");
-      setSuccessMsg("Zadanie zostało dodane.");
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingTask(false);
-    }
+  setTeam(updated);
+  setTaskTitle("");
+  setTaskDescription("");
+  setTaskDueAt("");
+  setAssigneeUserId("");
+  setSuccessMsg("Zadanie zostało dodane do listy zadań zespołu.");
+} catch (e: unknown) {
+  setError(
+    `Nie udało się dodać zadania. ${extractApiMessage(e)}`
+  );
+} finally {
+  setSavingTask(false);
+}
   }
 
   async function handleInviteCandidate(username: string) {
@@ -345,18 +373,22 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      await inviteToTeam(team.id, {
-        username,
-        targetRoleName: null,
-        message: "Zaproszenie wysłane z panelu rekomendowanych kandydatów.",
-      });
-      setSuccessMsg("Zaproszenie zostało wysłane.");
-      await load();
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingInvite(false);
-    }
+  await inviteToTeam(team.id, {
+    username,
+    targetRoleName: null,
+    message: "Zaproszenie wysłane z panelu rekomendowanych kandydatów.",
+  });
+  setSuccessMsg(
+    "Zaproszenie zostało wysłane do rekomendowanego kandydata."
+  );
+  await load();
+} catch (e: unknown) {
+  setError(
+    `Nie udało się wysłać zaproszenia do rekomendowanego kandydata. ${extractApiMessage(e)}`
+  );
+} finally {
+  setSavingInvite(false);
+}
   }
 
   if (loading) {

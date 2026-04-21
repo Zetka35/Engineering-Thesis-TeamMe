@@ -81,7 +81,6 @@ export default function Teams() {
   const [saving, setSaving] = useState(false);
 
   const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
 
   async function load() {
     setLoading(true);
@@ -96,7 +95,9 @@ export default function Teams() {
       setMyTeams(myTeamsResult ?? []);
       setOpenTeams(openTeamsResult ?? []);
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(
+        `Nie udało się załadować listy zespołów. ${extractApiMessage(e)}`
+      );
     } finally {
       setLoading(false);
     }
@@ -114,14 +115,20 @@ export default function Teams() {
   async function handleCreate(form: TeamFormValue) {
     setSaving(true);
     setError("");
-    setSuccessMsg("");
 
     try {
       const created = await createTeam(toPayload(form));
-      setSuccessMsg("Zespół został utworzony.");
-      nav(`/teams/${created.id}`);
+
+      nav(`/teams/${created.id}`, {
+        state: {
+          successMessage:
+            "Zespół został utworzony. Możesz teraz doprecyzować wymagania, zaprosić pierwsze osoby albo przejrzeć rekomendowanych kandydatów.",
+        },
+      });
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(
+        `Nie udało się utworzyć zespołu. Sprawdź obowiązkowe pola i spróbuj ponownie. ${extractApiMessage(e)}`
+      );
     } finally {
       setSaving(false);
     }
@@ -133,23 +140,15 @@ export default function Teams() {
         <div className="card-header">
           <h2 className="card-title">Zespoły</h2>
           <p className="card-subtitle">
-            Tworzenie, przeglądanie i zarządzanie zespołami projektowymi.
+            Twórz zespoły projektowe, zarządzaj rekrutacją i przeglądaj zespoły, do których możesz dołączyć.
           </p>
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 16 }}>
           {error && <div className="alert">{error}</div>}
-          {successMsg && (
-            <div
-              className="alert"
-              style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
-            >
-              {successMsg}
-            </div>
-          )}
 
           <TeamForm
-            title="Utwórz zespół"
+            title="Utwórz nowy zespół"
             submitLabel="Utwórz zespół"
             saving={saving}
             onSubmit={handleCreate}
@@ -161,7 +160,9 @@ export default function Teams() {
             {loading ? (
               <div className="muted">Ładowanie…</div>
             ) : myTeams.length === 0 ? (
-              <div className="muted">Nie należysz jeszcze do żadnego zespołu.</div>
+              <div className="muted">
+                Nie należysz jeszcze do żadnego zespołu. Zacznij od utworzenia pierwszego zespołu powyżej.
+              </div>
             ) : (
               <div style={{ display: "grid", gap: 12 }}>
                 {myTeams.map((team) => (
