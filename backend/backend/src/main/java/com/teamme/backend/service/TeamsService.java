@@ -108,6 +108,22 @@ public class TeamsService {
           List<TaskView> tasks
   ) {}
 
+  public record TeamPublicDetails(
+          Long id,
+          String name,
+          String description,
+          String expectedTimeText,
+          Integer maxMembers,
+          long memberCount,
+          String status,
+          String recruitmentStatus,
+          String projectArea,
+          String experienceLevel,
+          String ownerUsername,
+          List<TechnologyView> technologies,
+          List<RoleRequirementView> roleRequirements
+  ) {}
+
   public record TechnologyInput(
           String name,
           Integer requiredLevel,
@@ -258,7 +274,14 @@ public class TeamsService {
   @Transactional(readOnly = true)
   public TeamDetails getTeam(Long teamId, String username) {
     Team team = getAccessibleTeam(teamId, username);
-    return toDetails(team, username);
+    return toPrivateDetails(team, username);
+  }
+
+  @Transactional(readOnly = true)
+  public TeamPublicDetails getPublicTeam(Long teamId) {
+    Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zespołu."));
+    return toPublicDetails(team);
   }
 
   public TeamDetails createTeam(TeamUpsert req, String username) {
@@ -298,7 +321,7 @@ public class TeamsService {
     replaceTechnologies(saved, req.technologies());
     replaceRoleRequirements(saved, req.roleRequirements());
 
-    return toDetails(saved, username);
+    return toPrivateDetails(saved, username);
   }
 
   public TeamDetails updateTeam(Long teamId, TeamUpsert req, String username) {
@@ -331,7 +354,7 @@ public class TeamsService {
     replaceTechnologies(saved, req.technologies());
     replaceRoleRequirements(saved, req.roleRequirements());
 
-    return toDetails(saved, username);
+    return toPrivateDetails(saved, username);
   }
 
   public TeamDetails addMeeting(Long teamId, MeetingCreate req, String username) {
@@ -366,7 +389,7 @@ public class TeamsService {
     meeting.setCreatedByUser(author);
 
     teamMeetingRepository.save(meeting);
-    return toDetails(team, username);
+    return toPrivateDetails(team, username);
   }
 
   public TeamDetails addTask(Long teamId, TaskCreate req, String username) {
@@ -400,7 +423,7 @@ public class TeamsService {
     task.setCreatedByUser(author);
 
     teamTaskRepository.save(task);
-    return toDetails(team, username);
+    return toPrivateDetails(team, username);
   }
 
   private Team getAccessibleTeam(Long teamId, String username) {
@@ -420,7 +443,9 @@ public class TeamsService {
     return team;
   }
 
-  private TeamDetails toDetails(Team team, String username) {
+  private TeamDetails toPrivateDetails(Team team, String username) {
+    boolean isOwner = team.getOwnerUser() != null && username.equals(team.getOwnerUser().getUsername());
+
     List<MemberView> members = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(team.getId()).stream()
             .map(tm -> new MemberView(
                     tm.getUser().getId(),
@@ -430,29 +455,16 @@ public class TeamsService {
             ))
             .toList();
 
-    List<TechnologyView> technologies = teamTechnologyRepository.findByTeam_IdOrderByNameAsc(team.getId()).stream()
-            .map(t -> new TechnologyView(
-                    t.getId(),
-                    t.getName(),
-                    t.getRequiredLevel(),
-                    t.isRequired()
-            ))
-            .toList();
-
-    List<RoleRequirementView> roleRequirements = teamRoleRequirementRepository
-            .findByTeam_IdOrderByPriorityDescRoleNameAsc(team.getId()).stream()
-            .map(r -> new RoleRequirementView(
-                    r.getId(),
-                    r.getRoleName(),
-                    r.getSlots(),
-                    r.getDescription(),
-                    r.getPriority(),
-                    r.getStatus()
-            ))
-            .toList();
+    List<TechnologyView> technologies = loadTechnologies(team.getId());
+    List<RoleRequirementView> roleRequirements = loadRoleRequirements(team.getId());
 
     List<RecruitmentRequestView> recruitmentRequests = teamRecruitmentRequestRepository
             .findByTeam_IdOrderByCreatedAtDesc(team.getId()).stream()
+            .filter(r ->
+                    isOwner ||
+                            username.equals(r.getUser().getUsername()) ||
+                            (r.getCreatedByUser() != null && username.equals(r.getCreatedByUser().getUsername()))
+            )
             .map(r -> new RecruitmentRequestView(
                     r.getId(),
                     r.getUser().getId(),
@@ -515,6 +527,48 @@ public class TeamsService {
             meetings,
             tasks
     );
+  }
+
+  private TeamPublicDetails toPublicDetails(Team team) {
+    return new TeamPublicDetails(
+            team.getId(),
+            team.getName(),
+            team.getDescription(),
+            team.getExpectedTimeText(),
+            team.getMaxMembers(),
+            teamMemberRepository.countByTeam_Id(team.getId()),
+            team.getStatus(),
+            team.getRecruitmentStatus(),
+            team.getProjectArea(),
+            team.getExperienceLevel(),
+            team.getOwnerUser() == null ? null : team.getOwnerUser().getUsername(),
+            loadTechnologies(team.getId()),
+            loadRoleRequirements(team.getId())
+    );
+  }
+
+  private List<TechnologyView> loadTechnologies(Long teamId) {
+    return teamTechnologyRepository.findByTeam_IdOrderByNameAsc(teamId).stream()
+            .map(t -> new TechnologyView(
+                    t.getId(),
+                    t.getName(),
+                    t.getRequiredLevel(),
+                    t.isRequired()
+            ))
+            .toList();
+  }
+
+  private List<RoleRequirementView> loadRoleRequirements(Long teamId) {
+    return teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescRoleNameAsc(teamId).stream()
+            .map(r -> new RoleRequirementView(
+                    r.getId(),
+                    r.getRoleName(),
+                    r.getSlots(),
+                    r.getDescription(),
+                    r.getPriority(),
+                    r.getStatus()
+            ))
+            .toList();
   }
 
   private void replaceTechnologies(Team team, List<TechnologyInput> requests) {

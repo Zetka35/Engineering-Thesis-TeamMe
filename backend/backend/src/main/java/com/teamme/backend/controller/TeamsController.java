@@ -1,5 +1,6 @@
 package com.teamme.backend.controller;
 
+import com.teamme.backend.service.TeamMatchingService;
 import com.teamme.backend.service.TeamRecruitmentService;
 import com.teamme.backend.service.TeamsService;
 import org.springframework.web.bind.annotation.*;
@@ -12,13 +13,16 @@ public class TeamsController {
 
   private final TeamsService teamsService;
   private final TeamRecruitmentService teamRecruitmentService;
+  private final TeamMatchingService teamMatchingService;
 
   public TeamsController(
           TeamsService teamsService,
-          TeamRecruitmentService teamRecruitmentService
+          TeamRecruitmentService teamRecruitmentService,
+          TeamMatchingService teamMatchingService
   ) {
     this.teamsService = teamsService;
     this.teamRecruitmentService = teamRecruitmentService;
+    this.teamMatchingService = teamMatchingService;
   }
 
   private String currentUsername() {
@@ -41,6 +45,18 @@ public class TeamsController {
   @GetMapping("/{teamId}")
   public TeamsService.TeamDetails getTeam(@PathVariable Long teamId) {
     return teamsService.getTeam(teamId, currentUsername());
+  }
+
+  @GetMapping("/{teamId}/public")
+  public TeamsService.TeamPublicDetails getPublicTeam(@PathVariable Long teamId) {
+    return teamsService.getPublicTeam(teamId);
+  }
+
+  @GetMapping("/{teamId}/recommended-candidates")
+  public List<TeamMatchingService.MatchScoreView> recommendedCandidates(
+          @PathVariable Long teamId
+  ) {
+    return teamMatchingService.recommendUsersForTeam(teamId, currentUsername());
   }
 
   @PostMapping

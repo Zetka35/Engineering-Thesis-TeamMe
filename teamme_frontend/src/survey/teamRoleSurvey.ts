@@ -115,8 +115,8 @@ export const ROLE_ORDER = [
   "Realizator Zadań",
   "Kontroler Jakości",
   "Analityk Strategiczny",
-  "Wspierający Zespołowy",
-  "Łącznik",
+  "Filar Wsparcia",
+  "Łowca Informacji",
 ] as const;
 
 export function isLikert(value: unknown): value is Likert {

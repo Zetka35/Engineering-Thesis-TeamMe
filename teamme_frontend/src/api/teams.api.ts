@@ -1,6 +1,7 @@
 import type {
   RecruitmentRequest,
   TeamDetails,
+  TeamPublicDetails,
   TeamSummary,
   TeamExperienceLevel,
   TeamRecruitmentStatus,
@@ -62,6 +63,17 @@ export type RespondToRequestPayload = {
   decision: "ACCEPTED" | "REJECTED" | "CANCELLED";
 };
 
+export type RecommendedCandidate = {
+  userId: number;
+  username: string;
+  fullName: string;
+  selectedRole?: string | null;
+  score: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  summary: string;
+};
+
 export function fetchTeams(): Promise<TeamSummary[]> {
   return get<TeamSummary[]>("/api/teams");
 }
@@ -72,6 +84,14 @@ export function searchTeams(): Promise<TeamSummary[]> {
 
 export function fetchTeam(teamId: number): Promise<TeamDetails> {
   return get<TeamDetails>(`/api/teams/${teamId}`);
+}
+
+export function fetchPublicTeam(teamId: number): Promise<TeamPublicDetails> {
+  return get<TeamPublicDetails>(`/api/teams/${teamId}/public`);
+}
+
+export function fetchRecommendedCandidates(teamId: number): Promise<RecommendedCandidate[]> {
+  return get<RecommendedCandidate[]>(`/api/teams/${teamId}/recommended-candidates`);
 }
 
 export function createTeam(payload: TeamUpsertPayload): Promise<TeamDetails> {

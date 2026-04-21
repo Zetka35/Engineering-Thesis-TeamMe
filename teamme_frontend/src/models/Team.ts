@@ -115,3 +115,19 @@ export interface TeamDetails {
   meetings: TeamMeeting[];
   tasks: TeamTask[];
 }
+
+export interface TeamPublicDetails {
+  id: number;
+  name: string;
+  description?: string | null;
+  expectedTimeText?: string | null;
+  maxMembers: number;
+  memberCount: number;
+  status: TeamProjectStatus;
+  recruitmentStatus: TeamRecruitmentStatus;
+  projectArea?: string | null;
+  experienceLevel: TeamExperienceLevel;
+  ownerUsername?: string | null;
+  technologies: TeamTechnology[];
+  roleRequirements: TeamRoleRequirement[];
+}

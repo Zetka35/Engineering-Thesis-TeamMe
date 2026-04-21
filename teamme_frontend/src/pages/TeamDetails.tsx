@@ -6,18 +6,19 @@ import {
   applyToTeam,
   createMeeting,
   createTask,
+  fetchRecommendedCandidates,
   fetchTeam,
   inviteToTeam,
   respondToRequest,
   updateTeam,
+  type RecommendedCandidate,
   type TeamUpsertPayload,
 } from "../api/teams.api";
+
 import { extractApiMessage } from "../api/http";
 import TeamForm, { type TeamFormValue } from "../components/teams/TeamForm";
 import RecruitmentPanel from "../components/teams/RecruitmentPanel";
-import RecommendedCandidates, {
-  type RecommendedCandidate,
-} from "../components/teams/RecommendedCandidates";
+import RecommendedCandidates from "../components/teams/RecommendedCandidates";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -149,20 +150,40 @@ export default function TeamDetails() {
   const [taskDueAt, setTaskDueAt] = useState("");
   const [assigneeUserId, setAssigneeUserId] = useState<number | "">("");
 
-  const [recommendedCandidates] = useState<RecommendedCandidate[]>([]);
+  const [recommendedCandidates, setRecommendedCandidates] = useState<RecommendedCandidate[]>([]);
+  const [loadingRecommendedCandidates, setLoadingRecommendedCandidates] = useState(false);
+  const [recommendedCandidatesError, setRecommendedCandidatesError] = useState("");
 
   const isOwner = !!team && !!user && team.ownerUsername === user.username;
   const isMember = !!team && !!user && team.members.some((member) => member.username === user.username);
 
   async function load() {
-    if (!Number.isFinite(numericTeamId)) return;
+  if (!Number.isFinite(numericTeamId)) return;
 
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    try {
-      const data = await fetchTeam(numericTeamId);
-      setTeam(data);
+  try {
+    const data = await fetchTeam(numericTeamId);
+    setTeam(data);
+
+    if (user?.username && data.ownerUsername === user.username) {
+      setLoadingRecommendedCandidates(true);
+      setRecommendedCandidatesError("");
+
+      try {
+        const candidates = await fetchRecommendedCandidates(numericTeamId);
+        setRecommendedCandidates(candidates ?? []);
+      } catch (e: unknown) {
+        setRecommendedCandidates([]);
+        setRecommendedCandidatesError(extractApiMessage(e));
+      } finally {
+        setLoadingRecommendedCandidates(false);
+      }
+      } else {
+        setRecommendedCandidates([]);
+        setRecommendedCandidatesError("");
+      }
     } catch (e: unknown) {
       setError(extractApiMessage(e));
       setTeam(null);
@@ -502,6 +523,8 @@ export default function TeamDetails() {
           {isOwner && (
             <RecommendedCandidates
               candidates={recommendedCandidates}
+              loading={loadingRecommendedCandidates}
+              error={recommendedCandidatesError}
               onInviteCandidate={handleInviteCandidate}
             />
           )}

@@ -52,8 +52,8 @@ export interface RoleScore {
     | "Realizator Zadań"
     | "Kontroler Jakości"
     | "Analityk Strategiczny"
-    | "Wspierający Zespołowy"
-    | "Łącznik";
+    | "Filar Wsparcia"
+    | "Łowca Informacji";
   score: number; // 0..1 (w przybliżeniu)
   explanation: string;
 }
@@ -138,12 +138,12 @@ export function computeRoleScores(norm: BigFiveScores["norm"]): RoleScore[] {
       explanation: "Analiza i krytyczne myślenie.",
     },
     {
-      key: "Wspierający Zespołowy",
+      key: "Filar Wsparcia",
       score: 0.60 * A + 0.20 * S - 0.10 * E,
       explanation: "Pomoc i mediacja.",
     },
     {
-      key: "Łącznik",
+      key: "Łowca Informacji",
       score: 0.60 * E + 0.30 * O + 0.10 * A,
       explanation: "Sieciowanie i reprezentacja.",
     },

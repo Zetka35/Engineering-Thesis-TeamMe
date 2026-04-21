@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { TeamExperienceLevel, TeamRecruitmentStatus, TeamSummary } from "../models/Team";
-import { applyToTeam, searchTeams } from "../api/teams.api";
+import type {
+  TeamExperienceLevel,
+  TeamPublicDetails,
+  TeamRecruitmentStatus,
+  TeamSummary,
+} from "../models/Team";
+import { applyToTeam, fetchPublicTeam, searchTeams } from "../api/teams.api";
 import { extractApiMessage } from "../api/http";
 
 function formatPl(iso?: string | null) {
@@ -48,6 +53,7 @@ export default function TeamSearch() {
 
   const [teams, setTeams] = useState<TeamSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPublicTeam, setLoadingPublicTeam] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -58,6 +64,8 @@ export default function TeamSearch() {
     useState<"" | TeamRecruitmentStatus>("OPEN");
 
   const [expandedApplyTeamId, setExpandedApplyTeamId] = useState<number | null>(null);
+  const [expandedApplyTeamDetails, setExpandedApplyTeamDetails] =
+    useState<TeamPublicDetails | null>(null);
   const [applyTargetRoleName, setApplyTargetRoleName] = useState("");
   const [applyMessage, setApplyMessage] = useState("");
   const [savingApply, setSavingApply] = useState(false);
@@ -106,6 +114,33 @@ export default function TeamSearch() {
     });
   }, [teams, query, projectArea, experienceLevel, recruitmentStatus]);
 
+  async function openApply(teamId: number) {
+    if (expandedApplyTeamId === teamId) {
+      setExpandedApplyTeamId(null);
+      setExpandedApplyTeamDetails(null);
+      setApplyTargetRoleName("");
+      setApplyMessage("");
+      return;
+    }
+
+    setLoadingPublicTeam(true);
+    setError("");
+    setExpandedApplyTeamId(teamId);
+    setExpandedApplyTeamDetails(null);
+    setApplyTargetRoleName("");
+    setApplyMessage("");
+
+    try {
+      const data = await fetchPublicTeam(teamId);
+      setExpandedApplyTeamDetails(data);
+    } catch (e: unknown) {
+      setError(extractApiMessage(e));
+      setExpandedApplyTeamId(null);
+    } finally {
+      setLoadingPublicTeam(false);
+    }
+  }
+
   async function onApply(teamId: number, e: React.FormEvent) {
     e.preventDefault();
     setSavingApply(true);
@@ -120,6 +155,7 @@ export default function TeamSearch() {
 
       setSuccessMsg("Aplikacja została wysłana.");
       setExpandedApplyTeamId(null);
+      setExpandedApplyTeamDetails(null);
       setApplyTargetRoleName("");
       setApplyMessage("");
     } catch (e: unknown) {
@@ -244,7 +280,7 @@ export default function TeamSearch() {
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <button
                           className="btn btn-ghost"
-                          onClick={() => nav(`/teams/${team.id}`)}
+                          onClick={() => nav(`/teams/public/${team.id}`)}
                         >
                           Szczegóły
                         </button>
@@ -252,11 +288,7 @@ export default function TeamSearch() {
                         {team.recruitmentStatus === "OPEN" && (
                           <button
                             className="btn btn-solid"
-                            onClick={() =>
-                              setExpandedApplyTeamId((prev) =>
-                                prev === team.id ? null : team.id
-                              )
-                            }
+                            onClick={() => void openApply(team.id)}
                           >
                             {isApplyOpen ? "Zamknij formularz" : "Aplikuj"}
                           </button>
@@ -277,12 +309,19 @@ export default function TeamSearch() {
                       <form onSubmit={(e) => void onApply(team.id, e)} style={{ display: "grid", gap: 12 }}>
                         <div>
                           <label><b>Docelowa rola</b></label>
-                          <input
+                          <select
                             className="input"
                             value={applyTargetRoleName}
                             onChange={(e) => setApplyTargetRoleName(e.target.value)}
-                            placeholder="Np. Frontend Developer"
-                          />
+                            disabled={loadingPublicTeam}
+                          >
+                            <option value="">Dowolna / nie wskazano</option>
+                            {expandedApplyTeamDetails?.roleRequirements.map((roleRequirement) => (
+                              <option key={roleRequirement.id} value={roleRequirement.roleName}>
+                                {roleRequirement.roleName}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div>
@@ -297,7 +336,7 @@ export default function TeamSearch() {
                         </div>
 
                         <div>
-                          <button className="btn btn-solid" disabled={savingApply}>
+                          <button className="btn btn-solid" disabled={savingApply || loadingPublicTeam}>
                             {savingApply ? "Wysyłanie…" : "Wyślij aplikację"}
                           </button>
                         </div>
