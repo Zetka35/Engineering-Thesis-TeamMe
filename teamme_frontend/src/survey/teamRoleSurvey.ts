@@ -89,7 +89,7 @@ export const TEAMWORK_QUESTIONS: SurveyQuestion[] = [
   },
   {
     id: 8,
-    text: "Ułatwiam rozmowę, gdy emocje utrudniają współpracę.",
+    text: "Dobrze odnajduję się w łagodzeniu konfliktów między innymi osobami.",
   },
   {
     id: 9,
