@@ -1,5 +1,5 @@
 import React from "react";
-import type { TechnologyDraft } from "./TeamForm";
+import type { TechnologyDraft } from "./TeamForm.tsx";
 
 type Props = {
   items: TechnologyDraft[];

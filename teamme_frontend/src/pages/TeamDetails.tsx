@@ -1,12 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import type {
-  RecruitmentRequest,
-  TeamDetails as TeamDetailsModel,
-  TeamExperienceLevel,
-  TeamRecruitmentStatus,
-} from "../models/Team";
+import type { TeamDetails as TeamDetailsModel } from "../models/Team";
 import {
   applyToTeam,
   createMeeting,
@@ -18,65 +13,11 @@ import {
   type TeamUpsertPayload,
 } from "../api/teams.api";
 import { extractApiMessage } from "../api/http";
-
-type TechnologyDraft = {
-  name: string;
-  requiredLevel: number | "";
-  required: boolean;
-};
-
-type RoleRequirementDraft = {
-  roleName: string;
-  slots: number | "";
-  description: string;
-  priority: number | "";
-};
-
-const experienceOptions: Array<{ value: TeamExperienceLevel; label: string }> = [
-  { value: "BEGINNER", label: "Początkujący" },
-  { value: "JUNIOR", label: "Junior" },
-  { value: "MID", label: "Mid" },
-  { value: "SENIOR", label: "Senior" },
-  { value: "MIXED", label: "Mieszany poziom" },
-];
-
-const recruitmentOptions: Array<{ value: TeamRecruitmentStatus; label: string }> = [
-  { value: "OPEN", label: "Otwarta" },
-  { value: "PAUSED", label: "Wstrzymana" },
-  { value: "CLOSED", label: "Zamknięta" },
-  { value: "FULL", label: "Komplet" },
-];
-
-function emptyTechnology(): TechnologyDraft {
-  return {
-    name: "",
-    requiredLevel: "",
-    required: true,
-  };
-}
-
-function emptyRoleRequirement(): RoleRequirementDraft {
-  return {
-    roleName: "",
-    slots: 1,
-    description: "",
-    priority: 3,
-  };
-}
-
-function toIso(localValue: string) {
-  if (!localValue) return undefined;
-  return new Date(localValue).toISOString();
-}
-
-function toLocalInputValue(iso?: string | null) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const tzOffsetMs = d.getTimezoneOffset() * 60 * 1000;
-  const local = new Date(d.getTime() - tzOffsetMs);
-  return local.toISOString().slice(0, 16);
-}
+import TeamForm, { type TeamFormValue } from "../components/teams/TeamForm";
+import RecruitmentPanel from "../components/teams/RecruitmentPanel";
+import RecommendedCandidates, {
+  type RecommendedCandidate,
+} from "../components/teams/RecommendedCandidates";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -117,30 +58,65 @@ function experienceLabel(value?: string | null) {
   }
 }
 
-function requestTypeLabel(value?: string | null) {
-  switch (value) {
-    case "APPLICATION":
-      return "Aplikacja";
-    case "INVITATION":
-      return "Zaproszenie";
-    default:
-      return value || "—";
-  }
+function toIso(localValue: string) {
+  if (!localValue) return undefined;
+  return new Date(localValue).toISOString();
 }
 
-function requestStatusLabel(value?: string | null) {
-  switch (value) {
-    case "PENDING":
-      return "Oczekujące";
-    case "ACCEPTED":
-      return "Zaakceptowane";
-    case "REJECTED":
-      return "Odrzucone";
-    case "CANCELLED":
-      return "Anulowane";
-    default:
-      return value || "—";
-  }
+function toTeamFormValue(team: TeamDetailsModel): TeamFormValue {
+  return {
+    name: team.name ?? "",
+    description: team.description ?? "",
+    expectedTimeText: team.expectedTimeText ?? "",
+    maxMembers: team.maxMembers ?? 4,
+    projectArea: team.projectArea ?? "",
+    experienceLevel: team.experienceLevel,
+    recruitmentStatus: team.recruitmentStatus,
+    technologies:
+      team.technologies?.length > 0
+        ? team.technologies.map((technology) => ({
+            name: technology.name ?? "",
+            requiredLevel: technology.requiredLevel ?? "",
+            required: !!technology.required,
+          }))
+        : [{ name: "", requiredLevel: "", required: true }],
+    roleRequirements:
+      team.roleRequirements?.length > 0
+        ? team.roleRequirements.map((roleRequirement) => ({
+            roleName: roleRequirement.roleName ?? "",
+            slots: roleRequirement.slots ?? 1,
+            description: roleRequirement.description ?? "",
+            priority: roleRequirement.priority ?? 3,
+          }))
+        : [{ roleName: "", slots: 1, description: "", priority: 3 }],
+  };
+}
+
+function toPayload(form: TeamFormValue): TeamUpsertPayload {
+  return {
+    name: form.name,
+    description: form.description,
+    expectedTimeText: form.expectedTimeText,
+    maxMembers: form.maxMembers,
+    projectArea: form.projectArea,
+    experienceLevel: form.experienceLevel,
+    recruitmentStatus: form.recruitmentStatus,
+    technologies: form.technologies
+      .filter((t) => t.name.trim())
+      .map((t) => ({
+        name: t.name.trim(),
+        requiredLevel: t.requiredLevel === "" ? null : Number(t.requiredLevel),
+        required: t.required,
+      })),
+    roleRequirements: form.roleRequirements
+      .filter((r) => r.roleName.trim())
+      .map((r) => ({
+        roleName: r.roleName.trim(),
+        slots: r.slots === "" ? 1 : Number(r.slots),
+        description: r.description,
+        priority: r.priority === "" ? 3 : Number(r.priority),
+      })),
+  };
 }
 
 export default function TeamDetails() {
@@ -162,19 +138,6 @@ export default function TeamDetails() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [expectedTimeText, setExpectedTimeText] = useState("");
-  const [maxMembers, setMaxMembers] = useState(4);
-  const [projectArea, setProjectArea] = useState("");
-  const [experienceLevel, setExperienceLevel] = useState<TeamExperienceLevel>("MIXED");
-  const [recruitmentStatus, setRecruitmentStatus] =
-    useState<TeamRecruitmentStatus>("OPEN");
-  const [technologies, setTechnologies] = useState<TechnologyDraft[]>([emptyTechnology()]);
-  const [roleRequirements, setRoleRequirements] = useState<RoleRequirementDraft[]>([
-    emptyRoleRequirement(),
-  ]);
-
   const [meetingTitle, setMeetingTitle] = useState("");
   const [meetingDescription, setMeetingDescription] = useState("");
   const [meetingStartsAt, setMeetingStartsAt] = useState("");
@@ -186,20 +149,10 @@ export default function TeamDetails() {
   const [taskDueAt, setTaskDueAt] = useState("");
   const [assigneeUserId, setAssigneeUserId] = useState<number | "">("");
 
-  const [applyTargetRoleName, setApplyTargetRoleName] = useState("");
-  const [applyMessage, setApplyMessage] = useState("");
-
-  const [inviteUsername, setInviteUsername] = useState("");
-  const [inviteTargetRoleName, setInviteTargetRoleName] = useState("");
-  const [inviteMessage, setInviteMessage] = useState("");
+  const [recommendedCandidates] = useState<RecommendedCandidate[]>([]);
 
   const isOwner = !!team && !!user && team.ownerUsername === user.username;
-  const isMember = !!team && !!user && team.members.some((m) => m.username === user.username);
-
-  const pendingRequests = useMemo(
-    () => (team?.recruitmentRequests ?? []).filter((r) => r.status === "PENDING"),
-    [team]
-  );
+  const isMember = !!team && !!user && team.members.some((member) => member.username === user.username);
 
   async function load() {
     if (!Number.isFinite(numericTeamId)) return;
@@ -210,35 +163,6 @@ export default function TeamDetails() {
     try {
       const data = await fetchTeam(numericTeamId);
       setTeam(data);
-
-      setName(data.name);
-      setDescription(data.description ?? "");
-      setExpectedTimeText(data.expectedTimeText ?? "");
-      setMaxMembers(data.maxMembers);
-      setProjectArea(data.projectArea ?? "");
-      setExperienceLevel(data.experienceLevel);
-      setRecruitmentStatus(data.recruitmentStatus);
-
-      setTechnologies(
-        data.technologies?.length
-          ? data.technologies.map((t) => ({
-              name: t.name ?? "",
-              requiredLevel: t.requiredLevel ?? "",
-              required: !!t.required,
-            }))
-          : [emptyTechnology()]
-      );
-
-      setRoleRequirements(
-        data.roleRequirements?.length
-          ? data.roleRequirements.map((r) => ({
-              roleName: r.roleName ?? "",
-              slots: r.slots ?? 1,
-              description: r.description ?? "",
-              priority: r.priority ?? 3,
-            }))
-          : [emptyRoleRequirement()]
-      );
     } catch (e: unknown) {
       setError(extractApiMessage(e));
       setTeam(null);
@@ -251,45 +175,11 @@ export default function TeamDetails() {
     void load();
   }, [numericTeamId]);
 
-  function updateTechnology(index: number, patch: Partial<TechnologyDraft>) {
-    setTechnologies((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
-  }
+  const teamFormInitialValue = useMemo(() => {
+    return team ? toTeamFormValue(team) : undefined;
+  }, [team]);
 
-  function updateRoleRequirement(index: number, patch: Partial<RoleRequirementDraft>) {
-    setRoleRequirements((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, ...patch } : item))
-    );
-  }
-
-  function buildPayload(): TeamUpsertPayload {
-    return {
-      name,
-      description,
-      expectedTimeText,
-      maxMembers,
-      projectArea,
-      experienceLevel,
-      recruitmentStatus,
-      technologies: technologies
-        .filter((t) => t.name.trim())
-        .map((t) => ({
-          name: t.name.trim(),
-          requiredLevel: t.requiredLevel === "" ? null : Number(t.requiredLevel),
-          required: t.required,
-        })),
-      roleRequirements: roleRequirements
-        .filter((r) => r.roleName.trim())
-        .map((r) => ({
-          roleName: r.roleName.trim(),
-          slots: r.slots === "" ? 1 : Number(r.slots),
-          description: r.description,
-          priority: r.priority === "" ? 3 : Number(r.priority),
-        })),
-    };
-  }
-
-  async function onSaveProfile(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSaveProfile(form: TeamFormValue) {
     if (!team) return;
 
     setSavingProfile(true);
@@ -297,13 +187,72 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-      const updated = await updateTeam(team.id, buildPayload());
+      const updated = await updateTeam(team.id, toPayload(form));
       setTeam(updated);
       setSuccessMsg("Profil zespołu został zapisany.");
     } catch (e: unknown) {
       setError(extractApiMessage(e));
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function handleApply(payload: { targetRoleName?: string | null; message?: string }) {
+    if (!team) return;
+
+    setSavingApply(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      await applyToTeam(team.id, payload);
+      setSuccessMsg("Aplikacja do zespołu została wysłana.");
+      await load();
+    } catch (e: unknown) {
+      setError(extractApiMessage(e));
+    } finally {
+      setSavingApply(false);
+    }
+  }
+
+  async function handleInvite(payload: {
+    username: string;
+    targetRoleName?: string | null;
+    message?: string;
+  }) {
+    if (!team) return;
+
+    setSavingInvite(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      await inviteToTeam(team.id, payload);
+      setSuccessMsg("Zaproszenie zostało wysłane.");
+      await load();
+    } catch (e: unknown) {
+      setError(extractApiMessage(e));
+    } finally {
+      setSavingInvite(false);
+    }
+  }
+
+  async function handleRespondRequest(
+    requestId: number,
+    decision: "ACCEPTED" | "REJECTED" | "CANCELLED"
+  ) {
+    setActingRequestId(requestId);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      await respondToRequest(requestId, { decision });
+      setSuccessMsg("Status zgłoszenia został zaktualizowany.");
+      await load();
+    } catch (e: unknown) {
+      setError(extractApiMessage(e));
+    } finally {
+      setActingRequestId(null);
     }
   }
 
@@ -367,33 +316,7 @@ export default function TeamDetails() {
     }
   }
 
-  async function onApply(e: React.FormEvent) {
-    e.preventDefault();
-    if (!team) return;
-
-    setSavingApply(true);
-    setError("");
-    setSuccessMsg("");
-
-    try {
-      await applyToTeam(team.id, {
-        targetRoleName: applyTargetRoleName || null,
-        message: applyMessage,
-      });
-
-      setApplyTargetRoleName("");
-      setApplyMessage("");
-      setSuccessMsg("Aplikacja do zespołu została wysłana.");
-      await load();
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setSavingApply(false);
-    }
-  }
-
-  async function onInvite(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleInviteCandidate(username: string) {
     if (!team) return;
 
     setSavingInvite(true);
@@ -402,14 +325,10 @@ export default function TeamDetails() {
 
     try {
       await inviteToTeam(team.id, {
-        username: inviteUsername,
-        targetRoleName: inviteTargetRoleName || null,
-        message: inviteMessage,
+        username,
+        targetRoleName: null,
+        message: "Zaproszenie wysłane z panelu rekomendowanych kandydatów.",
       });
-
-      setInviteUsername("");
-      setInviteTargetRoleName("");
-      setInviteMessage("");
       setSuccessMsg("Zaproszenie zostało wysłane.");
       await load();
     } catch (e: unknown) {
@@ -417,40 +336,6 @@ export default function TeamDetails() {
     } finally {
       setSavingInvite(false);
     }
-  }
-
-  async function onRespondRequest(
-    requestId: number,
-    decision: "ACCEPTED" | "REJECTED" | "CANCELLED"
-  ) {
-    setActingRequestId(requestId);
-    setError("");
-    setSuccessMsg("");
-
-    try {
-      await respondToRequest(requestId, { decision });
-      setSuccessMsg("Status zgłoszenia został zaktualizowany.");
-      await load();
-    } catch (e: unknown) {
-      setError(extractApiMessage(e));
-    } finally {
-      setActingRequestId(null);
-    }
-  }
-
-  function canCurrentUserRespond(request: RecruitmentRequest) {
-    if (!user) return false;
-    if (request.status !== "PENDING") return false;
-
-    if (request.requestType === "APPLICATION") {
-      return isOwner || request.username === user.username;
-    }
-
-    if (request.requestType === "INVITATION") {
-      return isOwner || request.username === user.username;
-    }
-
-    return false;
   }
 
   if (loading) {
@@ -520,338 +405,13 @@ export default function TeamDetails() {
           </div>
 
           {isOwner ? (
-            <div className="profile-block">
-              <div className="profile-block-title">Edytuj profil zespołu</div>
-
-              <form onSubmit={onSaveProfile} style={{ display: "grid", gap: 14 }}>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  }}
-                >
-                  <div>
-                    <label><b>Nazwa zespołu</b></label>
-                    <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
-                  </div>
-
-                  <div>
-                    <label><b>Obszar projektu</b></label>
-                    <input
-                      className="input"
-                      value={projectArea}
-                      onChange={(e) => setProjectArea(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label><b>Opis</b></label>
-                  <textarea
-                    className="input"
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  }}
-                >
-                  <div>
-                    <label><b>Przewidywany czas zaangażowania</b></label>
-                    <input
-                      className="input"
-                      value={expectedTimeText}
-                      onChange={(e) => setExpectedTimeText(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label><b>Liczba miejsc</b></label>
-                    <input
-                      className="input"
-                      type="number"
-                      min={1}
-                      value={maxMembers}
-                      onChange={(e) => setMaxMembers(Number(e.target.value))}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label><b>Poziom doświadczenia</b></label>
-                    <select
-                      className="input"
-                      value={experienceLevel}
-                      onChange={(e) => setExperienceLevel(e.target.value as TeamExperienceLevel)}
-                    >
-                      {experienceOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label><b>Status rekrutacji</b></label>
-                    <select
-                      className="input"
-                      value={recruitmentStatus}
-                      onChange={(e) =>
-                        setRecruitmentStatus(e.target.value as TeamRecruitmentStatus)
-                      }
-                    >
-                      {recruitmentOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="profile-block" style={{ margin: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div className="profile-block-title" style={{ marginBottom: 0 }}>
-                      Technologie
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={() => setTechnologies((prev) => [...prev, emptyTechnology()])}
-                    >
-                      Dodaj technologię
-                    </button>
-                  </div>
-
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {technologies.map((technology, index) => (
-                      <div
-                        key={`tech-${index}`}
-                        style={{
-                          display: "grid",
-                          gap: 12,
-                          gridTemplateColumns: "2fr 1fr auto auto",
-                          alignItems: "end",
-                        }}
-                      >
-                        <div>
-                          <label><b>Nazwa</b></label>
-                          <input
-                            className="input"
-                            value={technology.name}
-                            onChange={(e) =>
-                              updateTechnology(index, { name: e.target.value })
-                            }
-                            placeholder="Np. Spring Boot"
-                          />
-                        </div>
-
-                        <div>
-                          <label><b>Poziom</b></label>
-                          <select
-                            className="input"
-                            value={technology.requiredLevel}
-                            onChange={(e) =>
-                              updateTechnology(index, {
-                                requiredLevel: e.target.value === "" ? "" : Number(e.target.value),
-                              })
-                            }
-                          >
-                            <option value="">—</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                          </select>
-                        </div>
-
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            fontWeight: 700,
-                            paddingBottom: 10,
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={technology.required}
-                            onChange={(e) =>
-                              updateTechnology(index, { required: e.target.checked })
-                            }
-                          />
-                          Wymagana
-                        </label>
-
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          onClick={() =>
-                            setTechnologies((prev) =>
-                              prev.length === 1 ? [emptyTechnology()] : prev.filter((_, i) => i !== index)
-                            )
-                          }
-                        >
-                          Usuń
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="profile-block" style={{ margin: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div className="profile-block-title" style={{ marginBottom: 0 }}>
-                      Poszukiwane role
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={() =>
-                        setRoleRequirements((prev) => [...prev, emptyRoleRequirement()])
-                      }
-                    >
-                      Dodaj rolę
-                    </button>
-                  </div>
-
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {roleRequirements.map((roleRequirement, index) => (
-                      <div
-                        key={`role-${index}`}
-                        style={{
-                          border: "1px solid var(--line)",
-                          borderRadius: 12,
-                          padding: 12,
-                          display: "grid",
-                          gap: 12,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: 12,
-                            gridTemplateColumns: "2fr 1fr 1fr auto",
-                            alignItems: "end",
-                          }}
-                        >
-                          <div>
-                            <label><b>Rola</b></label>
-                            <input
-                              className="input"
-                              value={roleRequirement.roleName}
-                              onChange={(e) =>
-                                updateRoleRequirement(index, { roleName: e.target.value })
-                              }
-                              placeholder="Np. Backend Developer"
-                            />
-                          </div>
-
-                          <div>
-                            <label><b>Miejsca</b></label>
-                            <input
-                              className="input"
-                              type="number"
-                              min={1}
-                              max={20}
-                              value={roleRequirement.slots}
-                              onChange={(e) =>
-                                updateRoleRequirement(index, {
-                                  slots: e.target.value === "" ? "" : Number(e.target.value),
-                                })
-                              }
-                            />
-                          </div>
-
-                          <div>
-                            <label><b>Priorytet</b></label>
-                            <select
-                              className="input"
-                              value={roleRequirement.priority}
-                              onChange={(e) =>
-                                updateRoleRequirement(index, {
-                                  priority: e.target.value === "" ? "" : Number(e.target.value),
-                                })
-                              }
-                            >
-                              <option value="1">1</option>
-                              <option value="2">2</option>
-                              <option value="3">3</option>
-                              <option value="4">4</option>
-                              <option value="5">5</option>
-                            </select>
-                          </div>
-
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            onClick={() =>
-                              setRoleRequirements((prev) =>
-                                prev.length === 1
-                                  ? [emptyRoleRequirement()]
-                                  : prev.filter((_, i) => i !== index)
-                              )
-                            }
-                          >
-                            Usuń
-                          </button>
-                        </div>
-
-                        <div>
-                          <label><b>Opis roli</b></label>
-                          <textarea
-                            className="input"
-                            rows={3}
-                            value={roleRequirement.description}
-                            onChange={(e) =>
-                              updateRoleRequirement(index, {
-                                description: e.target.value,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <button className="btn btn-solid" disabled={savingProfile}>
-                    {savingProfile ? "Zapisywanie…" : "Zapisz profil zespołu"}
-                  </button>
-                </div>
-              </form>
-            </div>
+            <TeamForm
+              title="Edytuj profil zespołu"
+              submitLabel="Zapisz profil zespołu"
+              initialValue={teamFormInitialValue}
+              saving={savingProfile}
+              onSubmit={handleSaveProfile}
+            />
           ) : (
             <>
               <div className="profile-block">
@@ -886,13 +446,22 @@ export default function TeamDetails() {
                           gap: 6,
                         }}
                       >
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                          }}
+                        >
                           <b>{roleRequirement.roleName}</b>
                           <span className="pill">miejsca: {roleRequirement.slots}</span>
                           <span className="pill">priorytet: {roleRequirement.priority}</span>
                           <span className="pill">{roleRequirement.status}</span>
                         </div>
-                        <div className="muted">{roleRequirement.description || "Brak opisu roli."}</div>
+                        <div className="muted">
+                          {roleRequirement.description || "Brak opisu roli."}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -915,213 +484,26 @@ export default function TeamDetails() {
             </div>
           </div>
 
-          {!isMember && team.recruitmentStatus === "OPEN" && (
-            <div className="profile-block">
-              <div className="profile-block-title">Aplikuj do zespołu</div>
-
-              <form onSubmit={onApply} style={{ display: "grid", gap: 12 }}>
-                <div>
-                  <label><b>Docelowa rola</b></label>
-                  <select
-                    className="input"
-                    value={applyTargetRoleName}
-                    onChange={(e) => setApplyTargetRoleName(e.target.value)}
-                  >
-                    <option value="">Dowolna / nie wskazano</option>
-                    {team.roleRequirements.map((roleRequirement) => (
-                      <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                        {roleRequirement.roleName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label><b>Wiadomość</b></label>
-                  <textarea
-                    className="input"
-                    rows={4}
-                    value={applyMessage}
-                    onChange={(e) => setApplyMessage(e.target.value)}
-                    placeholder="Napisz krótko, dlaczego chcesz dołączyć do zespołu."
-                  />
-                </div>
-
-                <div>
-                  <button className="btn btn-solid" disabled={savingApply}>
-                    {savingApply ? "Wysyłanie…" : "Aplikuj do zespołu"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+          <RecruitmentPanel
+            isOwner={isOwner}
+            isMember={isMember}
+            currentUsername={user?.username ?? null}
+            recruitmentStatus={team.recruitmentStatus}
+            roleRequirements={team.roleRequirements}
+            requests={team.recruitmentRequests}
+            savingApply={savingApply}
+            savingInvite={savingInvite}
+            actingRequestId={actingRequestId}
+            onApply={handleApply}
+            onInvite={handleInvite}
+            onRespond={handleRespondRequest}
+          />
 
           {isOwner && (
-            <>
-              <div className="profile-block">
-                <div className="profile-block-title">Zaproś użytkownika</div>
-
-                <form onSubmit={onInvite} style={{ display: "grid", gap: 12 }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    }}
-                  >
-                    <div>
-                      <label><b>Username użytkownika</b></label>
-                      <input
-                        className="input"
-                        value={inviteUsername}
-                        onChange={(e) => setInviteUsername(e.target.value)}
-                        placeholder="Np. anna.front"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label><b>Rola docelowa</b></label>
-                      <select
-                        className="input"
-                        value={inviteTargetRoleName}
-                        onChange={(e) => setInviteTargetRoleName(e.target.value)}
-                      >
-                        <option value="">Dowolna / nie wskazano</option>
-                        {team.roleRequirements.map((roleRequirement) => (
-                          <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                            {roleRequirement.roleName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label><b>Wiadomość</b></label>
-                    <textarea
-                      className="input"
-                      rows={4}
-                      value={inviteMessage}
-                      onChange={(e) => setInviteMessage(e.target.value)}
-                      placeholder="Napisz krótką wiadomość do zapraszanej osoby."
-                    />
-                  </div>
-
-                  <div>
-                    <button className="btn btn-solid" disabled={savingInvite}>
-                      {savingInvite ? "Wysyłanie…" : "Wyślij zaproszenie"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <div className="profile-block">
-                <div className="profile-block-title">
-                  Rekrutacja — zgłoszenia i zaproszenia ({pendingRequests.length} oczekujących)
-                </div>
-
-                {!team.recruitmentRequests.length ? (
-                  <div className="muted">Brak zgłoszeń rekrutacyjnych.</div>
-                ) : (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {team.recruitmentRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        style={{
-                          border: "1px solid var(--line)",
-                          borderRadius: 12,
-                          padding: 12,
-                          display: "grid",
-                          gap: 8,
-                        }}
-                      >
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                          <b>{request.fullName}</b>
-                          <span className="muted">@{request.username}</span>
-                          <span className="pill">{requestTypeLabel(request.requestType)}</span>
-                          <span className="pill">{requestStatusLabel(request.status)}</span>
-                          {request.targetRoleName && (
-                            <span className="pill">rola: {request.targetRoleName}</span>
-                          )}
-                        </div>
-
-                        <div className="muted">
-                          Utworzono: {formatPl(request.createdAt)} | Autor: {request.createdByUsername || "—"}
-                        </div>
-
-                        <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
-                          {request.message || "Brak wiadomości."}
-                        </div>
-
-                        {canCurrentUserRespond(request) && request.status === "PENDING" && (
-                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                            {request.requestType === "APPLICATION" && (
-                              <>
-                                <button
-                                  className="btn btn-solid"
-                                  disabled={actingRequestId === request.id}
-                                  onClick={() => void onRespondRequest(request.id, "ACCEPTED")}
-                                >
-                                  {actingRequestId === request.id ? "Zapisywanie…" : "Akceptuj"}
-                                </button>
-                                <button
-                                  className="btn btn-ghost"
-                                  disabled={actingRequestId === request.id}
-                                  onClick={() => void onRespondRequest(request.id, "REJECTED")}
-                                >
-                                  Odrzuć
-                                </button>
-                                {request.username === user?.username && (
-                                  <button
-                                    className="btn btn-ghost"
-                                    disabled={actingRequestId === request.id}
-                                    onClick={() => void onRespondRequest(request.id, "CANCELLED")}
-                                  >
-                                    Anuluj
-                                  </button>
-                                )}
-                              </>
-                            )}
-
-                            {request.requestType === "INVITATION" && (
-                              <>
-                                {request.username === user?.username ? (
-                                  <>
-                                    <button
-                                      className="btn btn-solid"
-                                      disabled={actingRequestId === request.id}
-                                      onClick={() => void onRespondRequest(request.id, "ACCEPTED")}
-                                    >
-                                      {actingRequestId === request.id ? "Zapisywanie…" : "Przyjmij"}
-                                    </button>
-                                    <button
-                                      className="btn btn-ghost"
-                                      disabled={actingRequestId === request.id}
-                                      onClick={() => void onRespondRequest(request.id, "REJECTED")}
-                                    >
-                                      Odrzuć
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    className="btn btn-ghost"
-                                    disabled={actingRequestId === request.id}
-                                    onClick={() => void onRespondRequest(request.id, "CANCELLED")}
-                                  >
-                                    Anuluj zaproszenie
-                                  </button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
+            <RecommendedCandidates
+              candidates={recommendedCandidates}
+              onInviteCandidate={handleInviteCandidate}
+            />
           )}
 
           <div className="profile-block">
@@ -1183,7 +565,8 @@ export default function TeamDetails() {
                   >
                     <b>{meeting.title}</b>
                     <div className="muted">
-                      {formatPl(meeting.startsAt)}{meeting.endsAt ? ` – ${formatPl(meeting.endsAt)}` : ""}
+                      {formatPl(meeting.startsAt)}
+                      {meeting.endsAt ? ` – ${formatPl(meeting.endsAt)}` : ""}
                     </div>
                     <div className="muted">{meeting.location || "Brak lokalizacji"}</div>
                     <div className="muted">{meeting.description || "Brak opisu."}</div>
@@ -1253,12 +636,20 @@ export default function TeamDetails() {
                       gap: 6,
                     }}
                   >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
                       <b>{task.title}</b>
                       <span className="pill">{task.status}</span>
                     </div>
                     <div className="muted">
-                      Termin: {formatPl(task.dueAt)} | Przypisano: {task.assigneeUsername || "nie przypisano"}
+                      Termin: {formatPl(task.dueAt)} | Przypisano:{" "}
+                      {task.assigneeUsername || "nie przypisano"}
                     </div>
                     <div className="muted">{task.description || "Brak opisu."}</div>
                   </div>

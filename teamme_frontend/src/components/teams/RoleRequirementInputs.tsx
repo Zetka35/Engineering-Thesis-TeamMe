@@ -1,5 +1,5 @@
 import React from "react";
-import type { RoleRequirementDraft } from "./TeamForm";
+import type { RoleRequirementDraft } from "./TeamForm.tsx";
 
 type Props = {
   items: RoleRequirementDraft[];
