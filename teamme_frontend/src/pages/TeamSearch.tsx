@@ -317,10 +317,10 @@ export default function TeamSearch() {
                           >
                             <option value="">Dowolna / nie wskazano</option>
                             {expandedApplyTeamDetails?.roleRequirements.map((roleRequirement) => (
-                              <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                                {roleRequirement.roleName}
-                              </option>
-                            ))}
+  <option key={roleRequirement.id} value={roleRequirement.projectRoleName}>
+    {roleRequirement.projectRoleName}
+  </option>
+))}
                           </select>
                         </div>
 

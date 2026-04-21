@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import type { RecruitmentRequest, TeamRecruitmentStatus, TeamRoleRequirement } from "../../models/Team";
+import type { NetworkUser } from "../../api/user.api";
 import TeamRequestsList from "./TeamRequestsList";
 
 type Props = {
@@ -9,6 +10,8 @@ type Props = {
   recruitmentStatus: TeamRecruitmentStatus;
   roleRequirements: TeamRoleRequirement[];
   requests: RecruitmentRequest[];
+  inviteCandidates?: NetworkUser[];
+  loadingInviteCandidates?: boolean;
   savingApply?: boolean;
   savingInvite?: boolean;
   actingRequestId?: number | null;
@@ -31,6 +34,8 @@ export default function RecruitmentPanel({
   recruitmentStatus,
   roleRequirements,
   requests,
+  inviteCandidates = [],
+  loadingInviteCandidates = false,
   savingApply = false,
   savingInvite = false,
   actingRequestId = null,
@@ -41,6 +46,7 @@ export default function RecruitmentPanel({
   const [applyTargetRoleName, setApplyTargetRoleName] = useState("");
   const [applyMessage, setApplyMessage] = useState("");
 
+  const [inviteQuery, setInviteQuery] = useState("");
   const [inviteUsername, setInviteUsername] = useState("");
   const [inviteTargetRoleName, setInviteTargetRoleName] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
@@ -52,6 +58,32 @@ export default function RecruitmentPanel({
         request.username === currentUsername || request.createdByUsername === currentUsername
     );
   }, [isOwner, requests, currentUsername]);
+
+  const filteredInviteCandidates = useMemo(() => {
+    const q = inviteQuery.trim().toLowerCase();
+    if (!q) return inviteCandidates.slice(0, 8);
+
+    return inviteCandidates
+      .filter((candidate) => {
+        const haystack = [
+          candidate.username,
+          candidate.fullName,
+          candidate.selectedRole,
+          ...(candidate.topSkills ?? []).map((skill) => skill.name),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(q);
+      })
+      .slice(0, 8);
+  }, [inviteCandidates, inviteQuery]);
+
+  const selectedInviteCandidate = useMemo(
+    () => inviteCandidates.find((candidate) => candidate.username === inviteUsername) ?? null,
+    [inviteCandidates, inviteUsername]
+  );
 
   async function handleApply(e: React.FormEvent) {
     e.preventDefault();
@@ -68,7 +100,7 @@ export default function RecruitmentPanel({
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
-    if (!onInvite) return;
+    if (!onInvite || !inviteUsername) return;
 
     await onInvite({
       username: inviteUsername,
@@ -76,6 +108,7 @@ export default function RecruitmentPanel({
       message: inviteMessage,
     });
 
+    setInviteQuery("");
     setInviteUsername("");
     setInviteTargetRoleName("");
     setInviteMessage("");
@@ -88,8 +121,8 @@ export default function RecruitmentPanel({
           <div className="profile-block-title">Aplikuj do zespołu</div>
 
           <form onSubmit={handleApply} style={{ display: "grid", gap: 12 }}>
-            <div>
-              <label><b>Docelowa rola</b></label>
+            <div className="field">
+              <label className="field-label"><b>Docelowa rola projektowa</b></label>
               <select
                 className="input"
                 value={applyTargetRoleName}
@@ -97,15 +130,15 @@ export default function RecruitmentPanel({
               >
                 <option value="">Dowolna / nie wskazano</option>
                 {roleRequirements.map((roleRequirement) => (
-                  <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                    {roleRequirement.roleName}
+                  <option key={roleRequirement.id} value={roleRequirement.projectRoleName}>
+                    {roleRequirement.projectRoleName}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label><b>Wiadomość</b></label>
+            <div className="field">
+              <label className="field-label"><b>Wiadomość</b></label>
               <textarea
                 className="input"
                 rows={4}
@@ -129,43 +162,81 @@ export default function RecruitmentPanel({
           <div className="profile-block-title">Zaproś użytkownika</div>
 
           <form onSubmit={handleInvite} style={{ display: "grid", gap: 12 }}>
-            <div
-              style={{
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <div>
-                <label><b>Username użytkownika</b></label>
-                <input
-                  className="input"
-                  value={inviteUsername}
-                  onChange={(e) => setInviteUsername(e.target.value)}
-                  placeholder="Np. anna.front"
-                  required
-                />
-              </div>
-
-              <div>
-                <label><b>Rola docelowa</b></label>
-                <select
-                  className="input"
-                  value={inviteTargetRoleName}
-                  onChange={(e) => setInviteTargetRoleName(e.target.value)}
-                >
-                  <option value="">Dowolna / nie wskazano</option>
-                  {roleRequirements.map((roleRequirement) => (
-                    <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                      {roleRequirement.roleName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="field">
+              <label className="field-label"><b>Wyszukaj osobę</b></label>
+              <input
+                className="input"
+                value={inviteQuery}
+                onChange={(e) => setInviteQuery(e.target.value)}
+                placeholder="Szukaj po imieniu, username, roli zespołowej lub skillu"
+              />
             </div>
 
-            <div>
-              <label><b>Wiadomość</b></label>
+            {loadingInviteCandidates ? (
+              <div className="muted">Ładowanie listy kontaktów…</div>
+            ) : filteredInviteCandidates.length === 0 ? (
+              <div className="muted">Brak osób pasujących do wyszukiwania.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {filteredInviteCandidates.map((candidate) => {
+                  const isSelected = inviteUsername === candidate.username;
+
+                  return (
+                    <button
+                      key={candidate.username}
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{
+                        justifyContent: "space-between",
+                        border: isSelected ? "2px solid var(--brand-500)" : undefined,
+                      }}
+                      onClick={() => setInviteUsername(candidate.username)}
+                    >
+                      <span style={{ textAlign: "left" }}>
+                        <b>{candidate.fullName || candidate.username}</b>{" "}
+                        <span className="muted">@{candidate.username}</span>
+                        {candidate.selectedRole ? (
+                          <span className="muted"> · rola zespołowa: {candidate.selectedRole}</span>
+                        ) : null}
+                      </span>
+                      <span className="muted">
+                        {(candidate.topSkills ?? []).slice(0, 3).map((skill) => skill.name).join(", ")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedInviteCandidate && (
+              <div className="form-inline-note">
+                Wybrano: <b>{selectedInviteCandidate.fullName || selectedInviteCandidate.username}</b>
+                {" "}(@{selectedInviteCandidate.username})
+                {selectedInviteCandidate.selectedRole
+                  ? ` · rola zespołowa: ${selectedInviteCandidate.selectedRole}`
+                  : ""}
+              </div>
+            )}
+
+            <div className="field">
+              <label className="field-label"><b>Docelowa rola projektowa</b></label>
+              <select
+                className="input"
+                value={inviteTargetRoleName}
+                onChange={(e) => setInviteTargetRoleName(e.target.value)}
+                disabled={!inviteUsername}
+              >
+                <option value="">Dowolna / nie wskazano</option>
+                {roleRequirements.map((roleRequirement) => (
+                  <option key={roleRequirement.id} value={roleRequirement.projectRoleName}>
+                    {roleRequirement.projectRoleName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label className="field-label"><b>Wiadomość</b></label>
               <textarea
                 className="input"
                 rows={4}
@@ -176,7 +247,7 @@ export default function RecruitmentPanel({
             </div>
 
             <div>
-              <button className="btn btn-solid" disabled={savingInvite}>
+              <button className="btn btn-solid" disabled={savingInvite || !inviteUsername}>
                 {savingInvite ? "Wysyłanie…" : "Wyślij zaproszenie"}
               </button>
             </div>

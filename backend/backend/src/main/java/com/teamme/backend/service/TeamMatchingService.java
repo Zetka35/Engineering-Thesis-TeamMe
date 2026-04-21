@@ -15,7 +15,6 @@ import com.teamme.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,11 +31,18 @@ public class TeamMatchingService {
             Long userId,
             String username,
             String fullName,
-            String selectedRole,
+            String selectedTeamRole,
+            String matchedProjectRoleName,
             double score,
             List<String> matchedSkills,
             List<String> missingSkills,
             String summary
+    ) {}
+
+    private record RequirementFit(
+            TeamRoleRequirement requirement,
+            double teamRoleScore,
+            String explanation
     ) {}
 
     private final TeamRepository teamRepository;
@@ -64,8 +70,10 @@ public class TeamMatchingService {
         ensureOwner(team, username);
 
         List<TeamTechnology> technologies = teamTechnologyRepository.findByTeam_IdOrderByNameAsc(teamId);
-        List<TeamRoleRequirement> roleRequirements =
-                teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescRoleNameAsc(teamId);
+        List<TeamRoleRequirement> openRequirements =
+                teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(teamId).stream()
+                        .filter(r -> "OPEN".equals(r.getStatus()))
+                        .toList();
 
         Set<Long> currentMemberIds = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId).stream()
                 .map(tm -> tm.getUser().getId())
@@ -74,7 +82,7 @@ public class TeamMatchingService {
         return userRepository.findAll().stream()
                 .filter(u -> !currentMemberIds.contains(u.getId()))
                 .filter(u -> team.getOwnerUser() == null || !u.getId().equals(team.getOwnerUser().getId()))
-                .map(u -> scoreUserForTeam(u, team, technologies, roleRequirements))
+                .map(u -> scoreUserForTeam(u, team, technologies, openRequirements))
                 .sorted(Comparator.comparing(MatchScoreView::score).reversed()
                         .thenComparing(MatchScoreView::fullName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
@@ -84,18 +92,13 @@ public class TeamMatchingService {
             User user,
             Team team,
             List<TeamTechnology> technologies,
-            List<TeamRoleRequirement> roleRequirements
+            List<TeamRoleRequirement> openRequirements
     ) {
-        List<String> openRoles = roleRequirements.stream()
-                .filter(r -> !"CLOSED".equals(r.getStatus()))
-                .map(TeamRoleRequirement::getRoleName)
-                .filter(x -> x != null && !x.isBlank())
-                .toList();
-
         List<String> requiredTech = technologies.stream()
                 .filter(TeamTechnology::isRequired)
                 .map(TeamTechnology::getName)
                 .filter(x -> x != null && !x.isBlank())
+                .distinct()
                 .toList();
 
         Set<String> userSkills = user.getSkills().stream()
@@ -114,20 +117,32 @@ public class TeamMatchingService {
                 .distinct()
                 .toList();
 
-        double roleScore = computeRoleScore(user.getSelectedRole(), openRoles);
-        double skillScore = computeSkillScore(requiredTech, matchedSkills);
+        RequirementFit requirementFit = findBestRequirementForUser(user, openRequirements);
+
+        double technicalScore = computeTechnicalScore(requiredTech, matchedSkills);
         double experienceScore = computeExperienceScore(team.getExperienceLevel(), user.getExperiences());
         double availabilityScore = computeAvailabilityScore(user.getAvailabilityStatus());
+        double total = round2(
+                technicalScore +
+                        experienceScore +
+                        availabilityScore +
+                        requirementFit.teamRoleScore()
+        );
 
-        double total = round2(roleScore + skillScore + experienceScore + availabilityScore);
-
-        String summary = buildSummary(user, openRoles, matchedSkills, missingSkills, team.getExperienceLevel());
+        String summary = buildSummary(
+                user,
+                requirementFit,
+                matchedSkills,
+                missingSkills,
+                team.getExperienceLevel()
+        );
 
         return new MatchScoreView(
                 user.getId(),
                 user.getUsername(),
                 fullName(user),
                 user.getSelectedRole(),
+                requirementFit.requirement() == null ? null : requirementFit.requirement().getProjectRoleName(),
                 total,
                 matchedSkills,
                 missingSkills,
@@ -135,22 +150,61 @@ public class TeamMatchingService {
         );
     }
 
-    private double computeRoleScore(String selectedRole, List<String> openRoles) {
-        if (openRoles.isEmpty()) {
-            return selectedRole == null || selectedRole.isBlank() ? 10.0 : 20.0;
+    private RequirementFit findBestRequirementForUser(User user, List<TeamRoleRequirement> openRequirements) {
+        if (openRequirements.isEmpty()) {
+            return new RequirementFit(null, 6.0, "zespół nie ma jeszcze zdefiniowanych otwartych ról projektowych");
         }
 
-        if (selectedRole == null || selectedRole.isBlank()) return 0.0;
+        TeamRoleRequirement bestRequirement = null;
+        double bestScore = Double.NEGATIVE_INFINITY;
+        String bestExplanation = "";
 
-        boolean directMatch = openRoles.stream().anyMatch(role -> equalsIgnoreCase(role, selectedRole));
-        return directMatch ? 35.0 : 5.0;
+        for (TeamRoleRequirement requirement : openRequirements) {
+            double teamRoleScore = computeTeamRoleScore(
+                    user.getSelectedRole(),
+                    requirement.getPreferredTeamRole(),
+                    requirement.getTeamRoleImportance()
+            );
+
+            double weightedScore = teamRoleScore + ((requirement.getPriority() == null ? 3 : requirement.getPriority()) * 0.5);
+
+            if (weightedScore > bestScore) {
+                bestScore = weightedScore;
+                bestRequirement = requirement;
+                bestExplanation = buildRequirementExplanation(user.getSelectedRole(), requirement);
+            }
+        }
+
+        return new RequirementFit(bestRequirement, round2(bestScore), bestExplanation);
     }
 
-    private double computeSkillScore(List<String> requiredTech, List<String> matchedSkills) {
-        if (requiredTech.isEmpty()) return 30.0;
+    private double computeTechnicalScore(List<String> requiredTech, List<String> matchedSkills) {
+        if (requiredTech.isEmpty()) return 25.0;
 
         double ratio = (double) matchedSkills.size() / (double) requiredTech.size();
-        return round2(ratio * 40.0);
+        return round2(ratio * 45.0);
+    }
+
+    private double computeTeamRoleScore(
+            String userTeamRole,
+            String preferredTeamRole,
+            Integer teamRoleImportance
+    ) {
+        int importance = teamRoleImportance == null ? 3 : teamRoleImportance;
+
+        if (preferredTeamRole == null || preferredTeamRole.isBlank()) {
+            return 8.0;
+        }
+
+        if (userTeamRole == null || userTeamRole.isBlank()) {
+            return 2.0 + importance;
+        }
+
+        if (equalsIgnoreCase(userTeamRole, preferredTeamRole)) {
+            return round2(8.0 + importance * 2.4);
+        }
+
+        return round2(Math.max(1.0, 6.0 - importance));
     }
 
     private double computeExperienceScore(String expectedLevel, List<UserExperience> experiences) {
@@ -165,7 +219,7 @@ public class TeamMatchingService {
         };
 
         if ("MIXED".equals(expectedLevel)) {
-            return 12.0;
+            return 10.0;
         }
 
         int diff = rank - expectedRank;
@@ -196,36 +250,58 @@ public class TeamMatchingService {
         };
     }
 
+    private String buildRequirementExplanation(String userTeamRole, TeamRoleRequirement requirement) {
+        if (requirement.getPreferredTeamRole() == null || requirement.getPreferredTeamRole().isBlank()) {
+            return "dla tej roli projektowej nie ustawiono preferowanej roli zespołowej";
+        }
+
+        if (userTeamRole == null || userTeamRole.isBlank()) {
+            return "użytkownik nie ma jeszcze przypisanej roli zespołowej w profilu";
+        }
+
+        if (equalsIgnoreCase(userTeamRole, requirement.getPreferredTeamRole())) {
+            return "rola zespołowa użytkownika pokrywa się z preferencją dla tej pozycji";
+        }
+
+        return "rola zespołowa użytkownika różni się od preferowanej dla tej pozycji";
+    }
+
     private String buildSummary(
             User user,
-            List<String> openRoles,
+            RequirementFit requirementFit,
             List<String> matchedSkills,
             List<String> missingSkills,
             String expectedLevel
     ) {
-        List<String> parts = new ArrayList<>();
+        StringBuilder summary = new StringBuilder();
 
-        if (user.getSelectedRole() != null && !user.getSelectedRole().isBlank()) {
-            if (openRoles.stream().anyMatch(r -> equalsIgnoreCase(r, user.getSelectedRole()))) {
-                parts.add("rola użytkownika pasuje do jednej z aktywnie poszukiwanych ról");
-            } else {
-                parts.add("rola użytkownika nie pokrywa się bezpośrednio z aktualnie poszukiwanymi rolami");
+        if (requirementFit.requirement() != null) {
+            summary.append("najlepiej pasuje do roli projektowej: ")
+                    .append(requirementFit.requirement().getProjectRoleName());
+
+            if (requirementFit.requirement().getPreferredTeamRole() != null &&
+                    !requirementFit.requirement().getPreferredTeamRole().isBlank()) {
+                summary.append("; preferowana rola zespołowa dla tej pozycji: ")
+                        .append(requirementFit.requirement().getPreferredTeamRole());
             }
+
+            summary.append("; ").append(requirementFit.explanation());
         } else {
-            parts.add("użytkownik nie ma jeszcze wybranej roli w profilu");
+            summary.append("zespół nie ma jeszcze zdefiniowanych ról projektowych");
         }
 
         if (!matchedSkills.isEmpty()) {
-            parts.add("pokrycie technologii: " + String.join(", ", matchedSkills));
+            summary.append("; pokrycie technologii: ").append(String.join(", ", matchedSkills));
         }
 
         if (!missingSkills.isEmpty()) {
-            parts.add("braki technologiczne: " + String.join(", ", missingSkills));
+            summary.append("; braki technologiczne: ").append(String.join(", ", missingSkills));
         }
 
-        parts.add("oczekiwany poziom doświadczenia zespołu: " + (expectedLevel == null ? "MIXED" : expectedLevel));
+        summary.append("; oczekiwany poziom doświadczenia zespołu: ")
+                .append(expectedLevel == null ? "MIXED" : expectedLevel);
 
-        return String.join("; ", parts);
+        return summary.toString();
     }
 
     private Team loadTeam(Long teamId) {

@@ -170,14 +170,16 @@ export default function Network() {
         message: inviteMessage,
       });
 
-      setSuccessMsg(`Zaproszenie dla użytkownika ${targetUsername} zostało wysłane.`);
+      setSuccessMsg(
+  `Zaproszenie dla użytkownika ${targetUsername} zostało wysłane. Odpowiedź pojawi się na liście zgłoszeń i zaproszeń w wybranym zespole.`
+);
       setExpandedInviteUsername(null);
       setInviteTeamId("");
       setInviteTargetRoleName("");
       setInviteMessage("");
       setSelectedTeamDetails(null);
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(`Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`);
     } finally {
       setSavingInvite(false);
     }
@@ -282,8 +284,8 @@ export default function Network() {
                       </div>
 
                       {networkUser.selectedRole && (
-                        <span className="pill">{networkUser.selectedRole}</span>
-                      )}
+  <span className="pill">rola zespołowa: {networkUser.selectedRole}</span>
+)}
                     </div>
 
                     {networkUser.headline && (
@@ -393,7 +395,7 @@ export default function Network() {
                         </div>
 
                         <div>
-                          <label><b>Docelowa rola</b></label>
+                          <label><b>Docelowa rola projektowa</b></label>
                           <select
                             className="input"
                             value={inviteTargetRoleName}
@@ -402,10 +404,10 @@ export default function Network() {
                           >
                             <option value="">Dowolna / nie wskazano</option>
                             {selectedTeamDetails?.roleRequirements.map((roleRequirement) => (
-                              <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                                {roleRequirement.roleName}
-                              </option>
-                            ))}
+  <option key={roleRequirement.id} value={roleRequirement.projectRoleName}>
+    {roleRequirement.projectRoleName}
+  </option>
+))}
                           </select>
                         </div>
 

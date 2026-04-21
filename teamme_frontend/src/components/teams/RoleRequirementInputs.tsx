@@ -1,5 +1,6 @@
 import React from "react";
 import type { RoleRequirementDraft } from "./TeamForm";
+import { ROLE_ORDER } from "../../survey/teamRoleSurvey";
 
 type Props = {
   items: RoleRequirementDraft[];
@@ -10,10 +11,12 @@ type Props = {
 
 function emptyRoleRequirement(): RoleRequirementDraft {
   return {
-    roleName: "",
+    projectRoleName: "",
     slots: 1,
     description: "",
     priority: 3,
+    preferredTeamRole: "",
+    teamRoleImportance: 3,
   };
 }
 
@@ -53,8 +56,8 @@ export default function RoleRequirementInputs({
       </div>
 
       <div className="form-inline-note">
-        Opisuj role prostym językiem. Kandydat powinien szybko zrozumieć,
-        kogo szukacie i czego będzie dotyczyć jego praca.
+        Każda pozycja rekrutacyjna ma dwa poziomy:
+        <b> rolę projektową</b> oraz <b>preferowany styl współpracy zespołowej</b>.
       </div>
 
       <div className="form-grid">
@@ -76,28 +79,24 @@ export default function RoleRequirementInputs({
               style={{
                 display: "grid",
                 gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
               }}
             >
               <div className="field">
-                <label className="field-label">
-                  Nazwa roli
-                </label>
+                <label className="field-label">Rola projektowa</label>
                 <input
                   className="input"
-                  value={roleRequirement.roleName}
-                  onChange={(e) => updateItem(index, { roleName: e.target.value })}
-                  placeholder="Np. Frontend Developer"
+                  value={roleRequirement.projectRoleName}
+                  onChange={(e) => updateItem(index, { projectRoleName: e.target.value })}
+                  placeholder="Np. Frontend Developer, UX Designer, Tester"
                 />
                 <p className="field-help">
-                  Podaj nazwę roli tak, jak zobaczy ją kandydat.
+                  To rola funkcjonalna, związana z zadaniami i odpowiedzialnością w projekcie.
                 </p>
               </div>
 
               <div className="field">
-                <label className="field-label">
-                  Liczba miejsc
-                </label>
+                <label className="field-label">Liczba miejsc</label>
                 <input
                   className="input"
                   type="number"
@@ -110,15 +109,10 @@ export default function RoleRequirementInputs({
                     })
                   }
                 />
-                <p className="field-help">
-                  Ile osób chcesz pozyskać do tej roli.
-                </p>
               </div>
 
               <div className="field">
-                <label className="field-label">
-                  Priorytet
-                </label>
+                <label className="field-label">Priorytet</label>
                 <select
                   className="input"
                   value={roleRequirement.priority}
@@ -134,25 +128,72 @@ export default function RoleRequirementInputs({
                   <option value="4">4</option>
                   <option value="5">5 — bardzo wysoki</option>
                 </select>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              }}
+            >
+              <div className="field">
+                <label className="field-label">Preferowana rola zespołowa</label>
+                <select
+                  className="input"
+                  value={roleRequirement.preferredTeamRole}
+                  onChange={(e) =>
+                    updateItem(index, { preferredTeamRole: e.target.value })
+                  }
+                >
+                  <option value="">Bez preferencji</option>
+                  {ROLE_ORDER.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
                 <p className="field-help">
-                  Wyższy priorytet oznacza ważniejszą rolę dla rekrutacji.
+                  To Twoja autorska rola zespołowa — określa preferowany styl współpracy, a nie kompetencje techniczne.
+                </p>
+              </div>
+
+              <div className="field">
+                <label className="field-label">Ważność roli zespołowej</label>
+                <select
+                  className="input"
+                  value={roleRequirement.teamRoleImportance}
+                  onChange={(e) =>
+                    updateItem(index, {
+                      teamRoleImportance:
+                        e.target.value === "" ? "" : Number(e.target.value),
+                    })
+                  }
+                >
+                  <option value="1">1 — mało ważne</option>
+                  <option value="2">2</option>
+                  <option value="3">3 — umiarkowanie ważne</option>
+                  <option value="4">4</option>
+                  <option value="5">5 — bardzo ważne</option>
+                </select>
+                <p className="field-help">
+                  Ustaw wyżej, jeśli sposób współpracy jest w tej roli szczególnie istotny.
                 </p>
               </div>
             </div>
 
             <div className="field">
-              <label className="field-label">
-                Krótki opis roli
-              </label>
+              <label className="field-label">Opis odpowiedzialności</label>
               <textarea
                 className="input"
                 rows={3}
                 value={roleRequirement.description}
                 onChange={(e) => updateItem(index, { description: e.target.value })}
-                placeholder="Np. osoba odpowiedzialna za logikę backendu, integrację API i model danych."
+                placeholder="Np. odpowiedzialność za logikę backendu, integrację API i porządkowanie architektury."
               />
               <p className="field-help">
-                Napisz krótko, za co będzie odpowiadać ta osoba.
+                Opisz nie tylko zadania techniczne, ale też oczekiwany sposób działania w zespole.
               </p>
             </div>
           </div>

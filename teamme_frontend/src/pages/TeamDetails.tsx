@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { getNetworkUsers, type NetworkUser } from "../api/user.api";
 import type { TeamDetails as TeamDetailsModel } from "../models/Team";
 import {
   applyToTeam,
@@ -14,7 +15,6 @@ import {
   type RecommendedCandidate,
   type TeamUpsertPayload,
 } from "../api/teams.api";
-
 import { extractApiMessage } from "../api/http";
 import TeamForm, { type TeamFormValue } from "../components/teams/TeamForm";
 import RecruitmentPanel from "../components/teams/RecruitmentPanel";
@@ -84,12 +84,23 @@ function toTeamFormValue(team: TeamDetailsModel): TeamFormValue {
     roleRequirements:
       team.roleRequirements?.length > 0
         ? team.roleRequirements.map((roleRequirement) => ({
-            roleName: roleRequirement.roleName ?? "",
+            projectRoleName: roleRequirement.projectRoleName ?? "",
             slots: roleRequirement.slots ?? 1,
             description: roleRequirement.description ?? "",
             priority: roleRequirement.priority ?? 3,
+            preferredTeamRole: roleRequirement.preferredTeamRole ?? "",
+            teamRoleImportance: roleRequirement.teamRoleImportance ?? 3,
           }))
-        : [{ roleName: "", slots: 1, description: "", priority: 3 }],
+        : [
+            {
+              projectRoleName: "",
+              slots: 1,
+              description: "",
+              priority: 3,
+              preferredTeamRole: "",
+              teamRoleImportance: 3,
+            },
+          ],
   };
 }
 
@@ -110,12 +121,15 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
         required: t.required,
       })),
     roleRequirements: form.roleRequirements
-      .filter((r) => r.roleName.trim())
+      .filter((r) => r.projectRoleName.trim())
       .map((r) => ({
-        roleName: r.roleName.trim(),
+        projectRoleName: r.projectRoleName.trim(),
         slots: r.slots === "" ? 1 : Number(r.slots),
         description: r.description,
         priority: r.priority === "" ? 3 : Number(r.priority),
+        preferredTeamRole: r.preferredTeamRole.trim() || null,
+        teamRoleImportance:
+          r.teamRoleImportance === "" ? 3 : Number(r.teamRoleImportance),
       })),
   };
 }
@@ -155,35 +169,56 @@ export default function TeamDetails() {
   const [loadingRecommendedCandidates, setLoadingRecommendedCandidates] = useState(false);
   const [recommendedCandidatesError, setRecommendedCandidatesError] = useState("");
 
-  const isOwner = !!team && !!user && team.ownerUsername === user.username;
-  const isMember = !!team && !!user && team.members.some((member) => member.username === user.username);
+  const [inviteCandidates, setInviteCandidates] = useState<NetworkUser[]>([]);
+  const [loadingInviteCandidates, setLoadingInviteCandidates] = useState(false);
+
+  const isOwner =
+    !!team && !!user && team.ownerUsername === user.username;
+
+  const isMember =
+    !!team &&
+    !!user &&
+    team.members.some((member) => member.username === user.username);
 
   async function load() {
-  if (!Number.isFinite(numericTeamId)) return;
+    if (!Number.isFinite(numericTeamId)) return;
 
-  setLoading(true);
-  setError("");
+    setLoading(true);
+    setError("");
 
-  try {
-    const data = await fetchTeam(numericTeamId);
-    setTeam(data);
+    try {
+      const data = await fetchTeam(numericTeamId);
+      setTeam(data);
 
-    if (user?.username && data.ownerUsername === user.username) {
-      setLoadingRecommendedCandidates(true);
-      setRecommendedCandidatesError("");
+      if (user?.username && data.ownerUsername === user.username) {
+        setLoadingRecommendedCandidates(true);
+        setLoadingInviteCandidates(true);
+        setRecommendedCandidatesError("");
 
-      try {
-        const candidates = await fetchRecommendedCandidates(numericTeamId);
-        setRecommendedCandidates(candidates ?? []);
-      } catch (e: unknown) {
-        setRecommendedCandidates([]);
-        setRecommendedCandidatesError(extractApiMessage(e));
-      } finally {
-        setLoadingRecommendedCandidates(false);
-      }
+        try {
+          const [candidates, networkUsers] = await Promise.all([
+            fetchRecommendedCandidates(numericTeamId),
+            getNetworkUsers(),
+          ]);
+
+          setRecommendedCandidates(candidates ?? []);
+          setInviteCandidates(
+            (networkUsers ?? []).filter(
+              (candidate) => candidate.username !== user.username
+            )
+          );
+        } catch (e: unknown) {
+          setRecommendedCandidates([]);
+          setInviteCandidates([]);
+          setRecommendedCandidatesError(extractApiMessage(e));
+        } finally {
+          setLoadingRecommendedCandidates(false);
+          setLoadingInviteCandidates(false);
+        }
       } else {
         setRecommendedCandidates([]);
         setRecommendedCandidatesError("");
+        setInviteCandidates([]);
       }
     } catch (e: unknown) {
       setError(extractApiMessage(e));
@@ -195,16 +230,16 @@ export default function TeamDetails() {
 
   useEffect(() => {
     void load();
-  }, [numericTeamId]);
+  }, [numericTeamId, user?.username]);
 
   useEffect(() => {
-  const state = location.state as { successMessage?: string } | null;
+    const state = location.state as { successMessage?: string } | null;
 
-  if (state?.successMessage) {
-    setSuccessMsg(state.successMessage);
-    nav(location.pathname, { replace: true, state: null });
-  }
-}, [location.pathname, location.state, nav]);
+    if (state?.successMessage) {
+      setSuccessMsg(state.successMessage);
+      nav(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, nav]);
 
   const teamFormInitialValue = useMemo(() => {
     return team ? toTeamFormValue(team) : undefined;
@@ -218,21 +253,24 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  const updated = await updateTeam(team.id, toPayload(form));
-  setTeam(updated);
-  setSuccessMsg(
-    "Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów."
-  );
-} catch (e: unknown) {
-  setError(
-    `Nie udało się zapisać zmian w profilu zespołu. ${extractApiMessage(e)}`
-  );
-} finally {
-  setSavingProfile(false);
-}
+      const updated = await updateTeam(team.id, toPayload(form));
+      setTeam(updated);
+      setSuccessMsg(
+        "Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów."
+      );
+    } catch (e: unknown) {
+      setError(
+        `Nie udało się zapisać zmian w profilu zespołu. ${extractApiMessage(e)}`
+      );
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
-  async function handleApply(payload: { targetRoleName?: string | null; message?: string }) {
+  async function handleApply(payload: {
+    targetRoleName?: string | null;
+    message?: string;
+  }) {
     if (!team) return;
 
     setSavingApply(true);
@@ -240,18 +278,18 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  await applyToTeam(team.id, payload);
-  setSuccessMsg(
-    "Aplikacja została wysłana. Gdy właściciel zespołu podejmie decyzję, zobaczysz jej status w sekcji aplikacji i zaproszeń."
-  );
-  await load();
-} catch (e: unknown) {
-  setError(
-    `Nie udało się wysłać aplikacji do zespołu. ${extractApiMessage(e)}`
-  );
-} finally {
-  setSavingApply(false);
-}
+      await applyToTeam(team.id, payload);
+      setSuccessMsg(
+        "Aplikacja została wysłana. Gdy właściciel zespołu podejmie decyzję, zobaczysz jej status w sekcji aplikacji i zaproszeń."
+      );
+      await load();
+    } catch (e: unknown) {
+      setError(
+        `Nie udało się wysłać aplikacji do zespołu. ${extractApiMessage(e)}`
+      );
+    } finally {
+      setSavingApply(false);
+    }
   }
 
   async function handleInvite(payload: {
@@ -266,18 +304,18 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  await inviteToTeam(team.id, payload);
-  setSuccessMsg(
-    "Zaproszenie zostało wysłane. Odpowiedź zaproszonej osoby pojawi się na liście zgłoszeń i zaproszeń."
-  );
-  await load();
-} catch (e: unknown) {
-  setError(
-    `Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`
-  );
-} finally {
-  setSavingInvite(false);
-}
+      await inviteToTeam(team.id, payload);
+      setSuccessMsg(
+        "Zaproszenie zostało wysłane. Odpowiedź zaproszonej osoby pojawi się na liście zgłoszeń i zaproszeń."
+      );
+      await load();
+    } catch (e: unknown) {
+      setError(
+        `Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`
+      );
+    } finally {
+      setSavingInvite(false);
+    }
   }
 
   async function handleRespondRequest(
@@ -289,16 +327,16 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  await respondToRequest(requestId, { decision });
-  setSuccessMsg("Status zgłoszenia został zaktualizowany.");
-  await load();
-} catch (e: unknown) {
-  setError(
-    `Nie udało się zaktualizować statusu zgłoszenia. ${extractApiMessage(e)}`
-  );
-} finally {
-  setActingRequestId(null);
-}
+      await respondToRequest(requestId, { decision });
+      setSuccessMsg("Status zgłoszenia został zaktualizowany.");
+      await load();
+    } catch (e: unknown) {
+      setError(
+        `Nie udało się zaktualizować statusu zgłoszenia. ${extractApiMessage(e)}`
+      );
+    } finally {
+      setActingRequestId(null);
+    }
   }
 
   async function onCreateMeeting(e: React.FormEvent) {
@@ -310,28 +348,26 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  const updated = await createMeeting(team.id, {
-    title: meetingTitle,
-    description: meetingDescription,
-    startsAt: toIso(meetingStartsAt)!,
-    endsAt: toIso(meetingEndsAt),
-    location: meetingLocation,
-  });
+      const updated = await createMeeting(team.id, {
+        title: meetingTitle,
+        description: meetingDescription,
+        startsAt: toIso(meetingStartsAt)!,
+        endsAt: toIso(meetingEndsAt),
+        location: meetingLocation,
+      });
 
-  setTeam(updated);
-  setMeetingTitle("");
-  setMeetingDescription("");
-  setMeetingStartsAt("");
-  setMeetingEndsAt("");
-  setMeetingLocation("");
-  setSuccessMsg("Spotkanie zostało dodane do harmonogramu zespołu.");
-} catch (e: unknown) {
-  setError(
-    `Nie udało się dodać spotkania. ${extractApiMessage(e)}`
-  );
-} finally {
-  setSavingMeeting(false);
-}
+      setTeam(updated);
+      setMeetingTitle("");
+      setMeetingDescription("");
+      setMeetingStartsAt("");
+      setMeetingEndsAt("");
+      setMeetingLocation("");
+      setSuccessMsg("Spotkanie zostało dodane do harmonogramu zespołu.");
+    } catch (e: unknown) {
+      setError(`Nie udało się dodać spotkania. ${extractApiMessage(e)}`);
+    } finally {
+      setSavingMeeting(false);
+    }
   }
 
   async function onCreateTask(e: React.FormEvent) {
@@ -343,26 +379,24 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  const updated = await createTask(team.id, {
-    title: taskTitle,
-    description: taskDescription,
-    dueAt: toIso(taskDueAt),
-    assigneeUserId: assigneeUserId === "" ? null : assigneeUserId,
-  });
+      const updated = await createTask(team.id, {
+        title: taskTitle,
+        description: taskDescription,
+        dueAt: toIso(taskDueAt),
+        assigneeUserId: assigneeUserId === "" ? null : assigneeUserId,
+      });
 
-  setTeam(updated);
-  setTaskTitle("");
-  setTaskDescription("");
-  setTaskDueAt("");
-  setAssigneeUserId("");
-  setSuccessMsg("Zadanie zostało dodane do listy zadań zespołu.");
-} catch (e: unknown) {
-  setError(
-    `Nie udało się dodać zadania. ${extractApiMessage(e)}`
-  );
-} finally {
-  setSavingTask(false);
-}
+      setTeam(updated);
+      setTaskTitle("");
+      setTaskDescription("");
+      setTaskDueAt("");
+      setAssigneeUserId("");
+      setSuccessMsg("Zadanie zostało dodane do listy zadań zespołu.");
+    } catch (e: unknown) {
+      setError(`Nie udało się dodać zadania. ${extractApiMessage(e)}`);
+    } finally {
+      setSavingTask(false);
+    }
   }
 
   async function handleInviteCandidate(username: string) {
@@ -373,22 +407,22 @@ export default function TeamDetails() {
     setSuccessMsg("");
 
     try {
-  await inviteToTeam(team.id, {
-    username,
-    targetRoleName: null,
-    message: "Zaproszenie wysłane z panelu rekomendowanych kandydatów.",
-  });
-  setSuccessMsg(
-    "Zaproszenie zostało wysłane do rekomendowanego kandydata."
-  );
-  await load();
-} catch (e: unknown) {
-  setError(
-    `Nie udało się wysłać zaproszenia do rekomendowanego kandydata. ${extractApiMessage(e)}`
-  );
-} finally {
-  setSavingInvite(false);
-}
+      await inviteToTeam(team.id, {
+        username,
+        targetRoleName: null,
+        message: "Zaproszenie wysłane z panelu rekomendowanych kandydatów.",
+      });
+      setSuccessMsg(
+        "Zaproszenie zostało wysłane do rekomendowanego kandydata."
+      );
+      await load();
+    } catch (e: unknown) {
+      setError(
+        `Nie udało się wysłać zaproszenia do rekomendowanego kandydata. ${extractApiMessage(e)}`
+      );
+    } finally {
+      setSavingInvite(false);
+    }
   }
 
   if (loading) {
@@ -428,7 +462,11 @@ export default function TeamDetails() {
           {successMsg && (
             <div
               className="alert"
-              style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
+              style={{
+                background: "#ecfdf3",
+                color: "#166534",
+                borderColor: "#bbf7d0",
+              }}
             >
               {successMsg}
             </div>
@@ -507,10 +545,18 @@ export default function TeamDetails() {
                             alignItems: "center",
                           }}
                         >
-                          <b>{roleRequirement.roleName}</b>
+                          <b>{roleRequirement.projectRoleName}</b>
                           <span className="pill">miejsca: {roleRequirement.slots}</span>
                           <span className="pill">priorytet: {roleRequirement.priority}</span>
                           <span className="pill">{roleRequirement.status}</span>
+                          {roleRequirement.preferredTeamRole && (
+                            <span className="pill">
+                              preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
+                            </span>
+                          )}
+                          <span className="pill">
+                            ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
+                          </span>
                         </div>
                         <div className="muted">
                           {roleRequirement.description || "Brak opisu roli."}
@@ -544,6 +590,8 @@ export default function TeamDetails() {
             recruitmentStatus={team.recruitmentStatus}
             roleRequirements={team.roleRequirements}
             requests={team.recruitmentRequests}
+            inviteCandidates={inviteCandidates}
+            loadingInviteCandidates={loadingInviteCandidates}
             savingApply={savingApply}
             savingInvite={savingInvite}
             actingRequestId={actingRequestId}

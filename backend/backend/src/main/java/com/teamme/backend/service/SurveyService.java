@@ -346,14 +346,14 @@ public class SurveyService {
     ));
 
     roleScores.add(role(
-            "Wspierający Zespołowy",
+            "Filar Wsparcia",
             0.60 * nA + 0.20 * nS - 0.10 * nE,
             0.20 * nK + 0.10 * nW,
             "Najczęściej pomaga zespołowi utrzymać współpracę, wspiera innych i dobrze działa w sytuacjach wymagających wyważenia stanowisk."
     ));
 
     roleScores.add(role(
-            "Łącznik",
+            "Łowca Informacji",
             0.60 * nE + 0.30 * nO + 0.10 * nA,
             0.20 * nL,
             "Najczęściej dobrze odnajduje się w łączeniu ludzi, inicjowaniu kontaktu i reprezentowaniu zespołu na zewnątrz."

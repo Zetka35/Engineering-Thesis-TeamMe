@@ -10,10 +10,12 @@ export type TechnologyDraft = {
 };
 
 export type RoleRequirementDraft = {
-  roleName: string;
+  projectRoleName: string;
   slots: number | "";
   description: string;
   priority: number | "";
+  preferredTeamRole: string;
+  teamRoleImportance: number | "";
 };
 
 export type TeamFormValue = {
@@ -65,10 +67,12 @@ function emptyTechnology(): TechnologyDraft {
 
 function emptyRoleRequirement(): RoleRequirementDraft {
   return {
-    roleName: "",
+    projectRoleName: "",
     slots: 1,
     description: "",
     priority: 3,
+    preferredTeamRole: "",
+    teamRoleImportance: 3,
   };
 }
 

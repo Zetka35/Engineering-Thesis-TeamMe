@@ -15,7 +15,7 @@ public class TeamRoleRequirement {
     private Team team;
 
     @Column(name = "role_name", nullable = false, length = 80)
-    private String roleName;
+    private String projectRoleName;
 
     @Column(name = "slots", nullable = false)
     private Integer slots = 1;
@@ -25,6 +25,12 @@ public class TeamRoleRequirement {
 
     @Column(name = "priority", nullable = false)
     private Integer priority = 1;
+
+    @Column(name = "preferred_team_role", length = 80)
+    private String preferredTeamRole;
+
+    @Column(name = "team_role_importance", nullable = false)
+    private Integer teamRoleImportance = 3;
 
     @Column(name = "status", nullable = false, length = 20)
     private String status = "OPEN";
@@ -37,8 +43,8 @@ public class TeamRoleRequirement {
     public Team getTeam() { return team; }
     public void setTeam(Team team) { this.team = team; }
 
-    public String getRoleName() { return roleName; }
-    public void setRoleName(String roleName) { this.roleName = roleName; }
+    public String getProjectRoleName() { return projectRoleName; }
+    public void setProjectRoleName(String projectRoleName) { this.projectRoleName = projectRoleName; }
 
     public Integer getSlots() { return slots; }
     public void setSlots(Integer slots) { this.slots = slots; }
@@ -48,6 +54,12 @@ public class TeamRoleRequirement {
 
     public Integer getPriority() { return priority; }
     public void setPriority(Integer priority) { this.priority = priority; }
+
+    public String getPreferredTeamRole() { return preferredTeamRole; }
+    public void setPreferredTeamRole(String preferredTeamRole) { this.preferredTeamRole = preferredTeamRole; }
+
+    public Integer getTeamRoleImportance() { return teamRoleImportance; }
+    public void setTeamRoleImportance(Integer teamRoleImportance) { this.teamRoleImportance = teamRoleImportance; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

@@ -6,6 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface TeamRoleRequirementRepository extends JpaRepository<TeamRoleRequirement, Long> {
-    List<TeamRoleRequirement> findByTeam_IdOrderByPriorityDescRoleNameAsc(Long teamId);
+    List<TeamRoleRequirement> findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(Long teamId);
     void deleteByTeam_Id(Long teamId);
 }

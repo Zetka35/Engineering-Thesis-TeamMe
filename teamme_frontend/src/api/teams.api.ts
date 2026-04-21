@@ -15,10 +15,12 @@ export type TechnologyInputPayload = {
 };
 
 export type RoleRequirementInputPayload = {
-  roleName: string;
+  projectRoleName: string;
   slots: number;
   description?: string;
   priority: number;
+  preferredTeamRole?: string | null;
+  teamRoleImportance: number;
 };
 
 export type TeamUpsertPayload = {
@@ -67,7 +69,8 @@ export type RecommendedCandidate = {
   userId: number;
   username: string;
   fullName: string;
-  selectedRole?: string | null;
+  selectedTeamRole?: string | null;
+  matchedProjectRoleName?: string | null;
   score: number;
   matchedSkills: string[];
   missingSkills: string[];

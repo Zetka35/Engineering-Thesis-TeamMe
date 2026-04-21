@@ -233,11 +233,11 @@ public class TeamRecruitmentService {
     private void syncRoleRequirementStatuses(Team team) {
         List<TeamMember> members = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(team.getId());
         List<TeamRoleRequirement> roleRequirements =
-                teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescRoleNameAsc(team.getId());
+                teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(team.getId());
 
         for (TeamRoleRequirement requirement : roleRequirements) {
             long assigned = members.stream()
-                    .filter(m -> equalsIgnoreCase(m.getRoleLabel(), requirement.getRoleName()))
+                    .filter(m -> equalsIgnoreCase(m.getRoleLabel(), requirement.getProjectRoleName()))
                     .count();
 
             if (assigned >= requirement.getSlots()) {
@@ -300,8 +300,8 @@ public class TeamRecruitmentService {
     private void validateTargetRoleIfProvided(Long teamId, String targetRoleName) {
         if (targetRoleName == null) return;
 
-        boolean exists = teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescRoleNameAsc(teamId).stream()
-                .anyMatch(r -> equalsIgnoreCase(r.getRoleName(), targetRoleName));
+        boolean exists = teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(teamId).stream()
+                .anyMatch(r -> equalsIgnoreCase(r.getProjectRoleName(), targetRoleName));
 
         if (!exists) {
             throw new IllegalArgumentException("Wybrana rola nie znajduje się na liście ról poszukiwanych przez zespół.");

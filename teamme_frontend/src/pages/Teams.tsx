@@ -61,13 +61,15 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
         required: t.required,
       })),
     roleRequirements: form.roleRequirements
-      .filter((r) => r.roleName.trim())
-      .map((r) => ({
-        roleName: r.roleName.trim(),
-        slots: r.slots === "" ? 1 : Number(r.slots),
-        description: r.description,
-        priority: r.priority === "" ? 3 : Number(r.priority),
-      })),
+  .filter((r) => r.projectRoleName.trim())
+  .map((r) => ({
+    projectRoleName: r.projectRoleName.trim(),
+    slots: r.slots === "" ? 1 : Number(r.slots),
+    description: r.description,
+    priority: r.priority === "" ? 3 : Number(r.priority),
+    preferredTeamRole: r.preferredTeamRole.trim() || null,
+    teamRoleImportance: r.teamRoleImportance === "" ? 3 : Number(r.teamRoleImportance),
+  })),
   };
 }
 

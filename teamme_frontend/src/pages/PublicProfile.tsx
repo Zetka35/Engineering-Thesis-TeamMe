@@ -145,14 +145,16 @@ export default function PublicProfile() {
         message: inviteMessage,
       });
 
-      setSuccessMsg(`Zaproszenie dla użytkownika ${profile.username} zostało wysłane.`);
+      setSuccessMsg(
+  `Zaproszenie dla użytkownika ${profile.username} zostało wysłane. Odpowiedź pojawi się na liście zgłoszeń i zaproszeń w wybranym zespole.`
+);
       setInviteOpen(false);
       setInviteTeamId("");
       setInviteTargetRoleName("");
       setInviteMessage("");
       setSelectedTeamDetails(null);
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(`Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`);
     } finally {
       setSavingInvite(false);
     }
@@ -261,7 +263,7 @@ export default function PublicProfile() {
                 </div>
 
                 <div>
-                  <label><b>Docelowa rola</b></label>
+                  <label><b>Docelowa rola projektowa</b></label>
                   <select
                     className="input"
                     value={inviteTargetRoleName}
@@ -270,9 +272,9 @@ export default function PublicProfile() {
                   >
                     <option value="">Dowolna / nie wskazano</option>
                     {selectedTeamDetails?.roleRequirements.map((roleRequirement) => (
-                      <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                        {roleRequirement.roleName}
-                      </option>
+                      <option key={roleRequirement.id} value={roleRequirement.projectRoleName}>
+  {roleRequirement.projectRoleName}
+</option>
                     ))}
                   </select>
                 </div>
@@ -299,7 +301,9 @@ export default function PublicProfile() {
 
           <div className="profile-block" style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              {profile.selectedRole && <span className="pill">{profile.selectedRole}</span>}
+              {profile.selectedRole && (
+  <span className="pill">rola zespołowa: {profile.selectedRole}</span>
+)}
               {profile.headline && <b>{profile.headline}</b>}
             </div>
 

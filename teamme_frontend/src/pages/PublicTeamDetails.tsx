@@ -85,11 +85,15 @@ export default function PublicTeamDetails() {
         message,
       });
 
-      setSuccessMsg("Aplikacja do zespołu została wysłana.");
+      setSuccessMsg(
+        "Aplikacja do zespołu została wysłana. Gdy właściciel zespołu podejmie decyzję, jej status pojawi się w Twoich aplikacjach i zaproszeniach."
+      );
       setTargetRoleName("");
       setMessage("");
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(
+        `Nie udało się wysłać aplikacji do zespołu. ${extractApiMessage(e)}`
+      );
     } finally {
       setSavingApply(false);
     }
@@ -122,9 +126,7 @@ export default function PublicTeamDetails() {
       <section className="card">
         <div className="card-header">
           <h2 className="card-title">{team.name}</h2>
-          <p className="card-subtitle">
-            Publiczny widok zespołu dla kandydatów
-          </p>
+          <p className="card-subtitle">Publiczny widok zespołu dla kandydatów</p>
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 14 }}>
@@ -132,7 +134,11 @@ export default function PublicTeamDetails() {
           {successMsg && (
             <div
               className="alert"
-              style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
+              style={{
+                background: "#ecfdf3",
+                color: "#166534",
+                borderColor: "#bbf7d0",
+              }}
             >
               {successMsg}
             </div>
@@ -180,6 +186,7 @@ export default function PublicTeamDetails() {
 
           <div className="profile-block">
             <div className="profile-block-title">Poszukiwane role</div>
+
             {team.roleRequirements.length ? (
               <div style={{ display: "grid", gap: 10 }}>
                 {team.roleRequirements.map((roleRequirement) => (
@@ -193,12 +200,30 @@ export default function PublicTeamDetails() {
                       gap: 6,
                     }}
                   >
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                      <b>{roleRequirement.roleName}</b>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 10,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <b>{roleRequirement.projectRoleName}</b>
                       <span className="pill">miejsca: {roleRequirement.slots}</span>
                       <span className="pill">priorytet: {roleRequirement.priority}</span>
                       <span className="pill">{roleRequirement.status}</span>
+
+                      {roleRequirement.preferredTeamRole && (
+                        <span className="pill">
+                          preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
+                        </span>
+                      )}
+
+                      <span className="pill">
+                        ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
+                      </span>
                     </div>
+
                     <div className="muted">
                       {roleRequirement.description || "Brak opisu roli."}
                     </div>
@@ -215,8 +240,10 @@ export default function PublicTeamDetails() {
               <div className="profile-block-title">Aplikuj do zespołu</div>
 
               <form onSubmit={handleApply} style={{ display: "grid", gap: 12 }}>
-                <div>
-                  <label><b>Docelowa rola</b></label>
+                <div className="field">
+                  <label className="field-label">
+                    <b>Docelowa rola projektowa</b>
+                  </label>
                   <select
                     className="input"
                     value={targetRoleName}
@@ -224,21 +251,26 @@ export default function PublicTeamDetails() {
                   >
                     <option value="">Dowolna / nie wskazano</option>
                     {team.roleRequirements.map((roleRequirement) => (
-                      <option key={roleRequirement.id} value={roleRequirement.roleName}>
-                        {roleRequirement.roleName}
+                      <option
+                        key={roleRequirement.id}
+                        value={roleRequirement.projectRoleName}
+                      >
+                        {roleRequirement.projectRoleName}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div>
-                  <label><b>Wiadomość</b></label>
+                <div className="field">
+                  <label className="field-label">
+                    <b>Wiadomość</b>
+                  </label>
                   <textarea
                     className="input"
                     rows={4}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Napisz, dlaczego chcesz dołączyć do tego zespołu."
+                    placeholder="Napisz, dlaczego chcesz dołączyć do tego zespołu i co możesz wnieść do projektu."
                   />
                 </div>
 

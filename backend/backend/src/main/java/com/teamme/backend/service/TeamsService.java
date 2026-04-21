@@ -17,6 +17,16 @@ import java.util.stream.Stream;
 @Transactional
 public class TeamsService {
 
+  private static final List<String> TEAM_ROLE_NAMES = List.of(
+          "Inicjator Pomysłów",
+          "Koordynator Relacji",
+          "Realizator Zadań",
+          "Kontroler Jakości",
+          "Analityk Strategiczny",
+          "Filar Wsparcia",
+          "Łowca Informacji"
+  );
+
   public record TeamSummary(
           Long id,
           String name,
@@ -66,10 +76,12 @@ public class TeamsService {
 
   public record RoleRequirementView(
           Long id,
-          String roleName,
+          String projectRoleName,
           Integer slots,
           String description,
           Integer priority,
+          String preferredTeamRole,
+          Integer teamRoleImportance,
           String status
   ) {}
 
@@ -131,10 +143,12 @@ public class TeamsService {
   ) {}
 
   public record RoleRequirementInput(
-          String roleName,
+          String projectRoleName,
           Integer slots,
           String description,
-          Integer priority
+          Integer priority,
+          String preferredTeamRole,
+          Integer teamRoleImportance
   ) {}
 
   public record TeamUpsert(
@@ -559,13 +573,15 @@ public class TeamsService {
   }
 
   private List<RoleRequirementView> loadRoleRequirements(Long teamId) {
-    return teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescRoleNameAsc(teamId).stream()
+    return teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(teamId).stream()
             .map(r -> new RoleRequirementView(
                     r.getId(),
-                    r.getRoleName(),
+                    r.getProjectRoleName(),
                     r.getSlots(),
                     r.getDescription(),
                     r.getPriority(),
+                    r.getPreferredTeamRole(),
+                    r.getTeamRoleImportance(),
                     r.getStatus()
             ))
             .toList();
@@ -603,29 +619,50 @@ public class TeamsService {
     for (RoleRequirementInput req : requests) {
       if (req == null) continue;
 
-      String roleName = normalize(req.roleName(), 80);
-      if (roleName == null) continue;
+      String projectRoleName = normalize(req.projectRoleName(), 80);
+      if (projectRoleName == null) continue;
 
       Integer slots = req.slots() == null ? 1 : req.slots();
       if (slots < 1) {
         throw new IllegalArgumentException("Liczba miejsc dla roli musi być większa od 0.");
       }
 
-      Integer priority = req.priority() == null ? 1 : req.priority();
+      Integer priority = req.priority() == null ? 3 : req.priority();
       if (priority < 1 || priority > 5) {
         throw new IllegalArgumentException("Priorytet roli musi być w zakresie 1-5.");
       }
 
+      Integer teamRoleImportance = req.teamRoleImportance() == null ? 3 : req.teamRoleImportance();
+      if (teamRoleImportance < 1 || teamRoleImportance > 5) {
+        throw new IllegalArgumentException("Ważność roli zespołowej musi być w zakresie 1-5.");
+      }
+
+      String preferredTeamRole = normalizeTeamRole(req.preferredTeamRole());
+
       TeamRoleRequirement entity = new TeamRoleRequirement();
       entity.setTeam(team);
-      entity.setRoleName(roleName);
+      entity.setProjectRoleName(projectRoleName);
       entity.setSlots(slots);
       entity.setDescription(normalize(req.description(), 4000));
       entity.setPriority(priority);
+      entity.setPreferredTeamRole(preferredTeamRole);
+      entity.setTeamRoleImportance(teamRoleImportance);
       entity.setStatus("OPEN");
 
       teamRoleRequirementRepository.save(entity);
     }
+  }
+
+  private String normalizeTeamRole(String value) {
+    String normalized = normalize(value, 80);
+    if (normalized == null) return null;
+
+    return TEAM_ROLE_NAMES.stream()
+            .filter(role -> role.equalsIgnoreCase(normalized))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException(
+                    "Nieprawidłowa rola zespołowa. Dozwolone wartości: " + String.join(", ", TEAM_ROLE_NAMES)
+            ));
   }
 
   private String fullName(User user) {

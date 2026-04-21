@@ -74,10 +74,12 @@ export interface TeamTechnology {
 
 export interface TeamRoleRequirement {
   id: number;
-  roleName: string;
+  projectRoleName: string;
   slots: number;
   description?: string | null;
   priority: number;
+  preferredTeamRole?: string | null;
+  teamRoleImportance: number;
   status: "OPEN" | "FILLED" | "CLOSED" | string;
 }
 
