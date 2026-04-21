@@ -14,4 +14,13 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
         order by tm.team.createdAt desc
     """)
     List<Team> findAllForUsername(String username);
+
+    @Query("""
+    select t
+    from Team t
+    where t.recruitmentStatus = 'OPEN'
+    order by t.createdAt desc
+""")
+    List<Team> findAllOpenRecruitment();
 }
+
