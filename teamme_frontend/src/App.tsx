@@ -17,6 +17,7 @@ import Profile from "./pages/Profile";
 import TeamDetails from "./pages/TeamDetails";
 import Network from "./pages/Network";
 import PublicProfile from "./pages/PublicProfile";
+import TeamSearch from "./pages/TeamSearch";
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -41,7 +42,7 @@ function AppShell() {
             <Route path="/dashboard" element={<Placeholder title="Strona główna" />} />
             <Route path="/tasks" element={<Placeholder title="Zadania" />} />
             <Route path="/messages" element={<Placeholder title="Skrzynka wiadomości" />} />
-            <Route path="/team-search" element={<Placeholder title="Szukaj zespołu" />} />
+            <Route path="/team-search" element={<TeamSearch />} />
             <Route path="/history" element={<Placeholder title="Historia pracy" />} />
             <Route path="/workspace" element={<Placeholder title="Przestrzeń robocza" />} />
 
