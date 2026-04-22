@@ -10,7 +10,6 @@ const items = [
   { to: "/network", label: "Nawiązywanie kontaktów" },
   { to: "/teams", label: "Moje zespoły" },
   { to: "/history", label: "Historia pracy" },
-  { to: "/workspace", label: "Przestrzeń robocza" },
   { to: "/profile", label: "Profil" },
 ];
 

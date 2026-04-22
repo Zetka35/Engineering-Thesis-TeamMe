@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import type { RecruitmentRequest } from "../models/Team";
 import { fetchMyRecruitmentRequests, respondToRequest } from "../api/teams.api";
 import { extractApiMessage } from "../api/http";
@@ -37,8 +38,9 @@ function formatPl(iso?: string | null) {
   return d.toLocaleString("pl-PL");
 }
 
-export default function MyRecruitmentRequests() {
+export default function Messages() {
   const nav = useNavigate();
+  const { user } = useAuth();
 
   const [requests, setRequests] = useState<RecruitmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,9 +66,36 @@ export default function MyRecruitmentRequests() {
     void load();
   }, []);
 
-  const pendingRequests = useMemo(
-    () => requests.filter((request) => request.status === "PENDING"),
-    [requests]
+  const currentUsername = user?.username ?? "";
+
+  const incomingInvitations = useMemo(
+    () =>
+      requests.filter(
+        (request) =>
+          request.requestType === "INVITATION" &&
+          request.username === currentUsername
+      ),
+    [requests, currentUsername]
+  );
+
+  const outgoingInvitations = useMemo(
+    () =>
+      requests.filter(
+        (request) =>
+          request.requestType === "INVITATION" &&
+          request.createdByUsername === currentUsername
+      ),
+    [requests, currentUsername]
+  );
+
+  const myApplications = useMemo(
+    () =>
+      requests.filter(
+        (request) =>
+          request.requestType === "APPLICATION" &&
+          request.createdByUsername === currentUsername
+      ),
+    [requests, currentUsername]
   );
 
   const historyRequests = useMemo(
@@ -84,10 +113,10 @@ export default function MyRecruitmentRequests() {
 
     try {
       await respondToRequest(requestId, { decision });
-      setSuccessMsg("Status zgłoszenia został zaktualizowany.");
+      setSuccessMsg("Status wiadomości został zaktualizowany.");
       await load();
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(`Nie udało się zaktualizować wiadomości. ${extractApiMessage(e)}`);
     } finally {
       setActingRequestId(null);
     }
@@ -96,19 +125,18 @@ export default function MyRecruitmentRequests() {
   function renderActions(request: RecruitmentRequest) {
     if (request.status !== "PENDING") return null;
 
-    if (request.requestType === "APPLICATION") {
-      return (
-        <button
-          className="btn btn-ghost"
-          disabled={actingRequestId === request.id}
-          onClick={() => void handleRespond(request.id, "CANCELLED")}
-        >
-          {actingRequestId === request.id ? "Zapisywanie…" : "Anuluj aplikację"}
-        </button>
-      );
-    }
+    const isIncomingInvitation =
+      request.requestType === "INVITATION" && request.username === currentUsername;
 
-    if (request.requestType === "INVITATION") {
+    const isOutgoingInvitation =
+      request.requestType === "INVITATION" &&
+      request.createdByUsername === currentUsername;
+
+    const isMyApplication =
+      request.requestType === "APPLICATION" &&
+      request.createdByUsername === currentUsername;
+
+    if (isIncomingInvitation) {
       return (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button
@@ -129,20 +157,50 @@ export default function MyRecruitmentRequests() {
       );
     }
 
+    if (isOutgoingInvitation) {
+      return (
+        <button
+          className="btn btn-ghost"
+          disabled={actingRequestId === request.id}
+          onClick={() => void handleRespond(request.id, "CANCELLED")}
+        >
+          {actingRequestId === request.id ? "Zapisywanie…" : "Anuluj zaproszenie"}
+        </button>
+      );
+    }
+
+    if (isMyApplication) {
+      return (
+        <button
+          className="btn btn-ghost"
+          disabled={actingRequestId === request.id}
+          onClick={() => void handleRespond(request.id, "CANCELLED")}
+        >
+          {actingRequestId === request.id ? "Zapisywanie…" : "Anuluj aplikację"}
+        </button>
+      );
+    }
+
     return null;
   }
 
-  function renderRequestCard(request: RecruitmentRequest) {
+  function renderRequestCard(request: RecruitmentRequest, contextLabel: string) {
     return (
       <div
-        key={request.id}
+        key={`${contextLabel}-${request.id}`}
         className="profile-block"
         style={{ display: "grid", gap: 8 }}
       >
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <span className="pill">{requestTypeLabel(request.requestType)}</span>
           <span className="pill">{requestStatusLabel(request.status)}</span>
-          {request.targetRoleName && <span className="pill">rola: {request.targetRoleName}</span>}
+          {request.targetRoleName && (
+            <span className="pill">rola projektowa: {request.targetRoleName}</span>
+          )}
+        </div>
+
+        <div>
+          <b>Zespół:</b> {request.teamName}
         </div>
 
         <div>
@@ -159,7 +217,16 @@ export default function MyRecruitmentRequests() {
           {request.message || "Brak wiadomości."}
         </div>
 
-        {renderActions(request)}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => nav(`/teams/${request.teamId}`)}
+          >
+            Otwórz zespół
+          </button>
+
+          {renderActions(request)}
+        </div>
       </div>
     );
   }
@@ -178,9 +245,9 @@ export default function MyRecruitmentRequests() {
             }}
           >
             <div>
-              <h2 className="card-title">Moje aplikacje i zaproszenia</h2>
+              <h2 className="card-title">Skrzynka wiadomości</h2>
               <p className="card-subtitle">
-                Tu zobaczysz wysłane aplikacje oraz otrzymane zaproszenia do zespołów.
+                Tu znajdziesz zaproszenia do zespołów, wysłane zaproszenia, własne aplikacje oraz historię decyzji.
               </p>
             </div>
 
@@ -203,35 +270,71 @@ export default function MyRecruitmentRequests() {
 
           {loading ? (
             <div className="profile-block">
-              <div className="muted">Ładowanie zgłoszeń…</div>
+              <div className="muted">Ładowanie wiadomości…</div>
             </div>
           ) : (
             <>
               <div className="profile-block">
                 <div className="profile-block-title">
-                  Oczekujące ({pendingRequests.length})
+                  Otrzymane zaproszenia ({incomingInvitations.length})
                 </div>
 
-                {pendingRequests.length ? (
+                {incomingInvitations.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
-                    {pendingRequests.map(renderRequestCard)}
+                    {incomingInvitations.map((request) =>
+                      renderRequestCard(request, "incoming-invitation")
+                    )}
                   </div>
                 ) : (
-                  <div className="muted">Brak oczekujących aplikacji i zaproszeń.</div>
+                  <div className="muted">Brak otrzymanych zaproszeń.</div>
                 )}
               </div>
 
               <div className="profile-block">
                 <div className="profile-block-title">
-                  Historia ({historyRequests.length})
+                  Wysłane zaproszenia ({outgoingInvitations.length})
+                </div>
+
+                {outgoingInvitations.length ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {outgoingInvitations.map((request) =>
+                      renderRequestCard(request, "outgoing-invitation")
+                    )}
+                  </div>
+                ) : (
+                  <div className="muted">Brak wysłanych zaproszeń.</div>
+                )}
+              </div>
+
+              <div className="profile-block">
+                <div className="profile-block-title">
+                  Moje aplikacje ({myApplications.length})
+                </div>
+
+                {myApplications.length ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {myApplications.map((request) =>
+                      renderRequestCard(request, "application")
+                    )}
+                  </div>
+                ) : (
+                  <div className="muted">Brak wysłanych aplikacji.</div>
+                )}
+              </div>
+
+              <div className="profile-block">
+                <div className="profile-block-title">
+                  Historia decyzji ({historyRequests.length})
                 </div>
 
                 {historyRequests.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
-                    {historyRequests.map(renderRequestCard)}
+                    {historyRequests.map((request) =>
+                      renderRequestCard(request, "history")
+                    )}
                   </div>
                 ) : (
-                  <div className="muted">Brak historii zgłoszeń.</div>
+                  <div className="muted">Brak historii wiadomości.</div>
                 )}
               </div>
             </>

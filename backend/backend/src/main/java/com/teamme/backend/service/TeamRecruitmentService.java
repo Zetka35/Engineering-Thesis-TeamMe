@@ -141,7 +141,9 @@ public class TeamRecruitmentService {
 
     @Transactional(readOnly = true)
     public List<RecruitmentRequestView> listMyRequests(String username) {
-        return teamRecruitmentRequestRepository.findByUser_UsernameOrderByCreatedAtDesc(username).stream()
+        return teamRecruitmentRequestRepository
+                .findByUser_UsernameOrCreatedByUser_UsernameOrderByCreatedAtDesc(username, username)
+                .stream()
                 .map(this::toView)
                 .toList();
     }
