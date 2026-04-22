@@ -61,15 +61,15 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
         required: t.required,
       })),
     roleRequirements: form.roleRequirements
-  .filter((r) => r.projectRoleName.trim())
-  .map((r) => ({
-    projectRoleName: r.projectRoleName.trim(),
-    slots: r.slots === "" ? 1 : Number(r.slots),
-    description: r.description,
-    priority: r.priority === "" ? 3 : Number(r.priority),
-    preferredTeamRole: r.preferredTeamRole.trim() || null,
-    teamRoleImportance: r.teamRoleImportance === "" ? 3 : Number(r.teamRoleImportance),
-  })),
+      .filter((r) => r.projectRoleName.trim())
+      .map((r) => ({
+        projectRoleName: r.projectRoleName.trim(),
+        slots: r.slots === "" ? 1 : Number(r.slots),
+        description: r.description,
+        priority: r.priority === "" ? 3 : Number(r.priority),
+        preferredTeamRole: r.preferredTeamRole.trim() || null,
+        teamRoleImportance: r.teamRoleImportance === "" ? 3 : Number(r.teamRoleImportance),
+      })),
   };
 }
 
@@ -81,6 +81,7 @@ export default function Teams() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -120,6 +121,7 @@ export default function Teams() {
 
     try {
       const created = await createTeam(toPayload(form));
+      setShowCreateForm(false);
 
       nav(`/teams/${created.id}`, {
         state: {
@@ -136,25 +138,67 @@ export default function Teams() {
     }
   }
 
+  function handleOpenCreateForm() {
+    setError("");
+    setShowCreateForm(true);
+  }
+
+  function handleCloseCreateForm() {
+    setError("");
+    setShowCreateForm(false);
+  }
+
   return (
     <div className="page" style={{ display: "grid", gap: 18 }}>
       <section className="card">
         <div className="card-header">
-          <h2 className="card-title">Zespoły</h2>
-          <p className="card-subtitle">
-            Twórz zespoły projektowe, zarządzaj rekrutacją i przeglądaj zespoły, do których możesz dołączyć.
-          </p>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <h2 className="card-title">Moje zespoły</h2>
+              <p className="card-subtitle">
+                Przeglądaj swoje zespoły, zarządzaj rekrutacją i twórz nowe projekty wtedy, gdy ich potrzebujesz.
+              </p>
+            </div>
+
+            {!showCreateForm ? (
+              <button className="btn btn-solid" onClick={handleOpenCreateForm}>
+                Utwórz nowy zespół
+              </button>
+            ) : (
+              <button className="btn btn-ghost" onClick={handleCloseCreateForm}>
+                Zamknij formularz
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 16 }}>
           {error && <div className="alert">{error}</div>}
 
-          <TeamForm
-            title="Utwórz nowy zespół"
-            submitLabel="Utwórz zespół"
-            saving={saving}
-            onSubmit={handleCreate}
-          />
+          {showCreateForm && (
+            <div style={{ display: "grid", gap: 12 }}>
+              <TeamForm
+                title="Utwórz nowy zespół"
+                submitLabel="Utwórz zespół"
+                saving={saving}
+                onSubmit={handleCreate}
+              />
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button className="btn btn-ghost" onClick={handleCloseCreateForm} disabled={saving}>
+                  Anuluj
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="profile-block">
             <div className="profile-block-title">Moje zespoły</div>
@@ -163,7 +207,7 @@ export default function Teams() {
               <div className="muted">Ładowanie…</div>
             ) : myTeams.length === 0 ? (
               <div className="muted">
-                Nie należysz jeszcze do żadnego zespołu. Zacznij od utworzenia pierwszego zespołu powyżej.
+                Nie należysz jeszcze do żadnego zespołu. Kliknij „Utwórz nowy zespół”, aby rozpocząć.
               </div>
             ) : (
               <div style={{ display: "grid", gap: 12 }}>

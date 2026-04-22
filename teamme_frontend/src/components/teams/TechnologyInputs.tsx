@@ -1,5 +1,6 @@
 import React from "react";
 import type { TechnologyDraft } from "./TeamForm";
+import { TECHNOLOGY_GROUPS, isCatalogTechnology } from "../../data/technologyCatalog";
 
 type Props = {
   items: TechnologyDraft[];
@@ -13,6 +14,7 @@ function emptyTechnology(): TechnologyDraft {
     name: "",
     requiredLevel: "",
     required: true,
+    mode: "catalog",
   };
 }
 
@@ -52,83 +54,145 @@ export default function TechnologyInputs({
       </div>
 
       <div className="form-inline-note">
-        Dodaj tylko te technologie, które naprawdę mają znaczenie przy rekrutacji.
-        Dzięki temu kandydaci dostaną bardziej czytelne wymagania.
+        Najpierw wybierz technologie kluczowe dla projektu. Jeśli czegoś nie ma na liście, możesz dodać własną pozycję.
       </div>
 
       <div className="form-grid">
-        {items.map((technology, index) => (
-          <div key={`tech-${index}`} className="form-card">
-            <div className="form-card-header">
-              <div className="form-card-title">Technologia {index + 1}</div>
+        {items.map((technology, index) => {
+          const mode =
+            technology.mode ??
+            (isCatalogTechnology(technology.name) ? "catalog" : "custom");
 
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => removeItem(index)}
-              >
-                Usuń
-              </button>
-            </div>
+          return (
+            <div key={`tech-${index}`} className="form-card">
+              <div className="form-card-header">
+                <div className="form-card-title">Technologia {index + 1}</div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <div className="field">
-                <label className="field-label">
-                  Nazwa technologii
-                </label>
-                <input
-                  className="input"
-                  value={technology.name}
-                  onChange={(e) => updateItem(index, { name: e.target.value })}
-                  placeholder="Np. React, Spring Boot, PostgreSQL, Figma"
-                />
-                <p className="field-help">
-                  Wpisz konkretną technologię albo narzędzie.
-                </p>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => removeItem(index)}
+                >
+                  Usuń
+                </button>
               </div>
 
-              <div className="field">
-                <label className="field-label">
-                  Oczekiwany poziom
-                </label>
-                <select
-                  className="input"
-                  value={technology.requiredLevel}
-                  onChange={(e) =>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className={mode === "catalog" ? "btn btn-solid" : "btn btn-ghost"}
+                  onClick={() =>
                     updateItem(index, {
-                      requiredLevel: e.target.value === "" ? "" : Number(e.target.value),
+                      mode: "catalog",
+                      name: isCatalogTechnology(technology.name) ? technology.name : "",
                     })
                   }
                 >
-                  <option value="">Nie określaj</option>
-                  <option value="1">1 — podstawy</option>
-                  <option value="2">2 — poziom podstawowy</option>
-                  <option value="3">3 — poziom średni</option>
-                  <option value="4">4 — poziom zaawansowany</option>
-                  <option value="5">5 — ekspert</option>
-                </select>
-                <p className="field-help">
-                  Możesz zostawić puste, jeśli liczy się sama znajomość technologii.
-                </p>
-              </div>
-            </div>
+                  Wybierz z listy
+                </button>
 
-            <label className="checkbox-line">
-              <input
-                type="checkbox"
-                checked={technology.required}
-                onChange={(e) => updateItem(index, { required: e.target.checked })}
-              />
-              To wymaganie kluczowe
-            </label>
-          </div>
-        ))}
+                <button
+                  type="button"
+                  className={mode === "custom" ? "btn btn-solid" : "btn btn-ghost"}
+                  onClick={() =>
+                    updateItem(index, {
+                      mode: "custom",
+                      name: isCatalogTechnology(technology.name) ? "" : technology.name,
+                    })
+                  }
+                >
+                  Dodaj własną
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                }}
+              >
+                <div className="field">
+                  <label className="field-label">Technologia</label>
+
+                  {mode === "catalog" ? (
+                    <select
+                      className="input"
+                      value={isCatalogTechnology(technology.name) ? technology.name : ""}
+                      onChange={(e) =>
+                        updateItem(index, {
+                          name: e.target.value,
+                          mode: "catalog",
+                        })
+                      }
+                    >
+                      <option value="">Wybierz technologię</option>
+                      {TECHNOLOGY_GROUPS.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.options.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="input"
+                      value={technology.name}
+                      onChange={(e) =>
+                        updateItem(index, {
+                          name: e.target.value,
+                          mode: "custom",
+                        })
+                      }
+                      placeholder="Np. LangChain, Supabase, Unity, Blender"
+                    />
+                  )}
+
+                  <p className="field-help">
+                    {mode === "catalog"
+                      ? "Wybierz z gotowej listy najczęściej używanych technologii."
+                      : "Wpisz własną technologię, jeśli nie ma jej w katalogu."}
+                  </p>
+                </div>
+
+                <div className="field">
+                  <label className="field-label">Oczekiwany poziom</label>
+                  <select
+                    className="input"
+                    value={technology.requiredLevel}
+                    onChange={(e) =>
+                      updateItem(index, {
+                        requiredLevel: e.target.value === "" ? "" : Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value="">Nie określaj</option>
+                    <option value="1">1 — podstawy</option>
+                    <option value="2">2 — poziom podstawowy</option>
+                    <option value="3">3 — poziom średni</option>
+                    <option value="4">4 — poziom zaawansowany</option>
+                    <option value="5">5 — ekspert</option>
+                  </select>
+                  <p className="field-help">
+                    Możesz zostawić puste, jeśli liczy się sama znajomość technologii.
+                  </p>
+                </div>
+              </div>
+
+              <label className="checkbox-line">
+                <input
+                  type="checkbox"
+                  checked={technology.required}
+                  onChange={(e) => updateItem(index, { required: e.target.checked })}
+                />
+                To wymaganie kluczowe
+              </label>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

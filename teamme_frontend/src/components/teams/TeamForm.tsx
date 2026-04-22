@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import type { TeamExperienceLevel, TeamRecruitmentStatus } from "../../models/Team";
 import TechnologyInputs from "./TechnologyInputs";
 import RoleRequirementInputs from "./RoleRequirementInputs";
+import { isCatalogTechnology } from "../../data/technologyCatalog";
 
 export type TechnologyDraft = {
   name: string;
   requiredLevel: number | "";
   required: boolean;
+  mode?: "catalog" | "custom";
 };
 
 export type RoleRequirementDraft = {
@@ -39,7 +41,7 @@ type Props = {
 };
 
 type FormErrors = Partial<
-  Record<"name" | "description" | "projectArea" | "maxMembers", string>
+  Record<"name" | "description" | "projectArea" | "maxMembers" | "roleRequirements", string>
 >;
 
 const experienceOptions: Array<{ value: TeamExperienceLevel; label: string }> = [
@@ -57,11 +59,39 @@ const recruitmentOptions: Array<{ value: TeamRecruitmentStatus; label: string }>
   { value: "FULL", label: "Komplet" },
 ];
 
+const PROJECT_AREA_OPTIONS = [
+  "Aplikacja webowa",
+  "Aplikacja mobilna",
+  "AI / ML",
+  "Data / Analytics",
+  "UX / UI",
+  "E-commerce",
+  "EdTech",
+  "FinTech",
+  "GameDev",
+  "IoT",
+  "SaaS / produkt cyfrowy",
+  "Automatyzacja procesów",
+] as const;
+
+function isKnownProjectArea(value?: string | null) {
+  if (!value) return false;
+  return PROJECT_AREA_OPTIONS.some(
+    (item) => item.trim().toLowerCase() === value.trim().toLowerCase()
+  );
+}
+
+function deriveProjectAreaMode(value?: string | null): "catalog" | "custom" {
+  if (!value) return "catalog";
+  return isKnownProjectArea(value) ? "catalog" : "custom";
+}
+
 function emptyTechnology(): TechnologyDraft {
   return {
     name: "",
     requiredLevel: "",
     required: true,
+    mode: "catalog",
   };
 }
 
@@ -87,7 +117,12 @@ function buildInitialValue(initialValue?: Partial<TeamFormValue>): TeamFormValue
     recruitmentStatus: initialValue?.recruitmentStatus ?? "OPEN",
     technologies:
       initialValue?.technologies && initialValue.technologies.length
-        ? initialValue.technologies
+        ? initialValue.technologies.map((technology) => ({
+            ...technology,
+            mode:
+              technology.mode ??
+              (isCatalogTechnology(technology.name) ? "catalog" : "custom"),
+          }))
         : [emptyTechnology()],
     roleRequirements:
       initialValue?.roleRequirements && initialValue.roleRequirements.length
@@ -110,11 +145,20 @@ function validateForm(form: TeamFormValue): FormErrors {
   }
 
   if (!form.projectArea.trim()) {
-    errors.projectArea = "Podaj obszar projektu, np. AI, web app albo mobile.";
+    errors.projectArea = "Wybierz obszar projektu albo wpisz własny.";
   }
 
   if (!Number.isFinite(form.maxMembers) || form.maxMembers < 1) {
     errors.maxMembers = "Liczba miejsc musi być większa od 0.";
+  }
+
+  const hasAnyProjectRole = form.roleRequirements.some((role) =>
+    role.projectRoleName.trim()
+  );
+
+  if (form.recruitmentStatus === "OPEN" && !hasAnyProjectRole) {
+    errors.roleRequirements =
+      "Jeśli rekrutacja jest otwarta, dodaj przynajmniej jedną rolę projektową.";
   }
 
   return errors;
@@ -130,11 +174,15 @@ export default function TeamForm({
   const [form, setForm] = useState<TeamFormValue>(buildInitialValue(initialValue));
   const [errors, setErrors] = useState<FormErrors>({});
   const [showOptional, setShowOptional] = useState(Boolean(initialValue));
+  const [projectAreaMode, setProjectAreaMode] = useState<"catalog" | "custom">(
+    deriveProjectAreaMode(initialValue?.projectArea)
+  );
 
   useEffect(() => {
     setForm(buildInitialValue(initialValue));
     setErrors({});
     setShowOptional(Boolean(initialValue));
+    setProjectAreaMode(deriveProjectAreaMode(initialValue?.projectArea));
   }, [initialValue]);
 
   function clearError(field: keyof FormErrors) {
@@ -161,6 +209,16 @@ export default function TeamForm({
       description: form.description.trim(),
       projectArea: form.projectArea.trim(),
       expectedTimeText: form.expectedTimeText.trim(),
+      technologies: form.technologies.map((technology) => ({
+        ...technology,
+        name: technology.name.trim(),
+      })),
+      roleRequirements: form.roleRequirements.map((role) => ({
+        ...role,
+        projectRoleName: role.projectRoleName.trim(),
+        description: role.description.trim(),
+        preferredTeamRole: role.preferredTeamRole.trim(),
+      })),
     });
   }
 
@@ -174,8 +232,7 @@ export default function TeamForm({
             <div>
               <h3 className="form-section-title">Informacje podstawowe</h3>
               <p className="form-section-subtitle">
-                Uzupełnij najważniejsze dane. Te pola pomagają szybko zrozumieć,
-                czym zajmuje się zespół i kogo szuka.
+                Najpierw określ, czym zajmuje się projekt i jaki jest podstawowy skład zespołu.
               </p>
             </div>
           </div>
@@ -197,7 +254,7 @@ export default function TeamForm({
                 required
               />
               <p className="field-help">
-                Najlepiej krótka i łatwa do zapamiętania nazwa.
+                Krótka nazwa, którą łatwo zapamiętać i rozpoznać na liście zespołów.
               </p>
               {errors.name && <p className="field-error">{errors.name}</p>}
             </div>
@@ -206,19 +263,60 @@ export default function TeamForm({
               <label className="field-label" htmlFor="team-project-area">
                 Obszar projektu <span className="field-required">*</span>
               </label>
-              <input
+
+              <select
                 id="team-project-area"
                 className={`input ${errors.projectArea ? "input-error" : ""}`}
-                value={form.projectArea}
+                value={
+                  projectAreaMode === "catalog"
+                    ? isKnownProjectArea(form.projectArea)
+                      ? form.projectArea
+                      : ""
+                    : "__custom__"
+                }
                 onChange={(e) => {
                   clearError("projectArea");
-                  setForm((prev) => ({ ...prev, projectArea: e.target.value }));
+
+                  if (e.target.value === "__custom__") {
+                    setProjectAreaMode("custom");
+                    setForm((prev) => ({
+                      ...prev,
+                      projectArea: isKnownProjectArea(prev.projectArea) ? "" : prev.projectArea,
+                    }));
+                    return;
+                  }
+
+                  setProjectAreaMode("catalog");
+                  setForm((prev) => ({
+                    ...prev,
+                    projectArea: e.target.value,
+                  }));
                 }}
-                placeholder="Np. AI, EdTech, Marketplace, aplikacja mobilna"
-                required
-              />
+              >
+                <option value="">Wybierz obszar projektu</option>
+                {PROJECT_AREA_OPTIONS.map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
+                <option value="__custom__">Wpisz własny obszar…</option>
+              </select>
+
+              {projectAreaMode === "custom" && (
+                <input
+                  className={`input ${errors.projectArea ? "input-error" : ""}`}
+                  value={form.projectArea}
+                  onChange={(e) => {
+                    clearError("projectArea");
+                    setForm((prev) => ({ ...prev, projectArea: e.target.value }));
+                  }}
+                  placeholder="Np. system rekomendacji, platforma mentoringowa, system wspierający współpracę"
+                  style={{ marginTop: 8 }}
+                />
+              )}
+
               <p className="field-help">
-                To pole pomaga kandydatom od razu ocenić, czy projekt pasuje do ich kompetencji.
+                Wybierz gotową kategorię albo wpisz własną, jeśli projekt jest bardziej specyficzny.
               </p>
               {errors.projectArea && <p className="field-error">{errors.projectArea}</p>}
             </div>
@@ -241,7 +339,7 @@ export default function TeamForm({
               required
             />
             <p className="field-help">
-              2–4 zdania w zupełności wystarczą. Dobrze sprawdza się opis celu i zakresu prac.
+              Dobrze działają 2–4 zdania: cel projektu, etap prac i najważniejsze potrzeby zespołu.
             </p>
             {errors.description && <p className="field-error">{errors.description}</p>}
           </div>
@@ -268,7 +366,7 @@ export default function TeamForm({
                 required
               />
               <p className="field-help">
-                Podaj łączny limit członków zespołu, razem z właścicielem.
+                Podaj maksymalną liczbę członków zespołu razem z właścicielem.
               </p>
               {errors.maxMembers && <p className="field-error">{errors.maxMembers}</p>}
             </div>
@@ -287,14 +385,14 @@ export default function TeamForm({
                 placeholder="Np. 5–7 h tygodniowo albo 2 spotkania w tygodniu"
               />
               <p className="field-help">
-                To pole jest opcjonalne, ale bardzo pomaga kandydatom ocenić dostępność.
+                To pole nie jest obowiązkowe, ale bardzo pomaga kandydatom ocenić dostępność.
               </p>
             </div>
           </div>
 
           <div className="form-inline-note">
-            Najpierw zapisz sensowny zarys zespołu. Szczegóły rekrutacji możesz doprecyzować
-            od razu poniżej albo później podczas edycji profilu zespołu.
+            Sensowny punkt startowy: krótki opis, wybrany obszar projektu, przynajmniej jedna rola projektowa
+            i kilka technologii naprawdę istotnych dla rekrutacji.
           </div>
         </section>
 
@@ -303,8 +401,7 @@ export default function TeamForm({
             <div>
               <h3 className="form-section-title">Szczegóły rekrutacji i wymagania</h3>
               <p className="form-section-subtitle">
-                Te pola są opcjonalne, ale warto je uzupełnić. Dzięki nim kandydaci szybciej
-                ocenią dopasowanie, a zapraszanie będzie bardziej precyzyjne.
+                Te pola porządkują rekrutację. Dzięki nim kandydaci szybciej ocenią dopasowanie, a zapraszanie będzie bardziej precyzyjne.
               </p>
             </div>
 
@@ -342,7 +439,7 @@ export default function TeamForm({
                     ))}
                   </select>
                   <p className="field-help">
-                    Określ, jakiego poziomu kandydatów szukasz do projektu.
+                    Określ ogólny poziom kandydatów, których szukasz do projektu.
                   </p>
                 </div>
 
@@ -375,16 +472,23 @@ export default function TeamForm({
 
               <TechnologyInputs
                 title="Technologie i umiejętności"
-                subtitle="Dodaj najważniejsze technologie, frameworki albo narzędzia potrzebne w projekcie."
+                subtitle="Wybierz z listy najważniejsze technologie projektu albo dodaj własne, jeśli nie ma ich w katalogu."
                 items={form.technologies}
                 onChange={(items) => setForm((prev) => ({ ...prev, technologies: items }))}
               />
 
+              {errors.roleRequirements && (
+                <div className="alert">{errors.roleRequirements}</div>
+              )}
+
               <RoleRequirementInputs
                 title="Poszukiwane role"
-                subtitle="Dodaj role, które chcesz obsadzić. To przyda się przy aplikowaniu i zapraszaniu użytkowników."
+                subtitle="Dodaj role projektowe, które chcesz obsadzić. To kluczowy element sensownej rekrutacji."
                 items={form.roleRequirements}
-                onChange={(items) => setForm((prev) => ({ ...prev, roleRequirements: items }))}
+                onChange={(items) => {
+                  clearError("roleRequirements");
+                  setForm((prev) => ({ ...prev, roleRequirements: items }));
+                }}
               />
             </>
           )}
