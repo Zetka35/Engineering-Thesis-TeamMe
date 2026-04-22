@@ -81,6 +81,10 @@ export function fetchTeams(): Promise<TeamSummary[]> {
   return get<TeamSummary[]>("/api/teams");
 }
 
+export function completeTeam(teamId: number): Promise<TeamDetails> {
+  return post<TeamDetails>(`/api/teams/${teamId}/complete`, {});
+}
+
 export function searchTeams(): Promise<TeamSummary[]> {
   return get<TeamSummary[]>("/api/teams/search");
 }

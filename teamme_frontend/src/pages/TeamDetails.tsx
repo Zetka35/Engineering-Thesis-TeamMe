@@ -12,6 +12,7 @@ import {
   inviteToTeam,
   respondToRequest,
   updateTeam,
+  completeTeam,
   type RecommendedCandidate,
   type TeamUpsertPayload,
 } from "../api/teams.api";
@@ -150,6 +151,7 @@ export default function TeamDetails() {
   const [savingApply, setSavingApply] = useState(false);
   const [savingInvite, setSavingInvite] = useState(false);
   const [actingRequestId, setActingRequestId] = useState<number | null>(null);
+  const [savingComplete, setSavingComplete] = useState(false);
 
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -291,6 +293,28 @@ export default function TeamDetails() {
       setSavingApply(false);
     }
   }
+
+  async function handleCompleteProject() {
+  if (!team) return;
+
+  setSavingComplete(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const updated = await completeTeam(team.id);
+    setTeam(updated);
+    setSuccessMsg(
+      "Projekt został oznaczony jako zakończony. Historia pracy została domknięta, a członkowie mogą teraz wystawiać oceny współpracy."
+    );
+  } catch (e: unknown) {
+    setError(
+      `Nie udało się zakończyć projektu. ${extractApiMessage(e)}`
+    );
+  } finally {
+    setSavingComplete(false);
+  }
+}
 
   async function handleInvite(payload: {
     username: string;
@@ -570,6 +594,18 @@ export default function TeamDetails() {
               </div>
             </>
           )}
+
+          {isOwner && team.status !== "COMPLETED" && (
+  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+    <button
+      className="btn btn-solid"
+      disabled={savingComplete}
+      onClick={() => void handleCompleteProject()}
+    >
+      {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
+    </button>
+  </div>
+)}
 
           <div className="profile-block">
             <div className="profile-block-title">Członkowie</div>

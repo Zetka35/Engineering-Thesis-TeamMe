@@ -116,6 +116,11 @@ public class TeamsController {
     return teamRecruitmentService.listMyRequests(currentUsername());
   }
 
+  @PostMapping("/{teamId}/complete")
+  public TeamsService.TeamDetails completeTeam(@PathVariable Long teamId) {
+    return teamsService.completeTeam(teamId, currentUsername());
+  }
+
   @PostMapping("/requests/{requestId}/respond")
   public TeamRecruitmentService.RecruitmentRequestView respondToRequest(
           @PathVariable Long requestId,

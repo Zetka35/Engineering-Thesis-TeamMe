@@ -85,6 +85,8 @@ export interface TeamRoleRequirement {
 
 export interface RecruitmentRequest {
   id: number;
+  teamId: number;
+  teamName: string;
   userId: number;
   username: string;
   fullName: string;

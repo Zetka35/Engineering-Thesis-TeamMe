@@ -612,6 +612,30 @@ public class TeamsService {
     }
   }
 
+  public TeamDetails completeTeam(Long teamId, String username) {
+    Team team = getOwnedTeam(teamId, username);
+
+    if ("COMPLETED".equals(team.getStatus())) {
+      return toPrivateDetails(team, username);
+    }
+
+    OffsetDateTime now = OffsetDateTime.now();
+
+    team.setStatus("COMPLETED");
+    team.setRecruitmentStatus("CLOSED");
+    teamRepository.save(team);
+
+    List<TeamMember> members = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId);
+    for (TeamMember member : members) {
+      if (member.getLeftAt() == null) {
+        member.setLeftAt(now);
+      }
+    }
+    teamMemberRepository.saveAll(members);
+
+    return toPrivateDetails(team, username);
+  }
+
   private void replaceRoleRequirements(Team team, List<RoleRequirementInput> requests) {
     teamRoleRequirementRepository.deleteByTeam_Id(team.getId());
     if (requests == null) return;
