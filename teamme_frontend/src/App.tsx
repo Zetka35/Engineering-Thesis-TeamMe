@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
+import "./theme-modern.css";
 
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import Sidebar from "./components/Sidebar";
@@ -10,7 +11,6 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Teams from "./pages/Teams";
-import Placeholder from "./pages/Placeholder";
 import OnboardingSurvey from "./pages/OnboardingSurvey";
 import Survey from "./pages/Survey";
 import Profile from "./pages/Profile";
