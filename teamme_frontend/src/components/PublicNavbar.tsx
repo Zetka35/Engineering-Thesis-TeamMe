@@ -10,14 +10,16 @@ export default function PublicNavbar() {
           <TeamMeLogo />
         </Link>
 
-        <nav className="public-nav" aria-label="Nawigacja">
-          <a className="public-link" href="#onas">O NAS</a>
-          <a className="public-link" href="#kontakt">KONTAKT</a>
-          <a className="public-link" href="#role">ROLE ZESPOŁOWE</a>
+        <nav className="public-nav" aria-label="Nawigacja publiczna">
+          <a className="public-link" href="#features">FUNKCJE</a>
+          <a className="public-link" href="#how-it-works">JAK TO DZIAŁA</a>
+          <a className="public-link" href="#roles">ROLE ZESPOŁOWE</a>
+          <a className="public-link" href="#about">O SYSTEMIE</a>
+          <a className="public-link" href="#contact">START</a>
         </nav>
 
         <div className="public-actions">
-          <NavLink to="/register" className="btn btn-ghost">
+          <NavLink to="/register" className="btn btn-ghost public-ghost-btn">
             Dołącz teraz
           </NavLink>
           <NavLink to="/login" className="btn btn-solid">

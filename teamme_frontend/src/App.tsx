@@ -22,6 +22,7 @@ import PublicTeamDetails from "./pages/PublicTeamDetails";
 import Messages from "./pages/Messages";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
+import History from "./pages/History";
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,7 +49,7 @@ function AppShell() {
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/team-search" element={<TeamSearch />} />
-            <Route path="/history" element={<Placeholder title="Historia pracy" />} />
+            <Route path="/history" element={<History />} />
             <Route path="/team-requests" element={<Navigate to="/messages" replace />} />
 
             <Route path="/network" element={<Network />} />
