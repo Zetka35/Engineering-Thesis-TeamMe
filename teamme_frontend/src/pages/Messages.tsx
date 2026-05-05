@@ -56,7 +56,7 @@ export default function Messages() {
       const data = await fetchMyRecruitmentRequests();
       setRequests(data ?? []);
     } catch (e: unknown) {
-      setError(extractApiMessage(e));
+      setError(`Nie udało się załadować skrzynki wiadomości. ${extractApiMessage(e)}`);
     } finally {
       setLoading(false);
     }
@@ -247,7 +247,7 @@ export default function Messages() {
             <div>
               <h2 className="card-title">Skrzynka wiadomości</h2>
               <p className="card-subtitle">
-                Tu znajdziesz zaproszenia do zespołów, wysłane zaproszenia, własne aplikacje oraz historię decyzji.
+                Tu znajdziesz otrzymane zaproszenia, wysłane zaproszenia, własne aplikacje i historię decyzji.
               </p>
             </div>
 
@@ -282,7 +282,7 @@ export default function Messages() {
                 {incomingInvitations.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     {incomingInvitations.map((request) =>
-                      renderRequestCard(request, "incoming-invitation")
+                      renderRequestCard(request, "incoming")
                     )}
                   </div>
                 ) : (
@@ -298,7 +298,7 @@ export default function Messages() {
                 {outgoingInvitations.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     {outgoingInvitations.map((request) =>
-                      renderRequestCard(request, "outgoing-invitation")
+                      renderRequestCard(request, "outgoing")
                     )}
                   </div>
                 ) : (
@@ -314,7 +314,7 @@ export default function Messages() {
                 {myApplications.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     {myApplications.map((request) =>
-                      renderRequestCard(request, "application")
+                      renderRequestCard(request, "applications")
                     )}
                   </div>
                 ) : (
