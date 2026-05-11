@@ -3,6 +3,8 @@ package com.teamme.backend.entity;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -32,20 +34,53 @@ public class TeamCollaborationReview {
     @JoinColumn(name = "reviewed_user_id", nullable = false)
     private User reviewedUser;
 
-    @Column(name = "communication_rating", nullable = false)
-    private Integer communicationRating;
+    /**
+     * Snapshot roli projektowej ocenianej osoby w momencie wystawiania oceny.
+     * Dzięki temu późniejsza zmiana członkostwa/roli w zespole nie zmienia historii ocen.
+     */
+    @Column(name = "project_role_label", nullable = false, length = 120)
+    private String projectRoleLabel = "Member";
 
-    @Column(name = "reliability_rating", nullable = false)
-    private Integer reliabilityRating;
+    /**
+     * Zaangażowanie w projekt.
+     */
+    @Column(name = "engagement_rating", nullable = false)
+    private Integer engagementRating;
 
+    /**
+     * Realizacja przyjętej roli projektowej.
+     */
+    @Column(name = "role_execution_rating", nullable = false)
+    private Integer roleExecutionRating;
+
+    /**
+     * Współpraca zespołowa.
+     */
     @Column(name = "collaboration_rating", nullable = false)
     private Integer collaborationRating;
 
-    @Column(name = "ownership_rating", nullable = false)
-    private Integer ownershipRating;
+    /**
+     * Odpowiedzialność i terminowość.
+     */
+    @Column(name = "reliability_rating", nullable = false)
+    private Integer reliabilityRating;
+
+    /**
+     * Jakość wkładu merytorycznego.
+     */
+    @Column(name = "contribution_quality_rating", nullable = false)
+    private Integer contributionQualityRating;
 
     @Column(name = "comment")
     private String comment;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "team_collaboration_review_strength_tags",
+            joinColumns = @JoinColumn(name = "review_id")
+    )
+    @Column(name = "tag", nullable = false, length = 60)
+    private List<String> strengthTags = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -81,20 +116,28 @@ public class TeamCollaborationReview {
         this.reviewedUser = reviewedUser;
     }
 
-    public Integer getCommunicationRating() {
-        return communicationRating;
+    public String getProjectRoleLabel() {
+        return projectRoleLabel;
     }
 
-    public void setCommunicationRating(Integer communicationRating) {
-        this.communicationRating = communicationRating;
+    public void setProjectRoleLabel(String projectRoleLabel) {
+        this.projectRoleLabel = projectRoleLabel;
     }
 
-    public Integer getReliabilityRating() {
-        return reliabilityRating;
+    public Integer getEngagementRating() {
+        return engagementRating;
     }
 
-    public void setReliabilityRating(Integer reliabilityRating) {
-        this.reliabilityRating = reliabilityRating;
+    public void setEngagementRating(Integer engagementRating) {
+        this.engagementRating = engagementRating;
+    }
+
+    public Integer getRoleExecutionRating() {
+        return roleExecutionRating;
+    }
+
+    public void setRoleExecutionRating(Integer roleExecutionRating) {
+        this.roleExecutionRating = roleExecutionRating;
     }
 
     public Integer getCollaborationRating() {
@@ -105,12 +148,20 @@ public class TeamCollaborationReview {
         this.collaborationRating = collaborationRating;
     }
 
-    public Integer getOwnershipRating() {
-        return ownershipRating;
+    public Integer getReliabilityRating() {
+        return reliabilityRating;
     }
 
-    public void setOwnershipRating(Integer ownershipRating) {
-        this.ownershipRating = ownershipRating;
+    public void setReliabilityRating(Integer reliabilityRating) {
+        this.reliabilityRating = reliabilityRating;
+    }
+
+    public Integer getContributionQualityRating() {
+        return contributionQualityRating;
+    }
+
+    public void setContributionQualityRating(Integer contributionQualityRating) {
+        this.contributionQualityRating = contributionQualityRating;
     }
 
     public String getComment() {
@@ -119,6 +170,19 @@ public class TeamCollaborationReview {
 
     public void setComment(String comment) {
         this.comment = comment;
+    }
+
+
+
+    public List<String> getStrengthTags() {
+        if (strengthTags == null) {
+            strengthTags = new ArrayList<>();
+        }
+        return strengthTags;
+    }
+
+    public void setStrengthTags(List<String> strengthTags) {
+        this.strengthTags = strengthTags == null ? new ArrayList<>() : new ArrayList<>(strengthTags);
     }
 
     public OffsetDateTime getCreatedAt() {

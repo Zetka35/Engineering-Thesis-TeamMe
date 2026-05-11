@@ -14,29 +14,45 @@ export interface CollaborationReview {
   id: number;
   teamId: number;
   teamName: string;
+
   reviewerUserId: number;
   reviewerUsername: string;
+
   reviewedUserId: number;
   reviewedUsername: string;
   reviewedFullName: string;
-  communicationRating: number;
-  reliabilityRating: number;
+
+  projectRoleLabel: string;
+
+  engagementRating: number;
+  roleExecutionRating: number;
   collaborationRating: number;
-  ownershipRating: number;
+  reliabilityRating: number;
+  contributionQualityRating: number;
+
   averageRating: number;
+
   comment?: string | null;
+  strengthTags: string[];
+
   createdAt?: string | null;
   updatedAt?: string | null;
+
+  editable: boolean;
 }
 
 export interface CollaborationReviewPayload {
   teamId: number;
   reviewedUserId: number;
-  communicationRating: number;
-  reliabilityRating: number;
+
+  engagementRating: number;
+  roleExecutionRating: number;
   collaborationRating: number;
-  ownershipRating: number;
+  reliabilityRating: number;
+  contributionQualityRating: number;
+
   comment?: string;
+  strengthTags: string[];
 }
 
 export function fetchPendingReviews(): Promise<PendingReviewTarget[]> {

@@ -45,6 +45,41 @@ export interface ProjectHistoryItem {
   current: boolean;
 }
 
+export interface RoleContributionSummary {
+  projectRoleLabel: string;
+  averageRating: number;
+  reviewCount: number;
+}
+
+export interface ProjectContributionHistory {
+  teamId: number;
+  teamName: string;
+  projectRoleLabel: string;
+  averageRating: number;
+  reviewCount: number;
+}
+
+export interface StrengthTagSummary {
+  tag: string;
+  count: number;
+}
+
+export interface ProjectContributionSummary {
+  reviewCount: number;
+  projectCount: number;
+
+  engagementAverage?: number | null;
+  roleExecutionAverage?: number | null;
+  collaborationAverage?: number | null;
+  reliabilityAverage?: number | null;
+  contributionQualityAverage?: number | null;
+  overallAverage?: number | null;
+
+  roleSummaries: RoleContributionSummary[];
+  projectSummaries: ProjectContributionHistory[];
+  topStrengthTags: StrengthTagSummary[];
+}
+
 export interface UserProfile {
   username: string;
   avatarUrl?: string | null;
@@ -64,6 +99,7 @@ export interface UserProfile {
   skills: SkillItem[];
   languages: LanguageItem[];
   projectHistory: ProjectHistoryItem[];
+  contributionSummary?: ProjectContributionSummary | null;
 }
 
 export interface NetworkUser {

@@ -26,6 +26,175 @@ function availabilityLabel(value?: string | null) {
   }
 }
 
+function formatRating(value?: number | null) {
+  if (value === null || value === undefined) return "—";
+  return value.toFixed(1).replace(".", ",");
+}
+
+function ContributionMetricCard({
+  label,
+  value,
+}: {
+  label: string;
+  value?: number | null;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--line)",
+        borderRadius: 14,
+        padding: 12,
+        display: "grid",
+        gap: 4,
+        background: "#fff",
+      }}
+    >
+      <div className="muted" style={{ fontSize: 13 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800 }}>
+        {formatRating(value)}
+      </div>
+    </div>
+  );
+}
+
+function ProjectContributionSummarySection({ profile }: { profile: UserProfile }) {
+  const summary = profile.contributionSummary;
+
+  if (!summary) {
+    return null;
+  }
+
+  const hasPublicAverages = summary.overallAverage !== null && summary.overallAverage !== undefined;
+
+  return (
+    <div className="profile-block">
+      <div className="profile-block-title">Ocena wkładu w projekt</div>
+
+      {!hasPublicAverages ? (
+        <div style={{ display: "grid", gap: 8 }}>
+          <div className="muted">
+            Za mało ocen, aby pokazać wiarygodne publiczne podsumowanie.
+          </div>
+          <div className="muted">
+            Zebrano dotychczas: {summary.reviewCount} ocen z {summary.projectCount} projektów.
+            Publiczna średnia pojawi się po uzyskaniu co najmniej 3 ocen.
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+              gap: 10,
+            }}
+          >
+            <ContributionMetricCard
+              label="Zaangażowanie"
+              value={summary.engagementAverage}
+            />
+            <ContributionMetricCard
+              label="Realizacja roli"
+              value={summary.roleExecutionAverage}
+            />
+            <ContributionMetricCard
+              label="Współpraca"
+              value={summary.collaborationAverage}
+            />
+            <ContributionMetricCard
+              label="Odpowiedzialność"
+              value={summary.reliabilityAverage}
+            />
+            <ContributionMetricCard
+              label="Jakość wkładu"
+              value={summary.contributionQualityAverage}
+            />
+          </div>
+
+          <div className="muted">
+            Na podstawie: {summary.reviewCount} ocen z {summary.projectCount} projektów.
+            Średnia ogólna: {formatRating(summary.overallAverage)}.
+          </div>
+
+          {summary.roleSummaries.length > 0 && (
+            <div style={{ display: "grid", gap: 8 }}>
+              <b>Średnie oceny dla ról projektowych</b>
+              <div style={{ display: "grid", gap: 8 }}>
+                {summary.roleSummaries.map((roleSummary) => (
+                  <div
+                    key={roleSummary.projectRoleLabel}
+                    style={{
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                      padding: 10,
+                      display: "flex",
+                      gap: 10,
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>{roleSummary.projectRoleLabel}</span>
+                    <span className="pill">
+                      {formatRating(roleSummary.averageRating)} · {roleSummary.reviewCount} ocen
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {summary.projectSummaries.length > 0 && (
+            <div style={{ display: "grid", gap: 8 }}>
+              <b>Jak oceniano pracę w projektach</b>
+              <div style={{ display: "grid", gap: 8 }}>
+                {summary.projectSummaries.map((projectSummary) => (
+                  <div
+                    key={`${projectSummary.teamId}-${projectSummary.projectRoleLabel}`}
+                    style={{
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                      padding: 10,
+                      display: "grid",
+                      gap: 4,
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <b>{projectSummary.teamName}</b>
+                      <span className="pill">{projectSummary.projectRoleLabel}</span>
+                      <span className="pill">
+                        średnia: {formatRating(projectSummary.averageRating)}
+                      </span>
+                    </div>
+                    <div className="muted">
+                      Liczba ocen w tym projekcie: {projectSummary.reviewCount}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {summary.topStrengthTags.length > 0 && (
+            <div style={{ display: "grid", gap: 8 }}>
+              <b>Najczęściej wskazywane mocne strony</b>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {summary.topStrengthTags.map((tagSummary) => (
+                  <span key={tagSummary.tag} className="pill">
+                    {tagSummary.tag} · {tagSummary.count}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PublicProfile() {
   const nav = useNavigate();
   const params = useParams();
@@ -318,6 +487,8 @@ export default function PublicProfile() {
               </span>
             </div>
           </div>
+
+          <ProjectContributionSummarySection profile={profile} />
 
           <div className="profile-block">
             <div className="profile-block-title">Linki</div>

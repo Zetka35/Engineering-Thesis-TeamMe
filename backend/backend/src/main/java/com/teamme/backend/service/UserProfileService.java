@@ -15,10 +15,21 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.ToIntFunction;
+
+import com.teamme.backend.repository.TeamCollaborationReviewRepository;
 
 @Service
 @Transactional
 public class UserProfileService {
+
+    private static final int MIN_PUBLIC_REVIEWS = 3;
+    private static final int MAX_PUBLIC_ROLE_SUMMARIES = 5;
+    private static final int MAX_PUBLIC_PROJECT_SUMMARIES = 5;
+    private static final int MAX_PUBLIC_STRENGTH_TAGS = 5;
 
     public record ExperienceDto(
             Long id,
@@ -65,6 +76,39 @@ public class UserProfileService {
             boolean current
     ) {}
 
+    public record ProjectContributionSummaryDto(
+            int reviewCount,
+            int projectCount,
+            Double engagementAverage,
+            Double roleExecutionAverage,
+            Double collaborationAverage,
+            Double reliabilityAverage,
+            Double contributionQualityAverage,
+            Double overallAverage,
+            List<RoleContributionSummaryDto> roleSummaries,
+            List<ProjectContributionHistoryDto> projectSummaries,
+            List<StrengthTagSummaryDto> topStrengthTags
+    ) {}
+
+    public record RoleContributionSummaryDto(
+            String projectRoleLabel,
+            Double averageRating,
+            int reviewCount
+    ) {}
+
+    public record ProjectContributionHistoryDto(
+            Long teamId,
+            String teamName,
+            String projectRoleLabel,
+            Double averageRating,
+            int reviewCount
+    ) {}
+
+    public record StrengthTagSummaryDto(
+            String tag,
+            int count
+    ) {}
+
     public record UserProfileDto(
             String username,
             String avatarUrl,
@@ -83,7 +127,8 @@ public class UserProfileService {
             List<EducationDto> educations,
             List<SkillDto> skills,
             List<LanguageDto> languages,
-            List<ProjectHistoryDto> projectHistory
+            List<ProjectHistoryDto> projectHistory,
+            ProjectContributionSummaryDto contributionSummary
     ) {}
 
     public record NetworkUserDto(
@@ -151,13 +196,16 @@ public class UserProfileService {
 
     private final UserRepository userRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamCollaborationReviewRepository reviewRepository;
 
     public UserProfileService(
             UserRepository userRepository,
-            TeamMemberRepository teamMemberRepository
+            TeamMemberRepository teamMemberRepository,
+            TeamCollaborationReviewRepository reviewRepository
     ) {
         this.userRepository = userRepository;
         this.teamMemberRepository = teamMemberRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional(readOnly = true)
@@ -273,6 +321,8 @@ public class UserProfileService {
                 .map(this::toProjectHistoryDto)
                 .toList();
 
+        ProjectContributionSummaryDto contributionSummary = buildContributionSummary(user);
+
         return new UserProfileDto(
                 user.getUsername(),
                 user.getAvatarUrl(),
@@ -291,7 +341,8 @@ public class UserProfileService {
                 educations,
                 skills,
                 languages,
-                projectHistory
+                projectHistory,
+                contributionSummary
         );
     }
 
@@ -332,6 +383,169 @@ public class UserProfileService {
                 languages,
                 latestMembership.map(this::toProjectHistoryDto).orElse(null)
         );
+    }
+
+    private ProjectContributionSummaryDto buildContributionSummary(User user) {
+        List<TeamCollaborationReview> reviews = reviewRepository.findByReviewedUser_Id(user.getId());
+
+        int reviewCount = reviews.size();
+
+        int projectCount = (int) reviews.stream()
+                .filter(review -> review.getTeam() != null)
+                .map(review -> review.getTeam().getId())
+                .distinct()
+                .count();
+
+        if (reviewCount < MIN_PUBLIC_REVIEWS) {
+            return new ProjectContributionSummaryDto(
+                    reviewCount,
+                    projectCount,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of()
+            );
+        }
+
+        return new ProjectContributionSummaryDto(
+                reviewCount,
+                projectCount,
+                averageOf(reviews, TeamCollaborationReview::getEngagementRating),
+                averageOf(reviews, TeamCollaborationReview::getRoleExecutionRating),
+                averageOf(reviews, TeamCollaborationReview::getCollaborationRating),
+                averageOf(reviews, TeamCollaborationReview::getReliabilityRating),
+                averageOf(reviews, TeamCollaborationReview::getContributionQualityRating),
+                round2(reviews.stream()
+                        .mapToDouble(this::averageRating)
+                        .average()
+                        .orElse(0.0)),
+                buildRoleSummaries(reviews),
+                buildProjectSummaries(reviews),
+                buildStrengthTagSummaries(reviews)
+        );
+    }
+
+    private List<RoleContributionSummaryDto> buildRoleSummaries(List<TeamCollaborationReview> reviews) {
+        Map<String, List<TeamCollaborationReview>> grouped = reviews.stream()
+                .collect(Collectors.groupingBy(
+                        this::safeProjectRoleLabel,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return grouped.entrySet().stream()
+                .map(entry -> new RoleContributionSummaryDto(
+                        entry.getKey(),
+                        round2(entry.getValue().stream()
+                                .mapToDouble(this::averageRating)
+                                .average()
+                                .orElse(0.0)),
+                        entry.getValue().size()
+                ))
+                .sorted(
+                        Comparator.comparing(RoleContributionSummaryDto::averageRating).reversed()
+                                .thenComparing(RoleContributionSummaryDto::projectRoleLabel, String.CASE_INSENSITIVE_ORDER)
+                )
+                .limit(MAX_PUBLIC_ROLE_SUMMARIES)
+                .toList();
+    }
+
+    private List<ProjectContributionHistoryDto> buildProjectSummaries(List<TeamCollaborationReview> reviews) {
+        Map<String, List<TeamCollaborationReview>> grouped = new LinkedHashMap<>();
+
+        for (TeamCollaborationReview review : reviews) {
+            if (review.getTeam() == null) continue;
+
+            String key = review.getTeam().getId() + "::" + safeProjectRoleLabel(review);
+            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(review);
+        }
+
+        return grouped.values().stream()
+                .filter(group -> !group.isEmpty())
+                .map(group -> {
+                    TeamCollaborationReview first = group.get(0);
+
+                    return new ProjectContributionHistoryDto(
+                            first.getTeam().getId(),
+                            first.getTeam().getName(),
+                            safeProjectRoleLabel(first),
+                            round2(group.stream()
+                                    .mapToDouble(this::averageRating)
+                                    .average()
+                                    .orElse(0.0)),
+                            group.size()
+                    );
+                })
+                .sorted(
+                        Comparator.comparing(ProjectContributionHistoryDto::averageRating).reversed()
+                                .thenComparing(ProjectContributionHistoryDto::teamName, String.CASE_INSENSITIVE_ORDER)
+                )
+                .limit(MAX_PUBLIC_PROJECT_SUMMARIES)
+                .toList();
+    }
+
+    private List<StrengthTagSummaryDto> buildStrengthTagSummaries(List<TeamCollaborationReview> reviews) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+
+        for (TeamCollaborationReview review : reviews) {
+            if (review.getStrengthTags() == null) continue;
+
+            for (String rawTag : review.getStrengthTags()) {
+                String tag = normalize(rawTag, 60);
+                if (tag == null) continue;
+
+                String normalized = tag.toLowerCase(Locale.ROOT);
+                counts.put(normalized, counts.getOrDefault(normalized, 0) + 1);
+            }
+        }
+
+        return counts.entrySet().stream()
+                .map(entry -> new StrengthTagSummaryDto(entry.getKey(), entry.getValue()))
+                .sorted(
+                        Comparator.comparing(StrengthTagSummaryDto::count).reversed()
+                                .thenComparing(StrengthTagSummaryDto::tag, String.CASE_INSENSITIVE_ORDER)
+                )
+                .limit(MAX_PUBLIC_STRENGTH_TAGS)
+                .toList();
+    }
+
+    private double averageOf(
+            List<TeamCollaborationReview> reviews,
+            ToIntFunction<TeamCollaborationReview> mapper
+    ) {
+        return round2(reviews.stream()
+                .mapToInt(mapper)
+                .average()
+                .orElse(0.0));
+    }
+
+    private double averageRating(TeamCollaborationReview review) {
+        return (
+                review.getEngagementRating()
+                        + review.getRoleExecutionRating()
+                        + review.getCollaborationRating()
+                        + review.getReliabilityRating()
+                        + review.getContributionQualityRating()
+        ) / 5.0;
+    }
+
+    private String safeProjectRoleLabel(TeamCollaborationReview review) {
+        String role = review.getProjectRoleLabel();
+
+        if (role == null || role.isBlank()) {
+            return "Member";
+        }
+
+        return role.trim();
+    }
+
+    private double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private ProjectHistoryDto toProjectHistoryDto(TeamMember tm) {

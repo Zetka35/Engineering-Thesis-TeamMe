@@ -17,22 +17,88 @@ function formatPl(iso?: string | null) {
   return d.toLocaleDateString("pl-PL");
 }
 
+function formatRating(value?: number | null) {
+  if (value === null || value === undefined) return "—";
+  return value.toFixed(2).replace(".", ",");
+}
+
+const RATING_VALUES = [1, 2, 3, 4, 5];
+
+const STRENGTH_TAG_OPTIONS = [
+  "komunikacja",
+  "terminowość",
+  "samodzielność",
+  "inicjatywa",
+  "wsparcie zespołu",
+  "odpowiedzialność",
+  "jakość rozwiązań",
+];
+
 type ReviewDraft = {
-  communicationRating: number;
-  reliabilityRating: number;
+  engagementRating: number;
+  roleExecutionRating: number;
   collaborationRating: number;
-  ownershipRating: number;
+  reliabilityRating: number;
+  contributionQualityRating: number;
   comment: string;
+  strengthTags: string[];
 };
 
 function emptyDraft(): ReviewDraft {
   return {
-    communicationRating: 5,
-    reliabilityRating: 5,
+    engagementRating: 5,
+    roleExecutionRating: 5,
     collaborationRating: 5,
-    ownershipRating: 5,
+    reliabilityRating: 5,
+    contributionQualityRating: 5,
     comment: "",
+    strengthTags: [],
   };
+}
+
+function RatingSelect({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="field">
+      <label className="field-label">{label}</label>
+      {description && (
+        <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
+          {description}
+        </div>
+      )}
+      <select
+        className="input"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      >
+        {RATING_VALUES.map((rating) => (
+          <option key={rating} value={rating}>
+            {rating}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ReviewRatingsSummary({ review }: { review: CollaborationReview }) {
+  return (
+    <div className="muted">
+      Zaangażowanie: {review.engagementRating} | Realizacja roli:{" "}
+      {review.roleExecutionRating} | Współpraca: {review.collaborationRating} |
+      Odpowiedzialność: {review.reliabilityRating} | Jakość wkładu:{" "}
+      {review.contributionQualityRating}
+    </div>
+  );
 }
 
 export default function History() {
@@ -77,9 +143,11 @@ export default function History() {
 
   const receivedAverage = useMemo(() => {
     if (!receivedReviews.length) return null;
+
     const avg =
       receivedReviews.reduce((sum, review) => sum + review.averageRating, 0) /
       receivedReviews.length;
+
     return Math.round(avg * 100) / 100;
   }, [receivedReviews]);
 
@@ -91,11 +159,9 @@ export default function History() {
     return drafts[draftKey(item)] ?? emptyDraft();
   }
 
-  function updateDraft(
-    item: PendingReviewTarget,
-    patch: Partial<ReviewDraft>
-  ) {
+  function updateDraft(item: PendingReviewTarget, patch: Partial<ReviewDraft>) {
     const key = draftKey(item);
+
     setDrafts((prev) => ({
       ...prev,
       [key]: {
@@ -103,6 +169,28 @@ export default function History() {
         ...patch,
       },
     }));
+  }
+
+  function toggleStrengthTag(item: PendingReviewTarget, tag: string) {
+    const draft = getDraft(item);
+    const selected = draft.strengthTags.includes(tag);
+
+    if (selected) {
+      updateDraft(item, {
+        strengthTags: draft.strengthTags.filter((currentTag) => currentTag !== tag),
+      });
+      return;
+    }
+
+    if (draft.strengthTags.length >= 3) {
+      setError("Możesz wskazać maksymalnie 3 mocne strony.");
+      return;
+    }
+
+    setError("");
+    updateDraft(item, {
+      strengthTags: [...draft.strengthTags, tag],
+    });
   }
 
   async function handleSubmitReview(item: PendingReviewTarget) {
@@ -117,14 +205,16 @@ export default function History() {
       await submitCollaborationReview({
         teamId: item.teamId,
         reviewedUserId: item.reviewedUserId,
-        communicationRating: draft.communicationRating,
-        reliabilityRating: draft.reliabilityRating,
+        engagementRating: draft.engagementRating,
+        roleExecutionRating: draft.roleExecutionRating,
         collaborationRating: draft.collaborationRating,
-        ownershipRating: draft.ownershipRating,
+        reliabilityRating: draft.reliabilityRating,
+        contributionQualityRating: draft.contributionQualityRating,
         comment: draft.comment,
+        strengthTags: draft.strengthTags,
       });
 
-      setSuccessMsg("Ocena współpracy została zapisana.");
+      setSuccessMsg("Ocena wkładu w projekt została zapisana.");
       setDrafts((prev) => {
         const next = { ...prev };
         delete next[key];
@@ -133,7 +223,7 @@ export default function History() {
 
       await load();
     } catch (e: unknown) {
-      setError(`Nie udało się zapisać oceny współpracy. ${extractApiMessage(e)}`);
+      setError(`Nie udało się zapisać oceny wkładu w projekt. ${extractApiMessage(e)}`);
     } finally {
       setSubmittingKey(null);
     }
@@ -145,16 +235,21 @@ export default function History() {
         <div className="card-header">
           <h2 className="card-title">Historia pracy</h2>
           <p className="card-subtitle">
-            Zobacz zakończone projekty i wystaw oceny współpracy po zakończeniu pracy zespołowej.
+            Zobacz zakończone projekty i wystaw oceny wkładu w projekt po zakończeniu pracy zespołowej.
           </p>
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 16 }}>
           {error && <div className="alert">{error}</div>}
+
           {successMsg && (
             <div
               className="alert"
-              style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
+              style={{
+                background: "#ecfdf3",
+                color: "#166534",
+                borderColor: "#bbf7d0",
+              }}
             >
               {successMsg}
             </div>
@@ -169,7 +264,8 @@ export default function History() {
               <div className="profile-block">
                 <div className="profile-block-title">Podsumowanie ocen</div>
                 <div className="muted">
-                  Średnia ocen otrzymanych: {receivedAverage ?? "Brak danych"}
+                  Średnia ocen otrzymanych:{" "}
+                  {receivedAverage === null ? "Brak danych" : formatRating(receivedAverage)}
                 </div>
               </div>
 
@@ -191,7 +287,14 @@ export default function History() {
                           gap: 6,
                         }}
                       >
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                          }}
+                        >
                           <b>{item.teamName}</b>
                           <span className="pill">{item.roleLabel}</span>
                           <span className="pill">{item.teamStatus || "—"}</span>
@@ -199,7 +302,8 @@ export default function History() {
                         </div>
 
                         <div className="muted">
-                          Dołączono: {formatPl(item.joinedAt)} | Zakończono: {item.current ? "—" : formatPl(item.leftAt)}
+                          Dołączono: {formatPl(item.joinedAt)} | Zakończono:{" "}
+                          {item.current ? "—" : formatPl(item.leftAt)}
                         </div>
                       </div>
                     ))}
@@ -211,7 +315,7 @@ export default function History() {
 
               <div className="profile-block">
                 <div className="profile-block-title">
-                  Oczekujące oceny współpracy ({pendingReviews.length})
+                  Oczekujące oceny wkładu w projekt ({pendingReviews.length})
                 </div>
 
                 {pendingReviews.length ? (
@@ -228,7 +332,7 @@ export default function History() {
                             borderRadius: 14,
                             padding: 12,
                             display: "grid",
-                            gap: 10,
+                            gap: 12,
                           }}
                         >
                           <div>
@@ -237,84 +341,93 @@ export default function History() {
                           </div>
 
                           <div className="muted">
-                            Rola projektowa: {item.roleLabel || "—"} | Projekt zakończono: {formatPl(item.leftAt)}
+                            Rola projektowa: {item.roleLabel || "—"} | Projekt zakończono:{" "}
+                            {formatPl(item.leftAt)}
+                          </div>
+
+                          <div
+                            style={{
+                              background: "#f8fafc",
+                              border: "1px solid var(--line)",
+                              borderRadius: 12,
+                              padding: 12,
+                              display: "grid",
+                              gap: 4,
+                            }}
+                          >
+                            <b>Jak oceniasz wkład tej osoby w ten projekt?</b>
+                            <span className="muted">
+                              Oceń zachowanie i efekty pracy w kontekście konkretnego projektu oraz przyjętej roli.
+                            </span>
                           </div>
 
                           <div className="form-grid-2">
-                            <div className="field">
-                              <label className="field-label">Komunikacja</label>
-                              <select
-                                className="input"
-                                value={draft.communicationRating}
-                                onChange={(e) =>
-                                  updateDraft(item, {
-                                    communicationRating: Number(e.target.value),
-                                  })
-                                }
-                              >
-                                {[1, 2, 3, 4, 5].map((value) => (
-                                  <option key={value} value={value}>
-                                    {value}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                            <RatingSelect
+                              label="Zaangażowanie w projekt"
+                              description="Czy osoba realnie angażowała się w pracę, była aktywna i wnosiła wkład?"
+                              value={draft.engagementRating}
+                              onChange={(value) =>
+                                updateDraft(item, { engagementRating: value })
+                              }
+                            />
 
-                            <div className="field">
-                              <label className="field-label">Rzetelność</label>
-                              <select
-                                className="input"
-                                value={draft.reliabilityRating}
-                                onChange={(e) =>
-                                  updateDraft(item, {
-                                    reliabilityRating: Number(e.target.value),
-                                  })
-                                }
-                              >
-                                {[1, 2, 3, 4, 5].map((value) => (
-                                  <option key={value} value={value}>
-                                    {value}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                            <RatingSelect
+                              label="Realizacja przyjętej roli"
+                              description="Jak dobrze poradziła sobie w roli projektowej, którą pełniła?"
+                              value={draft.roleExecutionRating}
+                              onChange={(value) =>
+                                updateDraft(item, { roleExecutionRating: value })
+                              }
+                            />
 
-                            <div className="field">
-                              <label className="field-label">Współpraca</label>
-                              <select
-                                className="input"
-                                value={draft.collaborationRating}
-                                onChange={(e) =>
-                                  updateDraft(item, {
-                                    collaborationRating: Number(e.target.value),
-                                  })
-                                }
-                              >
-                                {[1, 2, 3, 4, 5].map((value) => (
-                                  <option key={value} value={value}>
-                                    {value}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                            <RatingSelect
+                              label="Współpraca zespołowa"
+                              description="Jak układała się codzienna współpraca z tą osobą?"
+                              value={draft.collaborationRating}
+                              onChange={(value) =>
+                                updateDraft(item, { collaborationRating: value })
+                              }
+                            />
 
-                            <div className="field">
-                              <label className="field-label">Odpowiedzialność</label>
-                              <select
-                                className="input"
-                                value={draft.ownershipRating}
-                                onChange={(e) =>
-                                  updateDraft(item, {
-                                    ownershipRating: Number(e.target.value),
-                                  })
-                                }
-                              >
-                                {[1, 2, 3, 4, 5].map((value) => (
-                                  <option key={value} value={value}>
-                                    {value}
-                                  </option>
-                                ))}
-                              </select>
+                            <RatingSelect
+                              label="Odpowiedzialność i terminowość"
+                              description="Czy można było na niej polegać i czy domykała zadania?"
+                              value={draft.reliabilityRating}
+                              onChange={(value) =>
+                                updateDraft(item, { reliabilityRating: value })
+                              }
+                            />
+
+                            <RatingSelect
+                              label="Jakość wkładu merytorycznego"
+                              description="Czy jej rozwiązania, pomysły lub zadania były wartościowe?"
+                              value={draft.contributionQualityRating}
+                              onChange={(value) =>
+                                updateDraft(item, { contributionQualityRating: value })
+                              }
+                            />
+                          </div>
+
+                          <div className="field">
+                            <label className="field-label">
+                              Najczęściej widoczne mocne strony — wybierz maksymalnie 3
+                            </label>
+
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {STRENGTH_TAG_OPTIONS.map((tag) => {
+                                const selected = draft.strengthTags.includes(tag);
+
+                                return (
+                                  <button
+                                    key={tag}
+                                    type="button"
+                                    className={selected ? "btn btn-solid" : "btn btn-ghost"}
+                                    onClick={() => toggleStrengthTag(item, tag)}
+                                  >
+                                    {tag}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
 
@@ -327,7 +440,7 @@ export default function History() {
                               onChange={(e) =>
                                 updateDraft(item, { comment: e.target.value })
                               }
-                              placeholder="Napisz krótko, jak układała się współpraca."
+                              placeholder="Napisz krótko, jaki był wkład tej osoby w projekt."
                             />
                           </div>
 
@@ -337,7 +450,9 @@ export default function History() {
                               disabled={submittingKey === key}
                               onClick={() => void handleSubmitReview(item)}
                             >
-                              {submittingKey === key ? "Zapisywanie…" : "Zapisz ocenę"}
+                              {submittingKey === key
+                                ? "Zapisywanie…"
+                                : "Zapisz ocenę wkładu"}
                             </button>
                           </div>
                         </div>
@@ -345,7 +460,7 @@ export default function History() {
                     })}
                   </div>
                 ) : (
-                  <div className="muted">Brak oczekujących ocen współpracy.</div>
+                  <div className="muted">Brak oczekujących ocen wkładu w projekt.</div>
                 )}
               </div>
 
@@ -367,16 +482,34 @@ export default function History() {
                           gap: 6,
                         }}
                       >
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                          }}
+                        >
                           <b>{review.teamName}</b>
-                          <span className="pill">średnia: {review.averageRating}</span>
+                          <span className="pill">rola: {review.projectRoleLabel}</span>
+                          <span className="pill">
+                            średnia: {formatRating(review.averageRating)}
+                          </span>
                           <span className="pill">od: @{review.reviewerUsername}</span>
+                          {review.editable && <span className="pill">możliwa edycja</span>}
                         </div>
+
+                        <ReviewRatingsSummary review={review} />
+
+                        {review.strengthTags.length > 0 && (
+                          <div className="muted">
+                            Mocne strony: {review.strengthTags.join(", ")}
+                          </div>
+                        )}
+
                         <div className="muted">
-                          Komunikacja: {review.communicationRating} | Rzetelność: {review.reliabilityRating} |
-                          Współpraca: {review.collaborationRating} | Odpowiedzialność: {review.ownershipRating}
+                          {review.comment || "Brak komentarza."}
                         </div>
-                        <div className="muted">{review.comment || "Brak komentarza."}</div>
                       </div>
                     ))}
                   </div>
@@ -403,16 +536,34 @@ export default function History() {
                           gap: 6,
                         }}
                       >
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                          }}
+                        >
                           <b>{review.teamName}</b>
                           <span className="pill">dla: {review.reviewedFullName}</span>
-                          <span className="pill">średnia: {review.averageRating}</span>
+                          <span className="pill">rola: {review.projectRoleLabel}</span>
+                          <span className="pill">
+                            średnia: {formatRating(review.averageRating)}
+                          </span>
+                          {review.editable && <span className="pill">możliwa edycja</span>}
                         </div>
+
+                        <ReviewRatingsSummary review={review} />
+
+                        {review.strengthTags.length > 0 && (
+                          <div className="muted">
+                            Mocne strony: {review.strengthTags.join(", ")}
+                          </div>
+                        )}
+
                         <div className="muted">
-                          Komunikacja: {review.communicationRating} | Rzetelność: {review.reliabilityRating} |
-                          Współpraca: {review.collaborationRating} | Odpowiedzialność: {review.ownershipRating}
+                          {review.comment || "Brak komentarza."}
                         </div>
-                        <div className="muted">{review.comment || "Brak komentarza."}</div>
                       </div>
                     ))}
                   </div>
