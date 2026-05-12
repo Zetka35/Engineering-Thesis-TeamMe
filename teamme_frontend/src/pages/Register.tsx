@@ -52,7 +52,7 @@ export default function Register() {
 
           <label className="field">
             <span>Login</span>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="np. zosia" />
+            <input value={username} onChange={(e) => setUsername(e.target.value)} />
           </label>
 
           <label className="field">

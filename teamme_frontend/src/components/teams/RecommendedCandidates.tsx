@@ -34,7 +34,7 @@ export default function RecommendedCandidates({
         <div className="alert">{error}</div>
       ) : candidates.length === 0 ? (
         <div className="muted">
-          Brak rekomendacji kandydatów. Gdy backend wystawi endpoint matchingu, tutaj pojawi się ranking użytkowników.
+          Brak rekomendacji kandydatów. 
         </div>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>

@@ -43,7 +43,7 @@ export default function Login() {
 
           <label className="field">
             <span>Login</span>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="np. admin" />
+            <input value={username} onChange={(e) => setUsername(e.target.value)}  />
           </label>
 
           <label className="field">
@@ -77,9 +77,7 @@ export default function Login() {
             Nie masz konta? <Link to="/register">Zarejestruj się</Link>
           </p>
 
-          <p className="auth-hint">
-            Konto testowe: <b>admin / admin</b>
-          </p>
+        
         </form>
       </main>
     </div>

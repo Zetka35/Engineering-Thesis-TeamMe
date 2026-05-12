@@ -232,7 +232,7 @@ export default function TeamForm({
             <div>
               <h3 className="form-section-title">Informacje podstawowe</h3>
               <p className="form-section-subtitle">
-                Najpierw określ, czym zajmuje się projekt i jaki jest podstawowy skład zespołu.
+                Określ, czym zajmuje się projekt i jaki jest podstawowy skład zespołu.
               </p>
             </div>
           </div>
@@ -253,9 +253,6 @@ export default function TeamForm({
                 placeholder="Np. Product Builders"
                 required
               />
-              <p className="field-help">
-                Krótka nazwa, którą łatwo zapamiętać i rozpoznać na liście zespołów.
-              </p>
               {errors.name && <p className="field-error">{errors.name}</p>}
             </div>
 
@@ -316,7 +313,7 @@ export default function TeamForm({
               )}
 
               <p className="field-help">
-                Wybierz gotową kategorię albo wpisz własną, jeśli projekt jest bardziej specyficzny.
+                Wybierz gotową kategorię albo wpisz własną.
               </p>
               {errors.projectArea && <p className="field-error">{errors.projectArea}</p>}
             </div>
@@ -391,7 +388,7 @@ export default function TeamForm({
           </div>
 
           <div className="form-inline-note">
-            Sensowny punkt startowy: krótki opis, wybrany obszar projektu, przynajmniej jedna rola projektowa
+            Krótki opis, wybrany obszar projektu, przynajmniej jedna rola projektowa
             i kilka technologii naprawdę istotnych dla rekrutacji.
           </div>
         </section>
