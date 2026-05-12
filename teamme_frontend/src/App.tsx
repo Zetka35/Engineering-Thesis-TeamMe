@@ -59,7 +59,7 @@ function AppShell() {
             <Route path="/survey" element={<Survey />} />
             <Route path="/profile" element={<Profile />} />
 
-            <Route path="*" element={<Navigate to="/teams" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </div>

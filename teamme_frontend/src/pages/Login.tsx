@@ -24,7 +24,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(username.trim(), password);
-      nav("/profile");
+      nav("/dashboard");
     } catch (e: any) {
   setError(e?.message ?? "Wystąpił błąd logowania");
     } finally {
@@ -51,7 +51,6 @@ export default function Login() {
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
               type="password"
             />
           </label>
