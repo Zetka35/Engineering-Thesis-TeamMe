@@ -57,9 +57,10 @@ export default function Home() {
             </h1>
 
             <p className="landing-lead">
-              TeamMe pomaga budować zespoły projektowe w sposób bardziej świadomy.
-              Łączy informacje o umiejętnościach technicznych, doświadczeniu oraz autorskich rolach zespołowych,
-              aby wspierać skuteczne dopasowanie ludzi do projektów i do siebie nawzajem.
+              TeamMe pomaga budować zespoły projektowe - łączy informacje o umiejętnościach technicznych, 
+              doświadczeniu oraz autorskich rolach zespołowych, aby wspierać skuteczne 
+              dopasowanie ludzi do projektów 
+              i do siebie nawzajem.
             </p>
 
             <div className="landing-actions">

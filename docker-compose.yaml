@@ -1,9 +1,10 @@
-
 version: "3.9"
+
 services:
   postgres:
     image: postgres:15
     container_name: teamme-pg
+    restart: unless-stopped
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: zetka
@@ -12,5 +13,54 @@ services:
       - "5433:5432"
     volumes:
       - teamme_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d teamme"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend/backend
+      dockerfile: Dockerfile
+    container_name: teamme-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/teamme
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: zetka
+
+      APP_JWT_SECRET: 1234567890123456789012345678901234567890123456789012345678901234
+      APP_JWT_ISSUER: teamme
+      APP_JWT_ACCESSTOKENMINUTES: 120
+
+      CORS_ALLOWEDORIGINS: http://localhost:5173,http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./teamme_frontend
+      dockerfile: Dockerfile
+    container_name: teamme-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./teamme_frontend/src:/app/src
+      - ./teamme_frontend/public:/app/public
+      - ./teamme_frontend/index.html:/app/index.html
+      - ./teamme_frontend/vite.config.ts:/app/vite.config.ts
+      - ./teamme_frontend/tsconfig.json:/app/tsconfig.json
+      - ./teamme_frontend/tsconfig.app.json:/app/tsconfig.app.json
+      - ./teamme_frontend/tsconfig.node.json:/app/tsconfig.node.json
+
 volumes:
   teamme_pgdata:
