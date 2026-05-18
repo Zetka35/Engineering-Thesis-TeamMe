@@ -1,6 +1,6 @@
 package com.teamme.backend.config;
 
-import com.teamme.backend.notification.NotificationWebSocketService;
+import com.teamme.backend.notification.NotificationWebSocketHandler;
 import com.teamme.backend.notification.WebSocketAuthInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
