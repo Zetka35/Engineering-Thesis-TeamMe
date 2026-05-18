@@ -135,6 +135,27 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
   };
 }
 
+type TeamDetailsTab =
+  | "overview"
+  | "members"
+  | "recruitment"
+  | "tasks"
+  | "meetings"
+  | "settings";
+
+const TEAM_DETAILS_TABS: Array<{
+  key: TeamDetailsTab;
+  label: string;
+  ownerOnly?: boolean;
+}> = [
+  { key: "overview", label: "Przegląd" },
+  { key: "members", label: "Członkowie" },
+  { key: "recruitment", label: "Rekrutacja" },
+  { key: "tasks", label: "Zadania" },
+  { key: "meetings", label: "Spotkania" },
+  { key: "settings", label: "Ustawienia", ownerOnly: true },
+];
+
 export default function TeamDetails() {
   const { teamId } = useParams();
   const nav = useNavigate();
@@ -152,6 +173,8 @@ export default function TeamDetails() {
   const [savingInvite, setSavingInvite] = useState(false);
   const [actingRequestId, setActingRequestId] = useState<number | null>(null);
   const [savingComplete, setSavingComplete] = useState(false);
+  const [activeTab, setActiveTab] = useState<TeamDetailsTab>("overview");
+  const [editingTeam, setEditingTeam] = useState(false);
 
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -243,6 +266,12 @@ export default function TeamDetails() {
     }
   }, [location.pathname, location.state, nav]);
 
+  useEffect(() => {
+  if (!isOwner && activeTab === "settings") {
+    setActiveTab("overview");
+  }
+}, [isOwner, activeTab]);
+
   const teamFormInitialValue = useMemo(() => {
     return team ? toTeamFormValue(team) : undefined;
   }, [team]);
@@ -257,9 +286,11 @@ export default function TeamDetails() {
     try {
       const updated = await updateTeam(team.id, toPayload(form));
       setTeam(updated);
-      setSuccessMsg(
-        "Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów."
-      );
+setEditingTeam(false);
+setActiveTab("overview");
+setSuccessMsg(
+  "Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów."
+);
     } catch (e: unknown) {
       setError(
         `Nie udało się zapisać zmian w profilu zespołu. ${extractApiMessage(e)}`
@@ -449,6 +480,33 @@ export default function TeamDetails() {
     }
   }
 
+  function renderTabButton(tab: {
+  key: TeamDetailsTab;
+  label: string;
+  ownerOnly?: boolean;
+}) {
+  const active = activeTab === tab.key;
+
+  return (
+    <button
+      key={tab.key}
+      type="button"
+      className={active ? "btn btn-solid" : "btn btn-ghost"}
+      onClick={() => {
+        setActiveTab(tab.key);
+        setError("");
+        setSuccessMsg("");
+
+        if (tab.key !== "settings") {
+          setEditingTeam(false);
+        }
+      }}
+    >
+      {tab.label}
+    </button>
+  );
+}
+
   if (loading) {
     return (
       <div className="page">
@@ -502,6 +560,20 @@ export default function TeamDetails() {
             </button>
           </div>
 
+          <div
+  style={{
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    borderBottom: "1px solid var(--line)",
+    paddingBottom: 12,
+  }}
+>
+  {TEAM_DETAILS_TABS
+    .filter((tab) => !tab.ownerOnly || isOwner)
+    .map(renderTabButton)}
+</div>
+
           <div className="profile-block" style={{ display: "grid", gap: 8 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <span className="pill">status projektu: {team.status}</span>
@@ -519,283 +591,413 @@ export default function TeamDetails() {
             </div>
           </div>
 
-          {isOwner ? (
-            <TeamForm
-              title="Edytuj profil zespołu"
-              submitLabel="Zapisz profil zespołu"
-              initialValue={teamFormInitialValue}
-              saving={savingProfile}
-              onSubmit={handleSaveProfile}
-            />
-          ) : (
-            <>
-              <div className="profile-block">
-                <div className="profile-block-title">Technologie projektu</div>
-                {team.technologies.length ? (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {team.technologies.map((technology) => (
-                      <span key={technology.id} className="pill">
-                        {technology.name}
-                        {technology.requiredLevel ? ` • ${technology.requiredLevel}/5` : ""}
-                        {technology.required ? " • wymagana" : ""}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">Brak określonych technologii.</div>
-                )}
-              </div>
+          {activeTab === "overview" && (
+  <>
+    <div className="profile-block" style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <span className="pill">status projektu: {team.status}</span>
+        <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
+        <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
+        <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
+        <span className="pill">
+          członkowie: {team.members.length}/{team.maxMembers}
+        </span>
+        <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
+      </div>
 
-              <div className="profile-block">
-                <div className="profile-block-title">Poszukiwane role</div>
-                {team.roleRequirements.length ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {team.roleRequirements.map((roleRequirement) => (
-                      <div
-                        key={roleRequirement.id}
-                        style={{
-                          border: "1px solid var(--line)",
-                          borderRadius: 12,
-                          padding: 12,
-                          display: "grid",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                          }}
-                        >
-                          <b>{roleRequirement.projectRoleName}</b>
-                          <span className="pill">miejsca: {roleRequirement.slots}</span>
-                          <span className="pill">priorytet: {roleRequirement.priority}</span>
-                          <span className="pill">{roleRequirement.status}</span>
-                          {roleRequirement.preferredTeamRole && (
-                            <span className="pill">
-                              preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
-                            </span>
-                          )}
-                          <span className="pill">
-                            ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
-                          </span>
-                        </div>
-                        <div className="muted">
-                          {roleRequirement.description || "Brak opisu roli."}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">Brak zdefiniowanych ról rekrutacyjnych.</div>
-                )}
-              </div>
-            </>
-          )}
+      <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
+        {team.description || "Brak opisu projektu."}
+      </div>
+    </div>
 
-          {isOwner && team.status !== "COMPLETED" && (
-  <div style={{ display: "flex", justifyContent: "flex-end" }}>
-    <button
-      className="btn btn-solid"
-      disabled={savingComplete}
-      onClick={() => void handleCompleteProject()}
+    <div className="profile-block">
+      <div className="profile-block-title">Technologie projektu</div>
+      {team.technologies.length ? (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {team.technologies.map((technology) => (
+            <span key={technology.id} className="pill">
+              {technology.name}
+              {technology.requiredLevel ? ` • ${technology.requiredLevel}/5` : ""}
+              {technology.required ? " • wymagana" : ""}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="muted">Brak określonych technologii.</div>
+      )}
+    </div>
+
+    <div className="profile-block">
+      <div className="profile-block-title">Role projektowe</div>
+      {team.roleRequirements.length ? (
+        <div style={{ display: "grid", gap: 10 }}>
+          {team.roleRequirements.map((roleRequirement) => (
+            <div
+              key={roleRequirement.id}
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: 12,
+                padding: 12,
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <b>{roleRequirement.projectRoleName}</b>
+                <span className="pill">miejsca: {roleRequirement.slots}</span>
+                <span className="pill">priorytet: {roleRequirement.priority}</span>
+                <span className="pill">{roleRequirement.status}</span>
+                {roleRequirement.preferredTeamRole && (
+                  <span className="pill">
+                    preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
+                  </span>
+                )}
+                <span className="pill">
+                  ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
+                </span>
+              </div>
+              <div className="muted">
+                {roleRequirement.description || "Brak opisu roli."}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="muted">Brak zdefiniowanych ról projektowych.</div>
+      )}
+    </div>
+
+    {isOwner && team.status !== "COMPLETED" && (
+      <div className="profile-block">
+        <div className="profile-block-title">Akcje projektu</div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            className="btn btn-solid"
+            disabled={savingComplete}
+            onClick={() => void handleCompleteProject()}
+          >
+            {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
+          </button>
+
+          <button
+            className="btn btn-ghost"
+            onClick={() => {
+              setActiveTab("settings");
+              setEditingTeam(true);
+              setError("");
+              setSuccessMsg("");
+            }}
+          >
+            Edytuj zespół
+          </button>
+        </div>
+      </div>
+    )}
+  </>
+)}
+
+{activeTab === "settings" && isOwner && (
+  <div className="profile-block">
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
     >
-      {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
-    </button>
+      <div>
+        <div className="profile-block-title">Ustawienia zespołu</div>
+        <div className="muted">
+          Tutaj możesz zmodyfikować opis, wymagania, technologie i status rekrutacji zespołu.
+        </div>
+      </div>
+
+      {!editingTeam ? (
+        <button
+          className="btn btn-solid"
+          onClick={() => {
+            setEditingTeam(true);
+            setError("");
+            setSuccessMsg("");
+          }}
+        >
+          Edytuj zespół
+        </button>
+      ) : (
+        <button
+          className="btn btn-ghost"
+          disabled={savingProfile}
+          onClick={() => {
+            setEditingTeam(false);
+            setError("");
+            setSuccessMsg("");
+          }}
+        >
+          Anuluj edycję
+        </button>
+      )}
+    </div>
+
+    {editingTeam ? (
+      <div style={{ marginTop: 14 }}>
+        <TeamForm
+          title="Edytuj zespół"
+          submitLabel="Zapisz zmiany"
+          initialValue={teamFormInitialValue}
+          saving={savingProfile}
+          onSubmit={handleSaveProfile}
+        />
+      </div>
+    ) : (
+      <div className="muted" style={{ marginTop: 12 }}>
+        Kliknij „Edytuj zespół”, aby otworzyć formularz modyfikacji danych projektu.
+      </div>
+    )}
+
+    {team.status !== "COMPLETED" && (
+      <div
+        style={{
+          marginTop: 18,
+          borderTop: "1px solid var(--line)",
+          paddingTop: 14,
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div className="profile-block-title">Zakończenie projektu</div>
+        <div className="muted">
+          Po zakończeniu projektu członkowie będą mogli wystawić oceny wkładu w projekt.
+        </div>
+        <div>
+          <button
+            className="btn btn-solid"
+            disabled={savingComplete}
+            onClick={() => void handleCompleteProject()}
+          >
+            {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
+          </button>
+        </div>
+      </div>
+    )}
   </div>
 )}
 
-          <div className="profile-block">
-            <div className="profile-block-title">Członkowie</div>
-            <div style={{ display: "grid", gap: 8 }}>
-              {team.members.map((member) => (
-                <div key={member.userId}>
-                  <b>{member.fullName}</b>{" "}
-                  <span className="muted">(@{member.username})</span> · {member.roleLabel}
-                </div>
-              ))}
+          {activeTab === "members" && (
+  <div className="profile-block">
+    <div className="profile-block-title">Członkowie</div>
+    <div style={{ display: "grid", gap: 8 }}>
+      {team.members.map((member) => (
+        <div key={member.userId}>
+          <b>{member.fullName}</b>{" "}
+          <span className="muted">(@{member.username})</span> · {member.roleLabel}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+          {activeTab === "recruitment" && (
+  <>
+    <RecruitmentPanel
+      isOwner={isOwner}
+      isMember={isMember}
+      currentUsername={user?.username ?? null}
+      recruitmentStatus={team.recruitmentStatus}
+      roleRequirements={team.roleRequirements}
+      requests={team.recruitmentRequests}
+      inviteCandidates={inviteCandidates}
+      loadingInviteCandidates={loadingInviteCandidates}
+      savingApply={savingApply}
+      savingInvite={savingInvite}
+      actingRequestId={actingRequestId}
+      onApply={handleApply}
+      onInvite={handleInvite}
+      onRespond={handleRespondRequest}
+    />
+
+    {isOwner && (
+      <RecommendedCandidates
+        candidates={recommendedCandidates}
+        loading={loadingRecommendedCandidates}
+        error={recommendedCandidatesError}
+        onInviteCandidate={handleInviteCandidate}
+      />
+    )}
+  </>
+)}
+
+          {activeTab === "meetings" && (
+  <div className="profile-block">
+    <div className="profile-block-title">Spotkania</div>
+
+    <form onSubmit={onCreateMeeting} style={{ display: "grid", gap: 12 }}>
+      <input
+        className="input"
+        placeholder="Tytuł spotkania"
+        value={meetingTitle}
+        onChange={(e) => setMeetingTitle(e.target.value)}
+        required
+      />
+      <textarea
+        className="input"
+        rows={3}
+        placeholder="Opis spotkania"
+        value={meetingDescription}
+        onChange={(e) => setMeetingDescription(e.target.value)}
+      />
+      <input
+        className="input"
+        type="datetime-local"
+        value={meetingStartsAt}
+        onChange={(e) => setMeetingStartsAt(e.target.value)}
+        required
+      />
+      <input
+        className="input"
+        type="datetime-local"
+        value={meetingEndsAt}
+        onChange={(e) => setMeetingEndsAt(e.target.value)}
+      />
+      <input
+        className="input"
+        placeholder="Miejsce / link"
+        value={meetingLocation}
+        onChange={(e) => setMeetingLocation(e.target.value)}
+      />
+      <div>
+        <button className="btn btn-solid" disabled={savingMeeting}>
+          {savingMeeting ? "Dodawanie…" : "Dodaj spotkanie"}
+        </button>
+      </div>
+    </form>
+
+    {team.meetings.length > 0 ? (
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        {team.meetings.map((meeting) => (
+          <div
+            key={meeting.id}
+            style={{
+              border: "1px solid var(--line)",
+              borderRadius: 12,
+              padding: 12,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <b>{meeting.title}</b>
+            <div className="muted">
+              {formatPl(meeting.startsAt)}
+              {meeting.endsAt ? ` – ${formatPl(meeting.endsAt)}` : ""}
             </div>
+            <div className="muted">{meeting.location || "Brak lokalizacji"}</div>
+            <div className="muted">{meeting.description || "Brak opisu."}</div>
           </div>
+        ))}
+      </div>
+    ) : (
+      <div className="muted" style={{ marginTop: 12 }}>
+        Brak zaplanowanych spotkań.
+      </div>
+    )}
+  </div>
+)}
 
-          <RecruitmentPanel
-            isOwner={isOwner}
-            isMember={isMember}
-            currentUsername={user?.username ?? null}
-            recruitmentStatus={team.recruitmentStatus}
-            roleRequirements={team.roleRequirements}
-            requests={team.recruitmentRequests}
-            inviteCandidates={inviteCandidates}
-            loadingInviteCandidates={loadingInviteCandidates}
-            savingApply={savingApply}
-            savingInvite={savingInvite}
-            actingRequestId={actingRequestId}
-            onApply={handleApply}
-            onInvite={handleInvite}
-            onRespond={handleRespondRequest}
-          />
+          {activeTab === "tasks" && (
+  <div className="profile-block">
+    <div className="profile-block-title">Zadania</div>
 
-          {isOwner && (
-            <RecommendedCandidates
-              candidates={recommendedCandidates}
-              loading={loadingRecommendedCandidates}
-              error={recommendedCandidatesError}
-              onInviteCandidate={handleInviteCandidate}
-            />
-          )}
+    <form onSubmit={onCreateTask} style={{ display: "grid", gap: 12 }}>
+      <input
+        className="input"
+        placeholder="Tytuł zadania"
+        value={taskTitle}
+        onChange={(e) => setTaskTitle(e.target.value)}
+        required
+      />
+      <textarea
+        className="input"
+        rows={3}
+        placeholder="Opis zadania"
+        value={taskDescription}
+        onChange={(e) => setTaskDescription(e.target.value)}
+      />
+      <input
+        className="input"
+        type="datetime-local"
+        value={taskDueAt}
+        onChange={(e) => setTaskDueAt(e.target.value)}
+      />
 
-          <div className="profile-block">
-            <div className="profile-block-title">Nowe spotkanie</div>
+      <select
+        className="input"
+        value={assigneeUserId}
+        onChange={(e) =>
+          setAssigneeUserId(e.target.value === "" ? "" : Number(e.target.value))
+        }
+      >
+        <option value="">Cały zespół / bez przypisania</option>
+        {team.members.map((member) => (
+          <option key={member.userId} value={member.userId}>
+            {member.fullName} (@{member.username})
+          </option>
+        ))}
+      </select>
 
-            <form onSubmit={onCreateMeeting} style={{ display: "grid", gap: 12 }}>
-              <input
-                className="input"
-                placeholder="Tytuł spotkania"
-                value={meetingTitle}
-                onChange={(e) => setMeetingTitle(e.target.value)}
-                required
-              />
-              <textarea
-                className="input"
-                rows={3}
-                placeholder="Opis spotkania"
-                value={meetingDescription}
-                onChange={(e) => setMeetingDescription(e.target.value)}
-              />
-              <input
-                className="input"
-                type="datetime-local"
-                value={meetingStartsAt}
-                onChange={(e) => setMeetingStartsAt(e.target.value)}
-                required
-              />
-              <input
-                className="input"
-                type="datetime-local"
-                value={meetingEndsAt}
-                onChange={(e) => setMeetingEndsAt(e.target.value)}
-              />
-              <input
-                className="input"
-                placeholder="Miejsce / link"
-                value={meetingLocation}
-                onChange={(e) => setMeetingLocation(e.target.value)}
-              />
-              <div>
-                <button className="btn btn-solid" disabled={savingMeeting}>
-                  {savingMeeting ? "Dodawanie…" : "Dodaj spotkanie"}
-                </button>
-              </div>
-            </form>
+      <div>
+        <button className="btn btn-solid" disabled={savingTask}>
+          {savingTask ? "Dodawanie…" : "Dodaj zadanie"}
+        </button>
+      </div>
+    </form>
 
-            {team.meetings.length > 0 && (
-              <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-                {team.meetings.map((meeting) => (
-                  <div
-                    key={meeting.id}
-                    style={{
-                      border: "1px solid var(--line)",
-                      borderRadius: 12,
-                      padding: 12,
-                      display: "grid",
-                      gap: 6,
-                    }}
-                  >
-                    <b>{meeting.title}</b>
-                    <div className="muted">
-                      {formatPl(meeting.startsAt)}
-                      {meeting.endsAt ? ` – ${formatPl(meeting.endsAt)}` : ""}
-                    </div>
-                    <div className="muted">{meeting.location || "Brak lokalizacji"}</div>
-                    <div className="muted">{meeting.description || "Brak opisu."}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+    {team.tasks.length > 0 ? (
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        {team.tasks.map((task) => (
+          <div
+            key={task.id}
+            style={{
+              border: "1px solid var(--line)",
+              borderRadius: 12,
+              padding: 12,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <b>{task.title}</b>
+              <span className="pill">{task.status}</span>
+            </div>
+            <div className="muted">
+              Termin: {formatPl(task.dueAt)} | Przypisano:{" "}
+              {task.assigneeUsername || "nie przypisano"}
+            </div>
+            <div className="muted">{task.description || "Brak opisu."}</div>
           </div>
-
-          <div className="profile-block">
-            <div className="profile-block-title">Nowe zadanie</div>
-
-            <form onSubmit={onCreateTask} style={{ display: "grid", gap: 12 }}>
-              <input
-                className="input"
-                placeholder="Tytuł zadania"
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                required
-              />
-              <textarea
-                className="input"
-                rows={3}
-                placeholder="Opis zadania"
-                value={taskDescription}
-                onChange={(e) => setTaskDescription(e.target.value)}
-              />
-              <input
-                className="input"
-                type="datetime-local"
-                value={taskDueAt}
-                onChange={(e) => setTaskDueAt(e.target.value)}
-              />
-
-              <select
-                className="input"
-                value={assigneeUserId}
-                onChange={(e) =>
-                  setAssigneeUserId(e.target.value === "" ? "" : Number(e.target.value))
-                }
-              >
-                <option value="">Cały zespół / bez przypisania</option>
-                {team.members.map((member) => (
-                  <option key={member.userId} value={member.userId}>
-                    {member.fullName} (@{member.username})
-                  </option>
-                ))}
-              </select>
-
-              <div>
-                <button className="btn btn-solid" disabled={savingTask}>
-                  {savingTask ? "Dodawanie…" : "Dodaj zadanie"}
-                </button>
-              </div>
-            </form>
-
-            {team.tasks.length > 0 && (
-              <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-                {team.tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    style={{
-                      border: "1px solid var(--line)",
-                      borderRadius: 12,
-                      padding: 12,
-                      display: "grid",
-                      gap: 6,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
-                      <b>{task.title}</b>
-                      <span className="pill">{task.status}</span>
-                    </div>
-                    <div className="muted">
-                      Termin: {formatPl(task.dueAt)} | Przypisano:{" "}
-                      {task.assigneeUsername || "nie przypisano"}
-                    </div>
-                    <div className="muted">{task.description || "Brak opisu."}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="muted" style={{ marginTop: 12 }}>
+        Brak zadań w tym zespole.
+      </div>
+    )}
+  </div>
+)}
         </div>
       </section>
     </div>

@@ -4,11 +4,11 @@ import { TeamMeLogo } from "./icons";
 
 const items = [
   { to: "/dashboard", label: "Strona główna" },
-  { to: "/tasks", label: "Zadania" },
-  { to: "/messages", label: "Skrzynka wiadomości" },
+  { to: "/teams", label: "Moje zespoły" },
   { to: "/team-search", label: "Szukaj zespołu" },
   { to: "/network", label: "Nawiązywanie kontaktów" },
-  { to: "/teams", label: "Moje zespoły" },
+  { to: "/messages", label: "Zaproszenia i zgłoszenia" },
+  { to: "/tasks", label: "Moje zadania" },
   { to: "/history", label: "Historia pracy" },
   { to: "/profile", label: "Profil" },
 ];
