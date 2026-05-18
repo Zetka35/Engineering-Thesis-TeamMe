@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import type { RecruitmentRequest } from "../models/Team";
 import { fetchMyRecruitmentRequests, respondToRequest } from "../api/teams.api";
 import { extractApiMessage } from "../api/http";
+import { useNotifications } from "../notifications/NotificationsContext";
 
 function requestTypeLabel(value?: string | null) {
   switch (value) {
@@ -41,6 +42,7 @@ function formatPl(iso?: string | null) {
 export default function Messages() {
   const nav = useNavigate();
   const { user } = useAuth();
+  const { refreshSignal, setPendingRecruitmentCount } = useNotifications();
 
   const [requests, setRequests] = useState<RecruitmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,9 @@ export default function Messages() {
     try {
       const data = await fetchMyRecruitmentRequests();
       setRequests(data ?? []);
+      setPendingRecruitmentCount(
+  (data ?? []).filter((request) => request.status === "PENDING").length
+);
     } catch (e: unknown) {
       setError(`Nie udało się załadować skrzynki wiadomości. ${extractApiMessage(e)}`);
     } finally {
@@ -63,8 +68,8 @@ export default function Messages() {
   }
 
   useEffect(() => {
-    void load();
-  }, []);
+  void load();
+}, [refreshSignal]);
 
   const currentUsername = user?.username ?? "";
 

@@ -5,6 +5,7 @@ import { getUserProfile, type ProjectHistoryItem, type UserProfile } from "../ap
 import { fetchTeam, fetchTeams, inviteToTeam } from "../api/teams.api";
 import type { TeamDetails as TeamDetailsModel, TeamSummary } from "../models/Team";
 import { extractApiMessage } from "../api/http";
+import TeamRoleBadge from "../components/TeamRoleBadge";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -471,7 +472,7 @@ export default function PublicProfile() {
           <div className="profile-block" style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               {profile.selectedRole && (
-  <span className="pill">rola zespołowa: {profile.selectedRole}</span>
+  <TeamRoleBadge role={profile.selectedRole} />
 )}
               {profile.headline && <b>{profile.headline}</b>}
             </div>

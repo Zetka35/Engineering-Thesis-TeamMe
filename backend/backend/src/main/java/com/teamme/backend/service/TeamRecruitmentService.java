@@ -13,6 +13,8 @@ import com.teamme.backend.repository.TeamRoleRequirementRepository;
 import com.teamme.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.teamme.backend.notification.NotificationEvent;
+import com.teamme.backend.notification.NotificationWebSocketService;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -61,19 +63,22 @@ public class TeamRecruitmentService {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamRecruitmentRequestRepository teamRecruitmentRequestRepository;
     private final TeamRoleRequirementRepository teamRoleRequirementRepository;
+    private final NotificationWebSocketService notificationWebSocketService;
 
     public TeamRecruitmentService(
             UserRepository userRepository,
             TeamRepository teamRepository,
             TeamMemberRepository teamMemberRepository,
             TeamRecruitmentRequestRepository teamRecruitmentRequestRepository,
-            TeamRoleRequirementRepository teamRoleRequirementRepository
+            TeamRoleRequirementRepository teamRoleRequirementRepository,
+            NotificationWebSocketService notificationWebSocketService
     ) {
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.teamMemberRepository = teamMemberRepository;
         this.teamRecruitmentRequestRepository = teamRecruitmentRequestRepository;
         this.teamRoleRequirementRepository = teamRoleRequirementRepository;
+        this.notificationWebSocketService = notificationWebSocketService;
     }
 
     public RecruitmentRequestView applyToTeam(Long teamId, ApplyRequest req, String username) {
@@ -98,6 +103,23 @@ public class TeamRecruitmentService {
         request.setCreatedByUser(applicant);
 
         TeamRecruitmentRequest saved = teamRecruitmentRequestRepository.save(request);
+
+        if (team.getOwnerUser() != null) {
+            notificationWebSocketService.sendToUser(
+                    team.getOwnerUser().getUsername(),
+                    new NotificationEvent(
+                            "RECRUITMENT_REQUEST_CREATED",
+                            "Nowa aplikacja do zespołu",
+                            applicant.getUsername() + " wysłał/a aplikację do zespołu " + team.getName() + ".",
+                            team.getId(),
+                            team.getName(),
+                            saved.getId(),
+                            saved.getRequestType(),
+                            saved.getStatus()
+                    )
+            );
+        }
+
         return toView(saved);
     }
 
@@ -127,6 +149,21 @@ public class TeamRecruitmentService {
         request.setCreatedByUser(owner);
 
         TeamRecruitmentRequest saved = teamRecruitmentRequestRepository.save(request);
+
+        notificationWebSocketService.sendToUser(
+                targetUser.getUsername(),
+                new NotificationEvent(
+                        "RECRUITMENT_REQUEST_CREATED",
+                        "Nowe zaproszenie do zespołu",
+                        "Otrzymano zaproszenie do zespołu " + team.getName() + ".",
+                        team.getId(),
+                        team.getName(),
+                        saved.getId(),
+                        saved.getRequestType(),
+                        saved.getStatus()
+                )
+        );
+
         return toView(saved);
     }
 
@@ -194,7 +231,57 @@ public class TeamRecruitmentService {
             teamRecruitmentRequestRepository.save(request);
         }
 
+        notifyAboutRequestDecision(request, actor);
         return toView(request);
+    }
+
+    private void notifyAboutRequestDecision(TeamRecruitmentRequest request, User actor) {
+        if (request.getTeam() == null || request.getUser() == null) {
+            return;
+        }
+
+        String recipientUsername = null;
+
+        if ("APPLICATION".equals(request.getRequestType())) {
+            // Przy aplikacji decyzję podejmuje właściciel, więc powiadamiamy aplikującego.
+            recipientUsername = request.getUser().getUsername();
+        } else if ("INVITATION".equals(request.getRequestType())) {
+            // Przy zaproszeniu odpowiada zaproszony użytkownik, więc powiadamiamy autora zaproszenia.
+            if (request.getCreatedByUser() != null) {
+                recipientUsername = request.getCreatedByUser().getUsername();
+            }
+        }
+
+        if (recipientUsername == null || recipientUsername.equals(actor.getUsername())) {
+            return;
+        }
+
+        String title = switch (request.getStatus()) {
+            case "ACCEPTED" -> "Zgłoszenie zaakceptowane";
+            case "REJECTED" -> "Zgłoszenie odrzucone";
+            case "CANCELLED" -> "Zgłoszenie anulowane";
+            default -> "Aktualizacja zgłoszenia";
+        };
+
+        String message = "Status zgłoszenia w zespole "
+                + request.getTeam().getName()
+                + " zmienił się na "
+                + request.getStatus()
+                + ".";
+
+        notificationWebSocketService.sendToUser(
+                recipientUsername,
+                new NotificationEvent(
+                        "RECRUITMENT_REQUEST_UPDATED",
+                        title,
+                        message,
+                        request.getTeam().getId(),
+                        request.getTeam().getName(),
+                        request.getId(),
+                        request.getRequestType(),
+                        request.getStatus()
+                )
+        );
     }
 
     private void acceptRequest(TeamRecruitmentRequest request, User actor) {

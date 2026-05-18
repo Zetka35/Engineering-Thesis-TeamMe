@@ -23,6 +23,8 @@ import Messages from "./pages/Messages";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import History from "./pages/History";
+import { NotificationsProvider } from "./notifications/NotificationsContext";
+import NotificationWatcher from "./notifications/NotificationWatcher";
 
 function ProtectedShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -35,6 +37,9 @@ function ProtectedShell({ children }: { children: React.ReactNode }) {
 
 function AppShell() {
   return (
+  <NotificationsProvider>
+    <NotificationWatcher />
+
     <div className="app-shell">
       <Sidebar />
       <div className="app-main">
@@ -64,7 +69,8 @@ function AppShell() {
         </div>
       </div>
     </div>
-  );
+  </NotificationsProvider>
+);
 }
 
 export default function App() {
