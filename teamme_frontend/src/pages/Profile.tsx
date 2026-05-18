@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { extractApiFieldErrors, extractApiMessage, pickFieldErrors } from "../api/http";
 import { getMySurveyState, type SurveyStateDto } from "../api/survey.api";
+import TeamRoleBadge from "../components/TeamRoleBadge";
+
 import {
   getMyProfile,
   updateMyProfile,
@@ -451,11 +453,10 @@ export default function Profile() {
 
   return (
     <div className="page profile-page-shell">
-      {error && <div className="alert">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {successMsg && (
         <div
-          className="alert"
-          style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
+          className="alert alert-success"
         >
           {successMsg}
         </div>
@@ -505,7 +506,7 @@ export default function Profile() {
 
               <div className="profile-hero-pills">
                 {profile.selectedRole && (
-                  <span className="pill">rola zespołowa: {profile.selectedRole}</span>
+                  <TeamRoleBadge role={profile.selectedRole} />
                 )}
                 <span className="pill">{availabilityLabel(profile.availabilityStatus)}</span>
                 {profile.location && <span className="pill">{profile.location}</span>}

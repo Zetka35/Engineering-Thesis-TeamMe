@@ -31,7 +31,7 @@ export default function RecommendedCandidates({
       {loading ? (
         <div className="muted">Ładowanie rekomendacji…</div>
       ) : error ? (
-        <div className="alert">{error}</div>
+        <div className="alert alert-info">{error}</div>
       ) : candidates.length === 0 ? (
         <div className="muted">
           Brak rekomendacji kandydatów. 

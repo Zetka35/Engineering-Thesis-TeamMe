@@ -183,15 +183,6 @@
   border-color: var(--brand-500);
   box-shadow: 0 0 0 4px rgba(111, 168, 199, 0.25);
 }
-.alert{
-  margin: 12px 0;
-  padding: 10px 12px;
-  background: #fff3f3;
-  border: 1px solid #ffd1d1;
-  color: #8a1f1f;
-  border-radius: 12px;
-  font-weight: 700;
-}
 .auth-footer{
   margin: 14px 0 0;
   color: var(--muted);
@@ -1492,4 +1483,37 @@ textarea.input:disabled {
 
 .profile-hero-cover {
   pointer-events: none;
+}
+
+.alert {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  border: 1px solid transparent;
+}
+
+.alert-error {
+  background: #fff3f3;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.alert-success {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.alert-info {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.alert-warning {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
 }

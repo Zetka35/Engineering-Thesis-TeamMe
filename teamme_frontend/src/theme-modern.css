@@ -471,18 +471,6 @@ textarea.input:focus,
   box-shadow: 0 0 0 4px rgba(111, 168, 199, 0.22);
 }
 
-/* ===== Alerts ===== */
-
-.alert {
-  margin: 0;
-  padding: 12px 14px;
-  background: var(--danger-bg);
-  border: 1px solid var(--danger-line);
-  color: var(--danger-ink);
-  border-radius: 14px;
-  font-weight: 700;
-}
-
 /* ===== Tables ===== */
 
 .table-wrap {

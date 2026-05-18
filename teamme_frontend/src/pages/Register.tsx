@@ -65,7 +65,7 @@ export default function Register() {
             <input value={password2} onChange={(e) => setPassword2(e.target.value)} type="password" />
           </label>
 
-          {error && <div className="alert">{error}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
 
           <button className="btn btn-solid btn-wide" disabled={busy} type="submit">
             {busy ? "Tworzenie konta…" : "Utwórz konto"}

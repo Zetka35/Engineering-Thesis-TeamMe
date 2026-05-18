@@ -104,7 +104,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 16 }}>
-          {error && <div className="alert">{error}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
 
           {loading ? (
             <div className="profile-block">

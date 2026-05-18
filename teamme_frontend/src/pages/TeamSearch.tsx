@@ -176,10 +176,10 @@ export default function TeamSearch() {
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 14 }}>
-          {error && <div className="alert">{error}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
           {successMsg && (
             <div
-              className="alert"
+              className="alert alert-success"
               style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
             >
               {successMsg}

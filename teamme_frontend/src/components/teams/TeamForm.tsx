@@ -475,7 +475,7 @@ export default function TeamForm({
               />
 
               {errors.roleRequirements && (
-                <div className="alert">{errors.roleRequirements}</div>
+                <div className="alert alert-error">{errors.roleRequirements}</div>
               )}
 
               <RoleRequirementInputs

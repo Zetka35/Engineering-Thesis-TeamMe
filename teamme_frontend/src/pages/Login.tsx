@@ -56,7 +56,7 @@ export default function Login() {
           </label>
 
           {error && (
-  <div className="alert">
+  <div className="alert alert-error">
     {(() => {
       try {
         const parsed = JSON.parse(error) as { message?: string };

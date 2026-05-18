@@ -334,10 +334,10 @@ export default function Survey() {
           </div>
 
           <div className="card-body" style={{ display: "grid", gap: 14 }}>
-            {error && <div className="alert">{error}</div>}
+            {error && <div className="alert alert-error">{error}</div>}
             {successMsg && (
               <div
-                className="alert"
+                className="alert alert-info"
                 style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
               >
                 {successMsg}
@@ -420,10 +420,10 @@ export default function Survey() {
           </div>
 
           <div className="card-body" style={{ display: "grid", gap: 14 }}>
-            {error && <div className="alert">{error}</div>}
+            {error && <div className="alert alert-error">{error}</div>}
             {successMsg && (
               <div
-                className="alert"
+                className="alert alert-success"
                 style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
               >
                 {successMsg}
@@ -594,10 +594,10 @@ export default function Survey() {
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 14 }}>
-          {error && <div className="alert">{error}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
           {draftInfo && (
             <div
-              className="alert"
+              className="alert alert-info"
               style={{ background: "#f8fbfc", color: "#315564", borderColor: "#d6e6ec" }}
             >
               {draftInfo}
