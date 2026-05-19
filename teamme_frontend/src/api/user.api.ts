@@ -43,6 +43,7 @@ export interface ProjectHistoryItem {
   joinedAt?: string | null;
   leftAt?: string | null;
   current: boolean;
+  showOnPublicProfile: boolean;
 }
 
 export interface RoleContributionSummary {

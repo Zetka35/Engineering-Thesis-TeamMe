@@ -73,7 +73,8 @@ public class UserProfileService {
             String roleLabel,
             String joinedAt,
             String leftAt,
-            boolean current
+            boolean current,
+            boolean showOnPublicProfile
     ) {}
 
     public record ProjectContributionSummaryDto(
@@ -210,12 +211,12 @@ public class UserProfileService {
 
     @Transactional(readOnly = true)
     public UserProfileDto getMyProfile(String username) {
-        return toProfileDto(loadUser(username));
+        return toProfileDto(loadUser(username), false);
     }
 
     @Transactional(readOnly = true)
     public UserProfileDto getPublicProfile(String username) {
-        return toProfileDto(loadUser(username));
+        return toProfileDto(loadUser(username), true);
     }
 
     public UserProfileDto updateMyProfile(String username, UpdateProfileRequest req) {
@@ -236,13 +237,13 @@ public class UserProfileService {
         replaceSkills(user, req.skills());
         replaceLanguages(user, req.languages());
 
-        return toProfileDto(userRepository.save(user));
+        return toProfileDto(userRepository.save(user), false);
     }
 
     public UserProfileDto updateSelectedRole(String username, String selectedRole) {
         User user = loadUser(username);
         user.setSelectedRole(normalize(selectedRole, 60));
-        return toProfileDto(userRepository.save(user));
+        return toProfileDto(userRepository.save(user), false);
     }
 
     @Transactional(readOnly = true)
@@ -258,7 +259,7 @@ public class UserProfileService {
         );
     }
 
-    private UserProfileDto toProfileDto(User user) {
+    private UserProfileDto toProfileDto(User user, boolean publicView) { 
         List<ExperienceDto> experiences = user.getExperiences().stream()
                 .sorted(
                         Comparator.comparing(UserExperience::isCurrent).reversed()
@@ -318,10 +319,11 @@ public class UserProfileService {
                 .toList();
 
         List<ProjectHistoryDto> projectHistory = teamMemberRepository.findByUser_UsernameOrderByJoinedAtDesc(user.getUsername()).stream()
+                .filter(tm -> !publicView || tm.isShowOnPublicProfile())
                 .map(this::toProjectHistoryDto)
                 .toList();
 
-        ProjectContributionSummaryDto contributionSummary = buildContributionSummary(user);
+        ProjectContributionSummaryDto contributionSummary = buildContributionSummary(user, publicView);
 
         return new UserProfileDto(
                 user.getUsername(),
@@ -346,476 +348,494 @@ public class UserProfileService {
         );
     }
 
-    private NetworkUserDto toNetworkDto(User user) {
-        List<SkillDto> topSkills = user.getSkills().stream()
-                .sorted(
-                        Comparator.comparing(UserSkill::getLevel, Comparator.nullsLast(Comparator.reverseOrder()))
-                                .thenComparing(UserSkill::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-                )
-                .limit(3)
-                .map(x -> new SkillDto(x.getId(), x.getName(), x.getLevel(), x.getCategory()))
-                .toList();
+        private NetworkUserDto toNetworkDto(User user) {
+            List<SkillDto> topSkills = user.getSkills().stream()
+                    .sorted(
+                            Comparator.comparing(UserSkill::getLevel, Comparator.nullsLast(Comparator.reverseOrder()))
+                                    .thenComparing(UserSkill::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                    )
+                    .limit(3)
+                    .map(x -> new SkillDto(x.getId(), x.getName(), x.getLevel(), x.getCategory()))
+                    .toList();
 
-        List<LanguageDto> languages = user.getLanguages().stream()
-                .sorted(Comparator.comparing(UserLanguage::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(x -> new LanguageDto(x.getId(), x.getName(), x.getLevel()))
-                .toList();
+            List<LanguageDto> languages = user.getLanguages().stream()
+                    .sorted(Comparator.comparing(UserLanguage::getName, String.CASE_INSENSITIVE_ORDER))
+                    .map(x -> new LanguageDto(x.getId(), x.getName(), x.getLevel()))
+                    .toList();
 
-        Optional<TeamMember> currentMembership =
-                teamMemberRepository.findFirstByUser_IdAndLeftAtIsNullOrderByJoinedAtDesc(user.getId());
+            Optional<TeamMember> currentMembership =
+                    teamMemberRepository.findFirstByUser_IdAndLeftAtIsNullAndShowOnPublicProfileTrueOrderByJoinedAtDesc(user.getId());
 
-        Optional<TeamMember> latestMembership = currentMembership.isPresent()
-                ? currentMembership
-                : teamMemberRepository.findFirstByUser_IdOrderByJoinedAtDesc(user.getId());
+            Optional<TeamMember> latestMembership = currentMembership.isPresent()
+                    ? currentMembership
+                    : teamMemberRepository.findFirstByUser_IdAndShowOnPublicProfileTrueOrderByJoinedAtDesc(user.getId());
 
-        return new NetworkUserDto(
-                user.getUsername(),
-                user.getAvatarUrl(),
-                user.getSelectedRole(),
-                user.getFirstName(),
-                user.getLastName(),
-                fullName(user),
-                user.getBio(),
-                user.getHeadline(),
-                user.getLocation(),
-                user.getAvailabilityStatus(),
-                topSkills,
-                languages,
-                latestMembership.map(this::toProjectHistoryDto).orElse(null)
-        );
-    }
-
-    private ProjectContributionSummaryDto buildContributionSummary(User user) {
-        List<TeamCollaborationReview> reviews = reviewRepository.findByReviewedUser_Id(user.getId());
-
-        int reviewCount = reviews.size();
-
-        int projectCount = (int) reviews.stream()
-                .filter(review -> review.getTeam() != null)
-                .map(review -> review.getTeam().getId())
-                .distinct()
-                .count();
-
-        if (reviewCount < MIN_PUBLIC_REVIEWS) {
-            return new ProjectContributionSummaryDto(
-                    reviewCount,
-                    projectCount,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    List.of(),
-                    List.of(),
-                    List.of()
+            return new NetworkUserDto(
+                    user.getUsername(),
+                    user.getAvatarUrl(),
+                    user.getSelectedRole(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    fullName(user),
+                    user.getBio(),
+                    user.getHeadline(),
+                    user.getLocation(),
+                    user.getAvailabilityStatus(),
+                    topSkills,
+                    languages,
+                    latestMembership.map(this::toProjectHistoryDto).orElse(null)
             );
         }
 
-        return new ProjectContributionSummaryDto(
-                reviewCount,
-                projectCount,
-                averageOf(reviews, TeamCollaborationReview::getEngagementRating),
-                averageOf(reviews, TeamCollaborationReview::getRoleExecutionRating),
-                averageOf(reviews, TeamCollaborationReview::getCollaborationRating),
-                averageOf(reviews, TeamCollaborationReview::getReliabilityRating),
-                averageOf(reviews, TeamCollaborationReview::getContributionQualityRating),
-                round2(reviews.stream()
-                        .mapToDouble(this::averageRating)
-                        .average()
-                        .orElse(0.0)),
-                buildRoleSummaries(reviews),
-                buildProjectSummaries(reviews),
-                buildStrengthTagSummaries(reviews)
-        );
-    }
+        private ProjectContributionSummaryDto buildContributionSummary(User user, boolean publicView) {
+            List<TeamCollaborationReview> reviews = reviewRepository.findByReviewedUser_Id(user.getId());
 
-    private List<RoleContributionSummaryDto> buildRoleSummaries(List<TeamCollaborationReview> reviews) {
-        Map<String, List<TeamCollaborationReview>> grouped = reviews.stream()
-                .collect(Collectors.groupingBy(
-                        this::safeProjectRoleLabel,
-                        LinkedHashMap::new,
-                        Collectors.toList()
-                ));
+            if (publicView) {
+                reviews = reviews.stream()
+                        .filter(review -> isReviewFromPublicProject(user, review))
+                        .toList();
+            }
 
-        return grouped.entrySet().stream()
-                .map(entry -> new RoleContributionSummaryDto(
-                        entry.getKey(),
-                        round2(entry.getValue().stream()
-                                .mapToDouble(this::averageRating)
-                                .average()
-                                .orElse(0.0)),
-                        entry.getValue().size()
-                ))
-                .sorted(
-                        Comparator.comparing(RoleContributionSummaryDto::averageRating).reversed()
-                                .thenComparing(RoleContributionSummaryDto::projectRoleLabel, String.CASE_INSENSITIVE_ORDER)
-                )
-                .limit(MAX_PUBLIC_ROLE_SUMMARIES)
-                .toList();
-    }
+            int reviewCount = reviews.size();
 
-    private List<ProjectContributionHistoryDto> buildProjectSummaries(List<TeamCollaborationReview> reviews) {
-        Map<String, List<TeamCollaborationReview>> grouped = new LinkedHashMap<>();
+            int projectCount = (int) reviews.stream()
+                    .filter(review -> review.getTeam() != null)
+                    .map(review -> review.getTeam().getId())
+                    .distinct()
+                    .count();
 
-        for (TeamCollaborationReview review : reviews) {
-            if (review.getTeam() == null) continue;
+            if (reviewCount < MIN_PUBLIC_REVIEWS) {
+                return new ProjectContributionSummaryDto(
+                        reviewCount,
+                        projectCount,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of(),
+                        List.of(),
+                        List.of()
+                );
+            }
 
-            String key = review.getTeam().getId() + "::" + safeProjectRoleLabel(review);
-            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(review);
+            return new ProjectContributionSummaryDto(
+                    reviewCount,
+                    projectCount,
+                    averageOf(reviews, TeamCollaborationReview::getEngagementRating),
+                    averageOf(reviews, TeamCollaborationReview::getRoleExecutionRating),
+                    averageOf(reviews, TeamCollaborationReview::getCollaborationRating),
+                    averageOf(reviews, TeamCollaborationReview::getReliabilityRating),
+                    averageOf(reviews, TeamCollaborationReview::getContributionQualityRating),
+                    round2(reviews.stream()
+                            .mapToDouble(this::averageRating)
+                            .average()
+                            .orElse(0.0)),
+                    buildRoleSummaries(reviews),
+                    buildProjectSummaries(reviews),
+                    buildStrengthTagSummaries(reviews)
+            );
         }
 
-        return grouped.values().stream()
-                .filter(group -> !group.isEmpty())
-                .map(group -> {
-                    TeamCollaborationReview first = group.get(0);
+        private List<RoleContributionSummaryDto> buildRoleSummaries(List<TeamCollaborationReview> reviews) {
+            Map<String, List<TeamCollaborationReview>> grouped = reviews.stream()
+                    .collect(Collectors.groupingBy(
+                            this::safeProjectRoleLabel,
+                            LinkedHashMap::new,
+                            Collectors.toList()
+                    ));
 
-                    return new ProjectContributionHistoryDto(
-                            first.getTeam().getId(),
-                            first.getTeam().getName(),
-                            safeProjectRoleLabel(first),
-                            round2(group.stream()
+            return grouped.entrySet().stream()
+                    .map(entry -> new RoleContributionSummaryDto(
+                            entry.getKey(),
+                            round2(entry.getValue().stream()
                                     .mapToDouble(this::averageRating)
                                     .average()
                                     .orElse(0.0)),
-                            group.size()
-                    );
-                })
-                .sorted(
-                        Comparator.comparing(ProjectContributionHistoryDto::averageRating).reversed()
-                                .thenComparing(ProjectContributionHistoryDto::teamName, String.CASE_INSENSITIVE_ORDER)
-                )
-                .limit(MAX_PUBLIC_PROJECT_SUMMARIES)
-                .toList();
-    }
-
-    private List<StrengthTagSummaryDto> buildStrengthTagSummaries(List<TeamCollaborationReview> reviews) {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-
-        for (TeamCollaborationReview review : reviews) {
-            if (review.getStrengthTags() == null) continue;
-
-            for (String rawTag : review.getStrengthTags()) {
-                String tag = normalize(rawTag, 60);
-                if (tag == null) continue;
-
-                String normalized = tag.toLowerCase(Locale.ROOT);
-                counts.put(normalized, counts.getOrDefault(normalized, 0) + 1);
-            }
+                            entry.getValue().size()
+                    ))
+                    .sorted(
+                            Comparator.comparing(RoleContributionSummaryDto::averageRating).reversed()
+                                    .thenComparing(RoleContributionSummaryDto::projectRoleLabel, String.CASE_INSENSITIVE_ORDER)
+                    )
+                    .limit(MAX_PUBLIC_ROLE_SUMMARIES)
+                    .toList();
         }
 
-        return counts.entrySet().stream()
-                .map(entry -> new StrengthTagSummaryDto(entry.getKey(), entry.getValue()))
-                .sorted(
-                        Comparator.comparing(StrengthTagSummaryDto::count).reversed()
-                                .thenComparing(StrengthTagSummaryDto::tag, String.CASE_INSENSITIVE_ORDER)
-                )
-                .limit(MAX_PUBLIC_STRENGTH_TAGS)
-                .toList();
-    }
+        private List<ProjectContributionHistoryDto> buildProjectSummaries(List<TeamCollaborationReview> reviews) {
+            Map<String, List<TeamCollaborationReview>> grouped = new LinkedHashMap<>();
 
-    private double averageOf(
-            List<TeamCollaborationReview> reviews,
-            ToIntFunction<TeamCollaborationReview> mapper
+            for (TeamCollaborationReview review : reviews) {
+                if (review.getTeam() == null) continue;
+
+                String key = review.getTeam().getId() + "::" + safeProjectRoleLabel(review);
+                grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(review);
+            }
+
+            return grouped.values().stream()
+                    .filter(group -> !group.isEmpty())
+                    .map(group -> {
+                        TeamCollaborationReview first = group.get(0);
+
+                        return new ProjectContributionHistoryDto(
+                                first.getTeam().getId(),
+                                first.getTeam().getName(),
+                                safeProjectRoleLabel(first),
+                                round2(group.stream()
+                                        .mapToDouble(this::averageRating)
+                                        .average()
+                                        .orElse(0.0)),
+                                group.size()
+                        );
+                    })
+                    .sorted(
+                            Comparator.comparing(ProjectContributionHistoryDto::averageRating).reversed()
+                                    .thenComparing(ProjectContributionHistoryDto::teamName, String.CASE_INSENSITIVE_ORDER)
+                    )
+                    .limit(MAX_PUBLIC_PROJECT_SUMMARIES)
+                    .toList();
+        }
+
+        private boolean isReviewFromPublicProject(User reviewedUser, TeamCollaborationReview review) {
+            if (review.getTeam() == null) {
+                return false;
+            }
+
+            return teamMemberRepository
+                    .findByTeam_IdAndUser_Username(review.getTeam().getId(), reviewedUser.getUsername())
+                    .map(TeamMember::isShowOnPublicProfile)
+                    .orElse(false);
+        }
+
+        private List<StrengthTagSummaryDto> buildStrengthTagSummaries(List<TeamCollaborationReview> reviews) {
+            Map<String, Integer> counts = new LinkedHashMap<>();
+
+            for (TeamCollaborationReview review : reviews) {
+                if (review.getStrengthTags() == null) continue;
+
+                for (String rawTag : review.getStrengthTags()) {
+                    String tag = normalize(rawTag, 60);
+                    if (tag == null) continue;
+
+                    String normalized = tag.toLowerCase(Locale.ROOT);
+                    counts.put(normalized, counts.getOrDefault(normalized, 0) + 1);
+                }
+            }
+
+            return counts.entrySet().stream()
+                    .map(entry -> new StrengthTagSummaryDto(entry.getKey(), entry.getValue()))
+                    .sorted(
+                            Comparator.comparing(StrengthTagSummaryDto::count).reversed()
+                                    .thenComparing(StrengthTagSummaryDto::tag, String.CASE_INSENSITIVE_ORDER)
+                    )
+                    .limit(MAX_PUBLIC_STRENGTH_TAGS)
+                    .toList();
+        }
+
+        private double averageOf(
+                List<TeamCollaborationReview> reviews,
+                ToIntFunction<TeamCollaborationReview> mapper
     ) {
-        return round2(reviews.stream()
-                .mapToInt(mapper)
-                .average()
-                .orElse(0.0));
-    }
-
-    private double averageRating(TeamCollaborationReview review) {
-        return (
-                review.getEngagementRating()
-                        + review.getRoleExecutionRating()
-                        + review.getCollaborationRating()
-                        + review.getReliabilityRating()
-                        + review.getContributionQualityRating()
-        ) / 5.0;
-    }
-
-    private String safeProjectRoleLabel(TeamCollaborationReview review) {
-        String role = review.getProjectRoleLabel();
-
-        if (role == null || role.isBlank()) {
-            return "Member";
+            return round2(reviews.stream()
+                    .mapToInt(mapper)
+                    .average()
+                    .orElse(0.0));
         }
 
-        return role.trim();
-    }
-
-    private double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
-    private ProjectHistoryDto toProjectHistoryDto(TeamMember tm) {
-        return new ProjectHistoryDto(
-                tm.getTeam().getId(),
-                tm.getTeam().getName(),
-                tm.getTeam().getStatus(),
-                tm.getRoleLabel(),
-                tm.getJoinedAt() == null ? null : tm.getJoinedAt().toString(),
-                tm.getLeftAt() == null ? null : tm.getLeftAt().toString(),
-                tm.getLeftAt() == null
-        );
-    }
-
-    private void replaceExperiences(User user, List<ExperienceRequest> requests) {
-        user.getExperiences().clear();
-        if (requests == null) return;
-
-        for (ExperienceRequest req : requests) {
-            if (req == null || isExperienceEmpty(req)) continue;
-
-            String companyName = normalize(req.companyName(), 160);
-            String position = normalize(req.position(), 160);
-
-            if (companyName == null) {
-                throw new IllegalArgumentException("Nazwa firmy w doświadczeniu jest wymagana.");
-            }
-            if (position == null) {
-                throw new IllegalArgumentException("Stanowisko w doświadczeniu jest wymagane.");
-            }
-
-            LocalDate startDate = parseRequiredDate(req.startDate(), "Data rozpoczęcia doświadczenia jest wymagana.");
-            LocalDate endDate = parseOptionalDate(req.endDate(), "Nieprawidłowa data zakończenia doświadczenia.");
-            boolean current = Boolean.TRUE.equals(req.isCurrent());
-
-            if (current) {
-                endDate = null;
-            }
-            if (endDate != null && endDate.isBefore(startDate)) {
-                throw new IllegalArgumentException("Data zakończenia doświadczenia nie może być wcześniejsza niż data rozpoczęcia.");
-            }
-
-            UserExperience entity = new UserExperience();
-            entity.setUser(user);
-            entity.setCompanyName(companyName);
-            entity.setPosition(position);
-            entity.setEmploymentType(normalize(req.employmentType(), 80));
-            entity.setStartDate(startDate);
-            entity.setEndDate(endDate);
-            entity.setCurrent(current);
-            entity.setDescription(normalize(req.description(), 4000));
-
-            user.getExperiences().add(entity);
-        }
-    }
-
-    private void replaceEducations(User user, List<EducationRequest> requests) {
-        user.getEducations().clear();
-        if (requests == null) return;
-
-        for (EducationRequest req : requests) {
-            if (req == null || isEducationEmpty(req)) continue;
-
-            String schoolName = normalize(req.schoolName(), 160);
-            if (schoolName == null) {
-                throw new IllegalArgumentException("Nazwa szkoły lub uczelni jest wymagana.");
-            }
-
-            LocalDate startDate = parseRequiredDate(req.startDate(), "Data rozpoczęcia edukacji jest wymagana.");
-            LocalDate endDate = parseOptionalDate(req.endDate(), "Nieprawidłowa data zakończenia edukacji.");
-            boolean current = Boolean.TRUE.equals(req.isCurrent());
-
-            if (current) {
-                endDate = null;
-            }
-            if (endDate != null && endDate.isBefore(startDate)) {
-                throw new IllegalArgumentException("Data zakończenia edukacji nie może być wcześniejsza niż data rozpoczęcia.");
-            }
-
-            UserEducation entity = new UserEducation();
-            entity.setUser(user);
-            entity.setSchoolName(schoolName);
-            entity.setDegree(normalize(req.degree(), 120));
-            entity.setFieldOfStudy(normalize(req.fieldOfStudy(), 160));
-            entity.setStartDate(startDate);
-            entity.setEndDate(endDate);
-            entity.setCurrent(current);
-            entity.setDescription(normalize(req.description(), 4000));
-
-            user.getEducations().add(entity);
-        }
-    }
-
-    private void replaceSkills(User user, List<SkillRequest> requests) {
-        user.getSkills().clear();
-        if (requests == null) return;
-
-        for (SkillRequest req : requests) {
-            if (req == null || isSkillEmpty(req)) continue;
-
-            String name = normalize(req.name(), 80);
-            if (name == null) {
-                throw new IllegalArgumentException("Nazwa umiejętności jest wymagana.");
-            }
-
-            Integer level = req.level();
-            if (level != null && (level < 1 || level > 5)) {
-                throw new IllegalArgumentException("Poziom umiejętności musi być w zakresie 1-5.");
-            }
-
-            UserSkill entity = new UserSkill();
-            entity.setUser(user);
-            entity.setName(name);
-            entity.setLevel(level);
-            entity.setCategory(normalize(req.category(), 80));
-
-            user.getSkills().add(entity);
+        private double averageRating(TeamCollaborationReview review) {
+            return (
+                    review.getEngagementRating()
+                            + review.getRoleExecutionRating()
+                            + review.getCollaborationRating()
+                            + review.getReliabilityRating()
+                            + review.getContributionQualityRating()
+            ) / 5.0;
         }
 
-        deduplicateSkills(user);
-    }
+        private String safeProjectRoleLabel(TeamCollaborationReview review) {
+            String role = review.getProjectRoleLabel();
 
-    private void replaceLanguages(User user, List<LanguageRequest> requests) {
-        user.getLanguages().clear();
-        if (requests == null) return;
-
-        for (LanguageRequest req : requests) {
-            if (req == null || isLanguageEmpty(req)) continue;
-
-            String name = normalize(req.name(), 80);
-            if (name == null) {
-                throw new IllegalArgumentException("Nazwa języka jest wymagana.");
+            if (role == null || role.isBlank()) {
+                return "Member";
             }
 
-            UserLanguage entity = new UserLanguage();
-            entity.setUser(user);
-            entity.setName(name);
-            entity.setLevel(normalize(req.level(), 30));
-
-            user.getLanguages().add(entity);
+            return role.trim();
         }
 
-        deduplicateLanguages(user);
-    }
-
-    private void deduplicateSkills(User user) {
-        List<UserSkill> deduped = user.getSkills().stream()
-                .collect(Collectors.toMap(
-                        x -> x.getName().trim().toLowerCase(Locale.ROOT),
-                        x -> x,
-                        (left, right) -> chooseBetterSkill(left, right)
-                ))
-                .values()
-                .stream()
-                .sorted(
-                        Comparator.comparing(UserSkill::getLevel, Comparator.nullsLast(Comparator.reverseOrder()))
-                                .thenComparing(UserSkill::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
-                )
-                .toList();
-
-        user.getSkills().clear();
-        deduped.forEach(x -> {
-            x.setUser(user);
-            user.getSkills().add(x);
-        });
-    }
-
-    private UserSkill chooseBetterSkill(UserSkill left, UserSkill right) {
-        Integer leftLevel = left.getLevel();
-        Integer rightLevel = right.getLevel();
-        if (leftLevel == null && rightLevel != null) return right;
-        if (leftLevel != null && rightLevel == null) return left;
-        if (leftLevel != null && rightLevel != null && rightLevel > leftLevel) return right;
-        return left;
-    }
-
-    private void deduplicateLanguages(User user) {
-        List<UserLanguage> deduped = user.getLanguages().stream()
-                .collect(Collectors.toMap(
-                        x -> x.getName().trim().toLowerCase(Locale.ROOT),
-                        x -> x,
-                        (left, right) -> chooseBetterLanguage(left, right)
-                ))
-                .values()
-                .stream()
-                .sorted(Comparator.comparing(UserLanguage::getName, String.CASE_INSENSITIVE_ORDER))
-                .toList();
-
-        user.getLanguages().clear();
-        deduped.forEach(x -> {
-            x.setUser(user);
-            user.getLanguages().add(x);
-        });
-    }
-
-    private UserLanguage chooseBetterLanguage(UserLanguage left, UserLanguage right) {
-        if (left.getLevel() == null && right.getLevel() != null) return right;
-        return left;
-    }
-
-    private boolean isExperienceEmpty(ExperienceRequest req) {
-        return Stream.of(req.companyName(), req.position(), req.employmentType(), req.startDate(), req.endDate(), req.description())
-                .allMatch(this::isBlank)
-                && !Boolean.TRUE.equals(req.isCurrent());
-    }
-
-    private boolean isEducationEmpty(EducationRequest req) {
-        return Stream.of(req.schoolName(), req.degree(), req.fieldOfStudy(), req.startDate(), req.endDate(), req.description())
-                .allMatch(this::isBlank)
-                && !Boolean.TRUE.equals(req.isCurrent());
-    }
-
-    private boolean isSkillEmpty(SkillRequest req) {
-        return isBlank(req.name()) && req.level() == null && isBlank(req.category());
-    }
-
-    private boolean isLanguageEmpty(LanguageRequest req) {
-        return isBlank(req.name()) && isBlank(req.level());
-    }
-
-    private String fullName(User user) {
-        String value = Stream.of(user.getFirstName(), user.getLastName())
-                .filter(s -> s != null && !s.isBlank())
-                .collect(Collectors.joining(" "))
-                .trim();
-        return value.isBlank() ? user.getUsername() : value;
-    }
-
-    private LocalDate parseRequiredDate(String value, String messageIfMissing) {
-        String normalized = normalize(value, 20);
-        if (normalized == null) {
-            throw new IllegalArgumentException(messageIfMissing);
+        private double round2(double value) {
+            return Math.round(value * 100.0) / 100.0;
         }
-        try {
-            return LocalDate.parse(normalized);
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException("Nieprawidłowy format daty. Oczekiwano YYYY-MM-DD.");
+
+        private ProjectHistoryDto toProjectHistoryDto(TeamMember tm) {
+            return new ProjectHistoryDto(
+                    tm.getTeam().getId(),
+                    tm.getTeam().getName(),
+                    tm.getTeam().getStatus(),
+                    tm.getRoleLabel(),
+                    tm.getJoinedAt() == null ? null : tm.getJoinedAt().toString(),
+                    tm.getLeftAt() == null ? null : tm.getLeftAt().toString(),
+                    tm.getLeftAt() == null,
+                    tm.isShowOnPublicProfile()
+            );
+        }
+
+        private void replaceExperiences(User user, List<ExperienceRequest> requests) {
+            user.getExperiences().clear();
+            if (requests == null) return;
+
+            for (ExperienceRequest req : requests) {
+                if (req == null || isExperienceEmpty(req)) continue;
+
+                String companyName = normalize(req.companyName(), 160);
+                String position = normalize(req.position(), 160);
+
+                if (companyName == null) {
+                    throw new IllegalArgumentException("Nazwa firmy w doświadczeniu jest wymagana.");
+                }
+                if (position == null) {
+                    throw new IllegalArgumentException("Stanowisko w doświadczeniu jest wymagane.");
+                }
+
+                LocalDate startDate = parseRequiredDate(req.startDate(), "Data rozpoczęcia doświadczenia jest wymagana.");
+                LocalDate endDate = parseOptionalDate(req.endDate(), "Nieprawidłowa data zakończenia doświadczenia.");
+                boolean current = Boolean.TRUE.equals(req.isCurrent());
+
+                if (current) {
+                    endDate = null;
+                }
+                if (endDate != null && endDate.isBefore(startDate)) {
+                    throw new IllegalArgumentException("Data zakończenia doświadczenia nie może być wcześniejsza niż data rozpoczęcia.");
+                }
+
+                UserExperience entity = new UserExperience();
+                entity.setUser(user);
+                entity.setCompanyName(companyName);
+                entity.setPosition(position);
+                entity.setEmploymentType(normalize(req.employmentType(), 80));
+                entity.setStartDate(startDate);
+                entity.setEndDate(endDate);
+                entity.setCurrent(current);
+                entity.setDescription(normalize(req.description(), 4000));
+
+                user.getExperiences().add(entity);
+            }
+        }
+
+        private void replaceEducations(User user, List<EducationRequest> requests) {
+            user.getEducations().clear();
+            if (requests == null) return;
+
+            for (EducationRequest req : requests) {
+                if (req == null || isEducationEmpty(req)) continue;
+
+                String schoolName = normalize(req.schoolName(), 160);
+                if (schoolName == null) {
+                    throw new IllegalArgumentException("Nazwa szkoły lub uczelni jest wymagana.");
+                }
+
+                LocalDate startDate = parseRequiredDate(req.startDate(), "Data rozpoczęcia edukacji jest wymagana.");
+                LocalDate endDate = parseOptionalDate(req.endDate(), "Nieprawidłowa data zakończenia edukacji.");
+                boolean current = Boolean.TRUE.equals(req.isCurrent());
+
+                if (current) {
+                    endDate = null;
+                }
+                if (endDate != null && endDate.isBefore(startDate)) {
+                    throw new IllegalArgumentException("Data zakończenia edukacji nie może być wcześniejsza niż data rozpoczęcia.");
+                }
+
+                UserEducation entity = new UserEducation();
+                entity.setUser(user);
+                entity.setSchoolName(schoolName);
+                entity.setDegree(normalize(req.degree(), 120));
+                entity.setFieldOfStudy(normalize(req.fieldOfStudy(), 160));
+                entity.setStartDate(startDate);
+                entity.setEndDate(endDate);
+                entity.setCurrent(current);
+                entity.setDescription(normalize(req.description(), 4000));
+
+                user.getEducations().add(entity);
+            }
+        }
+
+        private void replaceSkills(User user, List<SkillRequest> requests) {
+            user.getSkills().clear();
+            if (requests == null) return;
+
+            for (SkillRequest req : requests) {
+                if (req == null || isSkillEmpty(req)) continue;
+
+                String name = normalize(req.name(), 80);
+                if (name == null) {
+                    throw new IllegalArgumentException("Nazwa umiejętności jest wymagana.");
+                }
+
+                Integer level = req.level();
+                if (level != null && (level < 1 || level > 5)) {
+                    throw new IllegalArgumentException("Poziom umiejętności musi być w zakresie 1-5.");
+                }
+
+                UserSkill entity = new UserSkill();
+                entity.setUser(user);
+                entity.setName(name);
+                entity.setLevel(level);
+                entity.setCategory(normalize(req.category(), 80));
+
+                user.getSkills().add(entity);
+            }
+
+            deduplicateSkills(user);
+        }
+
+        private void replaceLanguages(User user, List<LanguageRequest> requests) {
+            user.getLanguages().clear();
+            if (requests == null) return;
+
+            for (LanguageRequest req : requests) {
+                if (req == null || isLanguageEmpty(req)) continue;
+
+                String name = normalize(req.name(), 80);
+                if (name == null) {
+                    throw new IllegalArgumentException("Nazwa języka jest wymagana.");
+                }
+
+                UserLanguage entity = new UserLanguage();
+                entity.setUser(user);
+                entity.setName(name);
+                entity.setLevel(normalize(req.level(), 30));
+
+                user.getLanguages().add(entity);
+            }
+
+            deduplicateLanguages(user);
+        }
+
+        private void deduplicateSkills(User user) {
+            List<UserSkill> deduped = user.getSkills().stream()
+                    .collect(Collectors.toMap(
+                            x -> x.getName().trim().toLowerCase(Locale.ROOT),
+                            x -> x,
+                            (left, right) -> chooseBetterSkill(left, right)
+                    ))
+                    .values()
+                    .stream()
+                    .sorted(
+                            Comparator.comparing(UserSkill::getLevel, Comparator.nullsLast(Comparator.reverseOrder()))
+                                    .thenComparing(UserSkill::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                    )
+                    .toList();
+
+            user.getSkills().clear();
+            deduped.forEach(x -> {
+                x.setUser(user);
+                user.getSkills().add(x);
+            });
+        }
+
+        private UserSkill chooseBetterSkill(UserSkill left, UserSkill right) {
+            Integer leftLevel = left.getLevel();
+            Integer rightLevel = right.getLevel();
+            if (leftLevel == null && rightLevel != null) return right;
+            if (leftLevel != null && rightLevel == null) return left;
+            if (leftLevel != null && rightLevel != null && rightLevel > leftLevel) return right;
+            return left;
+        }
+
+        private void deduplicateLanguages(User user) {
+            List<UserLanguage> deduped = user.getLanguages().stream()
+                    .collect(Collectors.toMap(
+                            x -> x.getName().trim().toLowerCase(Locale.ROOT),
+                            x -> x,
+                            (left, right) -> chooseBetterLanguage(left, right)
+                    ))
+                    .values()
+                    .stream()
+                    .sorted(Comparator.comparing(UserLanguage::getName, String.CASE_INSENSITIVE_ORDER))
+                    .toList();
+
+            user.getLanguages().clear();
+            deduped.forEach(x -> {
+                x.setUser(user);
+                user.getLanguages().add(x);
+            });
+        }
+
+        private UserLanguage chooseBetterLanguage(UserLanguage left, UserLanguage right) {
+            if (left.getLevel() == null && right.getLevel() != null) return right;
+            return left;
+        }
+
+        private boolean isExperienceEmpty(ExperienceRequest req) {
+            return Stream.of(req.companyName(), req.position(), req.employmentType(), req.startDate(), req.endDate(), req.description())
+                    .allMatch(this::isBlank)
+                    && !Boolean.TRUE.equals(req.isCurrent());
+        }
+
+        private boolean isEducationEmpty(EducationRequest req) {
+            return Stream.of(req.schoolName(), req.degree(), req.fieldOfStudy(), req.startDate(), req.endDate(), req.description())
+                    .allMatch(this::isBlank)
+                    && !Boolean.TRUE.equals(req.isCurrent());
+        }
+
+        private boolean isSkillEmpty(SkillRequest req) {
+            return isBlank(req.name()) && req.level() == null && isBlank(req.category());
+        }
+
+        private boolean isLanguageEmpty(LanguageRequest req) {
+            return isBlank(req.name()) && isBlank(req.level());
+        }
+
+        private String fullName(User user) {
+            String value = Stream.of(user.getFirstName(), user.getLastName())
+                    .filter(s -> s != null && !s.isBlank())
+                    .collect(Collectors.joining(" "))
+                    .trim();
+            return value.isBlank() ? user.getUsername() : value;
+        }
+
+        private LocalDate parseRequiredDate(String value, String messageIfMissing) {
+            String normalized = normalize(value, 20);
+            if (normalized == null) {
+                throw new IllegalArgumentException(messageIfMissing);
+            }
+            try {
+                return LocalDate.parse(normalized);
+            } catch (DateTimeParseException ex) {
+                throw new IllegalArgumentException("Nieprawidłowy format daty. Oczekiwano YYYY-MM-DD.");
+            }
+        }
+
+        private LocalDate parseOptionalDate(String value, String messageIfInvalid) {
+            String normalized = normalize(value, 20);
+            if (normalized == null) return null;
+            try {
+                return LocalDate.parse(normalized);
+            } catch (DateTimeParseException ex) {
+                throw new IllegalArgumentException(messageIfInvalid + " Oczekiwano YYYY-MM-DD.");
+            }
+        }
+
+        private String normalize(String value, int maxLen) {
+            if (value == null) return null;
+            String trimmed = value.trim();
+            if (trimmed.isEmpty()) return null;
+            return trimmed.length() > maxLen ? trimmed.substring(0, maxLen) : trimmed;
+        }
+
+        private String normalizeEnumLike(String value, int maxLen) {
+            String normalized = normalize(value, maxLen);
+            if (normalized == null) return null;
+            return normalized.toUpperCase(Locale.ROOT)
+                    .replace(' ', '_')
+                    .replace('-', '_');
+        }
+
+        private String normalizeUrl(String value) {
+            return normalize(value, 1000);
+        }
+
+        private boolean isBlank(String value) {
+            return value == null || value.trim().isEmpty();
         }
     }
-
-    private LocalDate parseOptionalDate(String value, String messageIfInvalid) {
-        String normalized = normalize(value, 20);
-        if (normalized == null) return null;
-        try {
-            return LocalDate.parse(normalized);
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException(messageIfInvalid + " Oczekiwano YYYY-MM-DD.");
-        }
-    }
-
-    private String normalize(String value, int maxLen) {
-        if (value == null) return null;
-        String trimmed = value.trim();
-        if (trimmed.isEmpty()) return null;
-        return trimmed.length() > maxLen ? trimmed.substring(0, maxLen) : trimmed;
-    }
-
-    private String normalizeEnumLike(String value, int maxLen) {
-        String normalized = normalize(value, maxLen);
-        if (normalized == null) return null;
-        return normalized.toUpperCase(Locale.ROOT)
-                .replace(' ', '_')
-                .replace('-', '_');
-    }
-
-    private String normalizeUrl(String value) {
-        return normalize(value, 1000);
-    }
-
-    private boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
-    }
-}

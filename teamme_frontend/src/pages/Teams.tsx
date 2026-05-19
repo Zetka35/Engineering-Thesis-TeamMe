@@ -53,6 +53,7 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
     projectArea: form.projectArea,
     experienceLevel: form.experienceLevel,
     recruitmentStatus: form.recruitmentStatus,
+    showOnPublicProfile: form.showOnPublicProfile,
     technologies: form.technologies
       .filter((t) => t.name.trim())
       .map((t) => ({
@@ -186,11 +187,12 @@ export default function Teams() {
           {showCreateForm && (
             <div style={{ display: "grid", gap: 12 }}>
               <TeamForm
-                title="Utwórz nowy zespół"
-                submitLabel="Utwórz zespół"
-                saving={saving}
-                onSubmit={handleCreate}
-              />
+  title="Utwórz nowy zespół"
+  submitLabel="Utwórz zespół"
+  saving={saving}
+  showVisibilityChoice
+  onSubmit={handleCreate}
+/>
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button className="btn btn-ghost" onClick={handleCloseCreateForm} disabled={saving}>

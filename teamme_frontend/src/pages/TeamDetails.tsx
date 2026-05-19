@@ -13,6 +13,7 @@ import {
   respondToRequest,
   updateTeam,
   completeTeam,
+  updateMyTeamVisibility,
   type RecommendedCandidate,
   type TeamUpsertPayload,
 } from "../api/teams.api";
@@ -74,6 +75,7 @@ function toTeamFormValue(team: TeamDetailsModel): TeamFormValue {
     projectArea: team.projectArea ?? "",
     experienceLevel: team.experienceLevel,
     recruitmentStatus: team.recruitmentStatus,
+    showOnPublicProfile: team.myShowOnPublicProfile ?? true,
     technologies:
       team.technologies?.length > 0
         ? team.technologies.map((technology) => ({
@@ -114,6 +116,7 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
     projectArea: form.projectArea,
     experienceLevel: form.experienceLevel,
     recruitmentStatus: form.recruitmentStatus,
+    showOnPublicProfile: form.showOnPublicProfile,
     technologies: form.technologies
       .filter((t) => t.name.trim())
       .map((t) => ({
@@ -153,7 +156,7 @@ const TEAM_DETAILS_TABS: Array<{
   { key: "recruitment", label: "Rekrutacja" },
   { key: "tasks", label: "Zadania" },
   { key: "meetings", label: "Spotkania" },
-  { key: "settings", label: "Ustawienia", ownerOnly: true },
+  { key: "settings", label: "Ustawienia" },
 ];
 
 export default function TeamDetails() {
@@ -196,6 +199,7 @@ export default function TeamDetails() {
 
   const [inviteCandidates, setInviteCandidates] = useState<NetworkUser[]>([]);
   const [loadingInviteCandidates, setLoadingInviteCandidates] = useState(false);
+  const [savingVisibility, setSavingVisibility] = useState(false);
 
   const isOwner =
     !!team && !!user && team.ownerUsername === user.username;
@@ -266,12 +270,6 @@ export default function TeamDetails() {
     }
   }, [location.pathname, location.state, nav]);
 
-  useEffect(() => {
-  if (!isOwner && activeTab === "settings") {
-    setActiveTab("overview");
-  }
-}, [isOwner, activeTab]);
-
   const teamFormInitialValue = useMemo(() => {
     return team ? toTeamFormValue(team) : undefined;
   }, [team]);
@@ -299,6 +297,28 @@ setSuccessMsg(
       setSavingProfile(false);
     }
   }
+
+  async function handleChangeMyVisibility(showOnPublicProfile: boolean) {
+  if (!team) return;
+
+  setSavingVisibility(true);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const updated = await updateMyTeamVisibility(team.id, { showOnPublicProfile });
+    setTeam(updated);
+    setSuccessMsg(
+      showOnPublicProfile
+        ? "Projekt będzie widoczny na Twoim profilu publicznym."
+        : "Projekt został ukryty na Twoim profilu publicznym. Oceny z tego projektu nie będą uwzględniane w publicznych średnich."
+    );
+  } catch (e: unknown) {
+    setError(`Nie udało się zmienić widoczności projektu. ${extractApiMessage(e)}`);
+  } finally {
+    setSavingVisibility(false);
+  }
+}
 
   async function handleApply(payload: {
     targetRoleName?: string | null;
@@ -374,25 +394,35 @@ setSuccessMsg(
   }
 
   async function handleRespondRequest(
-    requestId: number,
-    decision: "ACCEPTED" | "REJECTED" | "CANCELLED"
-  ) {
-    setActingRequestId(requestId);
-    setError("");
-    setSuccessMsg("");
+  requestId: number,
+  decision: "ACCEPTED" | "REJECTED" | "CANCELLED",
+  options?: { showOnPublicProfile?: boolean | null }
+) {
+  setActingRequestId(requestId);
+  setError("");
+  setSuccessMsg("");
 
-    try {
-      await respondToRequest(requestId, { decision });
-      setSuccessMsg("Status zgłoszenia został zaktualizowany.");
-      await load();
-    } catch (e: unknown) {
-      setError(
-        `Nie udało się zaktualizować statusu zgłoszenia. ${extractApiMessage(e)}`
-      );
-    } finally {
-      setActingRequestId(null);
-    }
+  try {
+    await respondToRequest(requestId, {
+      decision,
+      showOnPublicProfile: options?.showOnPublicProfile ?? null,
+    });
+
+    await load();
+
+    setSuccessMsg(
+      decision === "ACCEPTED"
+        ? "Zgłoszenie zostało zaakceptowane."
+        : decision === "REJECTED"
+          ? "Zgłoszenie zostało odrzucone."
+          : "Zgłoszenie zostało anulowane."
+    );
+  } catch (e: unknown) {
+    setError(`Nie udało się obsłużyć zgłoszenia. ${extractApiMessage(e)}`);
+  } finally {
+    setActingRequestId(null);
   }
+}
 
   async function onCreateMeeting(e: React.FormEvent) {
     e.preventDefault();
@@ -703,92 +733,122 @@ setSuccessMsg(
   </>
 )}
 
-{activeTab === "settings" && isOwner && (
-  <div className="profile-block">
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 12,
-        alignItems: "center",
-        flexWrap: "wrap",
-      }}
-    >
-      <div>
-        <div className="profile-block-title">Ustawienia zespołu</div>
-        <div className="muted">
-          Tutaj możesz zmodyfikować opis, wymagania, technologie i status rekrutacji zespołu.
-        </div>
+{activeTab === "settings" && (
+  <>
+    <div className="profile-block">
+      <div className="profile-block-title">
+        Widoczność projektu na profilu publicznym
       </div>
 
-      {!editingTeam ? (
-        <button
-          className="btn btn-solid"
-          onClick={() => {
-            setEditingTeam(true);
-            setError("");
-            setSuccessMsg("");
-          }}
-        >
-          Edytuj zespół
-        </button>
-      ) : (
-        <button
-          className="btn btn-ghost"
-          disabled={savingProfile}
-          onClick={() => {
-            setEditingTeam(false);
-            setError("");
-            setSuccessMsg("");
-          }}
-        >
-          Anuluj edycję
-        </button>
-      )}
+      <label className="checkbox-line">
+        <input
+          type="checkbox"
+          checked={team.myShowOnPublicProfile ?? true}
+          disabled={savingVisibility}
+          onChange={(e) => void handleChangeMyVisibility(e.target.checked)}
+        />
+        <span>Pokaż ten projekt na moim profilu publicznym</span>
+      </label>
+
+      <p className="field-help">
+        Jeśli wyłączysz tę opcję, projekt nie będzie widoczny na Twoim profilu
+        publicznym, a oceny z tego projektu nie będą uwzględniane w publicznych
+        średnich.
+      </p>
     </div>
 
-    {editingTeam ? (
-      <div style={{ marginTop: 14 }}>
-        <TeamForm
-          title="Edytuj zespół"
-          submitLabel="Zapisz zmiany"
-          initialValue={teamFormInitialValue}
-          saving={savingProfile}
-          onSubmit={handleSaveProfile}
-        />
-      </div>
-    ) : (
-      <div className="muted" style={{ marginTop: 12 }}>
-        Kliknij „Edytuj zespół”, aby otworzyć formularz modyfikacji danych projektu.
-      </div>
-    )}
+    {isOwner && (
+      <div className="profile-block">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div className="profile-block-title">Ustawienia zespołu</div>
+            <div className="muted">
+              Tutaj możesz zmodyfikować opis, wymagania, technologie i status
+              rekrutacji zespołu.
+            </div>
+          </div>
 
-    {team.status !== "COMPLETED" && (
-      <div
-        style={{
-          marginTop: 18,
-          borderTop: "1px solid var(--line)",
-          paddingTop: 14,
-          display: "grid",
-          gap: 8,
-        }}
-      >
-        <div className="profile-block-title">Zakończenie projektu</div>
-        <div className="muted">
-          Po zakończeniu projektu członkowie będą mogli wystawić oceny wkładu w projekt.
+          {!editingTeam ? (
+            <button
+              className="btn btn-solid"
+              onClick={() => {
+                setEditingTeam(true);
+                setError("");
+                setSuccessMsg("");
+              }}
+            >
+              Edytuj zespół
+            </button>
+          ) : (
+            <button
+              className="btn btn-ghost"
+              disabled={savingProfile}
+              onClick={() => {
+                setEditingTeam(false);
+                setError("");
+                setSuccessMsg("");
+              }}
+            >
+              Anuluj edycję
+            </button>
+          )}
         </div>
-        <div>
-          <button
-            className="btn btn-solid"
-            disabled={savingComplete}
-            onClick={() => void handleCompleteProject()}
+
+        {editingTeam ? (
+          <div style={{ marginTop: 14 }}>
+            <TeamForm
+              title="Edytuj zespół"
+              submitLabel="Zapisz zmiany"
+              initialValue={teamFormInitialValue}
+              saving={savingProfile}
+              onSubmit={handleSaveProfile}
+            />
+          </div>
+        ) : (
+          <div className="muted" style={{ marginTop: 12 }}>
+            Kliknij „Edytuj zespół”, aby otworzyć formularz modyfikacji danych
+            projektu.
+          </div>
+        )}
+
+        {team.status !== "COMPLETED" && (
+          <div
+            style={{
+              marginTop: 18,
+              borderTop: "1px solid var(--line)",
+              paddingTop: 14,
+              display: "grid",
+              gap: 8,
+            }}
           >
-            {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
-          </button>
-        </div>
+            <div className="profile-block-title">Zakończenie projektu</div>
+            <div className="muted">
+              Po zakończeniu projektu członkowie będą mogli wystawić oceny
+              wkładu w projekt.
+            </div>
+
+            <div>
+              <button
+                className="btn btn-solid"
+                disabled={savingComplete}
+                onClick={() => void handleCompleteProject()}
+              >
+                {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )}
-  </div>
+  </>
 )}
 
           {activeTab === "members" && (

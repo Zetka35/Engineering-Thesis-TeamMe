@@ -44,6 +44,7 @@ export interface TeamMember {
   username: string;
   fullName: string;
   roleLabel: string;
+  showOnPublicProfile: boolean;
 }
 
 export interface TeamMeeting {
@@ -94,6 +95,7 @@ export interface RecruitmentRequest {
   status: RecruitmentRequestStatus;
   targetRoleName?: string | null;
   message?: string | null;
+  showOnPublicProfile?: boolean | null;
   createdByUsername?: string | null;
   respondedByUsername?: string | null;
   createdAt?: string | null;
@@ -112,6 +114,7 @@ export interface TeamDetails {
   experienceLevel: TeamExperienceLevel;
   ownerUsername?: string | null;
   myRole: string;
+  myShowOnPublicProfile?: boolean | null;
   members: TeamMember[];
   technologies: TeamTechnology[];
   roleRequirements: TeamRoleRequirement[];

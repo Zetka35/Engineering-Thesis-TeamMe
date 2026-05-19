@@ -250,7 +250,7 @@ export default function Messages() {
             }}
           >
             <div>
-              <h2 className="card-title">Skrzynka wiadomości</h2>
+              <h2 className="card-title">Zaproszenia i zgłoszenia</h2>
               <p className="card-subtitle">
                 Tu znajdziesz otrzymane zaproszenia, wysłane zaproszenia, własne aplikacje i historię decyzji.
               </p>

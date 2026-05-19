@@ -15,16 +15,21 @@ type Props = {
   savingApply?: boolean;
   savingInvite?: boolean;
   actingRequestId?: number | null;
-  onApply?: (payload: { targetRoleName?: string | null; message?: string }) => void | Promise<void>;
+  onApply?: (payload: {
+  targetRoleName?: string | null;
+  message?: string;
+  showOnPublicProfile?: boolean | null;
+}) => void | Promise<void>;
   onInvite?: (payload: {
     username: string;
     targetRoleName?: string | null;
     message?: string;
   }) => void | Promise<void>;
   onRespond?: (
-    requestId: number,
-    decision: "ACCEPTED" | "REJECTED" | "CANCELLED"
-  ) => void | Promise<void>;
+  requestId: number,
+  decision: "ACCEPTED" | "REJECTED" | "CANCELLED",
+  options?: { showOnPublicProfile?: boolean | null }
+) => void | Promise<void>;
 };
 
 export default function RecruitmentPanel({
@@ -45,6 +50,7 @@ export default function RecruitmentPanel({
 }: Props) {
   const [applyTargetRoleName, setApplyTargetRoleName] = useState("");
   const [applyMessage, setApplyMessage] = useState("");
+  const [applyShowOnPublicProfile, setApplyShowOnPublicProfile] = useState(true);
 
   const [inviteQuery, setInviteQuery] = useState("");
   const [inviteUsername, setInviteUsername] = useState("");
@@ -90,12 +96,14 @@ export default function RecruitmentPanel({
     if (!onApply) return;
 
     await onApply({
-      targetRoleName: applyTargetRoleName || null,
-      message: applyMessage,
-    });
+  targetRoleName: applyTargetRoleName || null,
+  message: applyMessage,
+  showOnPublicProfile: applyShowOnPublicProfile,
+});
 
     setApplyTargetRoleName("");
     setApplyMessage("");
+    setApplyShowOnPublicProfile(true);
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -147,6 +155,20 @@ export default function RecruitmentPanel({
                 placeholder="Napisz, dlaczego chcesz dołączyć do tego zespołu."
               />
             </div>
+
+            <label className="checkbox-line">
+  <input
+    type="checkbox"
+    checked={applyShowOnPublicProfile}
+    onChange={(e) => setApplyShowOnPublicProfile(e.target.checked)}
+  />
+  <span>Po dołączeniu pokaż ten projekt na moim profilu publicznym</span>
+</label>
+
+<p className="field-help">
+  Jeśli wyłączysz tę opcję, projekt nie pojawi się na Twoim profilu publicznym,
+  a oceny z tego projektu nie będą uwzględniane w publicznych średnich.
+</p>
 
             <div>
               <button className="btn btn-solid" disabled={savingApply}>

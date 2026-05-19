@@ -28,7 +28,8 @@ public class TeamRecruitmentService {
 
     public record ApplyRequest(
             String targetRoleName,
-            String message
+            String message,
+            Boolean showOnPublicProfile
     ) {}
 
     public record InviteRequest(
@@ -38,7 +39,8 @@ public class TeamRecruitmentService {
     ) {}
 
     public record RespondRequest(
-            String decision
+            String decision,
+            Boolean showOnPublicProfile
     ) {}
 
     public record RecruitmentRequestView(
@@ -52,6 +54,7 @@ public class TeamRecruitmentService {
             String status,
             String targetRoleName,
             String message,
+            Boolean showOnPublicProfile,
             String createdByUsername,
             String respondedByUsername,
             String createdAt,
@@ -100,6 +103,7 @@ public class TeamRecruitmentService {
         request.setStatus("PENDING");
         request.setTargetRoleName(targetRoleName);
         request.setMessage(normalize(req.message(), 4000));
+        request.setShowOnPublicProfile(req.showOnPublicProfile() == null || req.showOnPublicProfile());
         request.setCreatedByUser(applicant);
 
         TeamRecruitmentRequest saved = teamRecruitmentRequestRepository.save(request);
@@ -146,6 +150,7 @@ public class TeamRecruitmentService {
         request.setStatus("PENDING");
         request.setTargetRoleName(targetRoleName);
         request.setMessage(normalize(req.message(), 4000));
+        request.setShowOnPublicProfile(true);
         request.setCreatedByUser(owner);
 
         TeamRecruitmentRequest saved = teamRecruitmentRequestRepository.save(request);
@@ -223,7 +228,7 @@ public class TeamRecruitmentService {
         }
 
         if ("ACCEPTED".equals(decision)) {
-            acceptRequest(request, actor);
+            acceptRequest(request, actor, req.showOnPublicProfile());
         } else {
             request.setStatus(decision);
             request.setRespondedByUser(actor);
@@ -284,7 +289,7 @@ public class TeamRecruitmentService {
         );
     }
 
-    private void acceptRequest(TeamRecruitmentRequest request, User actor) {
+    private void acceptRequest(TeamRecruitmentRequest request, User actor, Boolean showOnPublicProfileFromResponse) {
         Team team = request.getTeam();
         User user = request.getUser();
 
@@ -307,6 +312,18 @@ public class TeamRecruitmentService {
                         ? "Member"
                         : request.getTargetRoleName()
         );
+
+        boolean showOnPublicProfile;
+
+        if ("APPLICATION".equals(request.getRequestType())) {
+            showOnPublicProfile = request.isShowOnPublicProfile();
+        } else if ("INVITATION".equals(request.getRequestType())) {
+            showOnPublicProfile = showOnPublicProfileFromResponse == null || showOnPublicProfileFromResponse;
+        } else {
+            showOnPublicProfile = true;
+        }
+
+        membership.setShowOnPublicProfile(showOnPublicProfile);
 
         teamMemberRepository.save(membership);
 
@@ -409,6 +426,7 @@ public class TeamRecruitmentService {
                 request.getStatus(),
                 request.getTargetRoleName(),
                 request.getMessage(),
+                request.isShowOnPublicProfile(),
                 request.getCreatedByUser() == null ? null : request.getCreatedByUser().getUsername(),
                 request.getRespondedByUser() == null ? null : request.getRespondedByUser().getUsername(),
                 request.getCreatedAt() == null ? null : request.getCreatedAt().toString(),

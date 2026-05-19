@@ -45,7 +45,8 @@ public class TeamsService {
           Long userId,
           String username,
           String fullName,
-          String roleLabel
+          String roleLabel,
+          boolean showOnPublicProfile
   ) {}
 
   public record MeetingView(
@@ -112,6 +113,7 @@ public class TeamsService {
           String experienceLevel,
           String ownerUsername,
           String myRole,
+          Boolean myShowOnPublicProfile,
           List<MemberView> members,
           List<TechnologyView> technologies,
           List<RoleRequirementView> roleRequirements,
@@ -159,8 +161,13 @@ public class TeamsService {
           String projectArea,
           String experienceLevel,
           String recruitmentStatus,
+          Boolean showOnPublicProfile,
           List<TechnologyInput> technologies,
           List<RoleRequirementInput> roleRequirements
+  ) {}
+
+  public record MyTeamVisibilityUpdate(
+          Boolean showOnPublicProfile
   ) {}
 
   public record MeetingCreate(
@@ -298,6 +305,20 @@ public class TeamsService {
     return toPublicDetails(team);
   }
 
+  public TeamDetails updateMyTeamVisibility(Long teamId, MyTeamVisibilityUpdate req, String username) {
+    Team team = getAccessibleTeam(teamId, username);
+
+    TeamMember membership = teamMemberRepository.findByTeam_IdAndUser_Username(teamId, username)
+            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono Twojego członkostwa w tym zespole."));
+
+    boolean showOnPublicProfile = req.showOnPublicProfile() == null || req.showOnPublicProfile();
+
+    membership.setShowOnPublicProfile(showOnPublicProfile);
+    teamMemberRepository.save(membership);
+
+    return toPrivateDetails(team, username);
+  }
+
   public TeamDetails createTeam(TeamUpsert req, String username) {
     User owner = userRepository.findByUsername(username)
             .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika: " + username));
@@ -330,6 +351,7 @@ public class TeamsService {
     ownerMembership.setTeam(saved);
     ownerMembership.setUser(owner);
     ownerMembership.setRoleLabel("Owner");
+    ownerMembership.setShowOnPublicProfile(req.showOnPublicProfile() == null || req.showOnPublicProfile());
     teamMemberRepository.save(ownerMembership);
 
     replaceTechnologies(saved, req.technologies());
@@ -465,7 +487,8 @@ public class TeamsService {
                     tm.getUser().getId(),
                     tm.getUser().getUsername(),
                     fullName(tm.getUser()),
-                    tm.getRoleLabel()
+                    tm.getRoleLabel(),
+                    tm.isShowOnPublicProfile()
             ))
             .toList();
 
@@ -518,9 +541,14 @@ public class TeamsService {
             ))
             .toList();
 
-    String myRole = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
-            .map(TeamMember::getRoleLabel)
-            .orElse("Member");
+    TeamMember myMembership = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
+            .orElse(null);
+
+    String myRole = myMembership == null ? "Member" : myMembership.getRoleLabel();
+
+    Boolean myShowOnPublicProfile = myMembership == null
+            ? null
+            : myMembership.isShowOnPublicProfile();
 
     return new TeamDetails(
             team.getId(),
@@ -534,6 +562,7 @@ public class TeamsService {
             team.getExperienceLevel(),
             team.getOwnerUser() == null ? null : team.getOwnerUser().getUsername(),
             myRole,
+            myShowOnPublicProfile,
             members,
             technologies,
             roleRequirements,

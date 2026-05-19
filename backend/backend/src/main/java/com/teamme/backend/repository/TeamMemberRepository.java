@@ -17,4 +17,6 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, TeamMemb
     List<TeamMember> findByUser_UsernameOrderByJoinedAtDesc(String username);
     Optional<TeamMember> findFirstByUser_IdAndLeftAtIsNullOrderByJoinedAtDesc(Long userId);
     Optional<TeamMember> findFirstByUser_IdOrderByJoinedAtDesc(Long userId);
+    Optional<TeamMember> findFirstByUser_IdAndLeftAtIsNullAndShowOnPublicProfileTrueOrderByJoinedAtDesc(Long userId);
+    Optional<TeamMember> findFirstByUser_IdAndShowOnPublicProfileTrueOrderByJoinedAtDesc(Long userId);
 }

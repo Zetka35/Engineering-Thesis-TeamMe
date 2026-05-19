@@ -33,6 +33,7 @@ export type TeamUpsertPayload = {
   recruitmentStatus: TeamRecruitmentStatus;
   technologies: TechnologyInputPayload[];
   roleRequirements: RoleRequirementInputPayload[];
+  showOnPublicProfile?: boolean | null;
 };
 
 export type MeetingCreatePayload = {
@@ -53,6 +54,7 @@ export type TaskCreatePayload = {
 export type ApplyToTeamPayload = {
   targetRoleName?: string | null;
   message?: string;
+  showOnPublicProfile?: boolean | null;
 };
 
 export type InviteToTeamPayload = {
@@ -63,6 +65,11 @@ export type InviteToTeamPayload = {
 
 export type RespondToRequestPayload = {
   decision: "ACCEPTED" | "REJECTED" | "CANCELLED";
+  showOnPublicProfile?: boolean | null;
+};
+
+export type UpdateMyTeamVisibilityPayload = {
+  showOnPublicProfile: boolean;
 };
 
 export type RecommendedCandidate = {
@@ -79,6 +86,13 @@ export type RecommendedCandidate = {
 
 export function fetchTeams(): Promise<TeamSummary[]> {
   return get<TeamSummary[]>("/api/teams");
+}
+
+export function updateMyTeamVisibility(
+  teamId: number,
+  payload: UpdateMyTeamVisibilityPayload
+): Promise<TeamDetails> {
+  return put<TeamDetails>(`/api/teams/${teamId}/my-visibility`, payload);
 }
 
 export function completeTeam(teamId: number): Promise<TeamDetails> {

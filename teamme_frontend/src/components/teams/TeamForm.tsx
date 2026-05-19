@@ -30,6 +30,7 @@ export type TeamFormValue = {
   recruitmentStatus: TeamRecruitmentStatus;
   technologies: TechnologyDraft[];
   roleRequirements: RoleRequirementDraft[];
+  showOnPublicProfile: boolean;
 };
 
 type Props = {
@@ -38,6 +39,7 @@ type Props = {
   initialValue?: Partial<TeamFormValue>;
   saving?: boolean;
   onSubmit: (value: TeamFormValue) => void | Promise<void>;
+  showVisibilityChoice?: boolean;
 };
 
 type FormErrors = Partial<
@@ -115,6 +117,7 @@ function buildInitialValue(initialValue?: Partial<TeamFormValue>): TeamFormValue
     projectArea: initialValue?.projectArea ?? "",
     experienceLevel: initialValue?.experienceLevel ?? "MIXED",
     recruitmentStatus: initialValue?.recruitmentStatus ?? "OPEN",
+    showOnPublicProfile: initialValue?.showOnPublicProfile ?? true,
     technologies:
       initialValue?.technologies && initialValue.technologies.length
         ? initialValue.technologies.map((technology) => ({
@@ -169,6 +172,7 @@ export default function TeamForm({
   submitLabel,
   initialValue,
   saving = false,
+  showVisibilityChoice = false,
   onSubmit,
 }: Props) {
   const [form, setForm] = useState<TeamFormValue>(buildInitialValue(initialValue));
@@ -209,6 +213,7 @@ export default function TeamForm({
       description: form.description.trim(),
       projectArea: form.projectArea.trim(),
       expectedTimeText: form.expectedTimeText.trim(),
+      showOnPublicProfile: form.showOnPublicProfile,
       technologies: form.technologies.map((technology) => ({
         ...technology,
         name: technology.name.trim(),
@@ -386,6 +391,29 @@ export default function TeamForm({
               </p>
             </div>
           </div>
+
+          {showVisibilityChoice && (
+  <label className="checkbox-line">
+    <input
+      type="checkbox"
+      checked={form.showOnPublicProfile}
+      onChange={(e) =>
+        setForm((prev) => ({
+          ...prev,
+          showOnPublicProfile: e.target.checked,
+        }))
+      }
+    />
+    <span>Pokaż ten projekt na moim profilu publicznym</span>
+  </label>
+)}
+
+{showVisibilityChoice && (
+  <p className="field-help">
+    Jeśli wyłączysz tę opcję, projekt nie będzie widoczny na Twoim profilu publicznym,
+    a oceny z tego projektu nie będą uwzględniane w publicznych średnich.
+  </p>
+)}
 
           <div className="form-inline-note">
             Krótki opis, wybrany obszar projektu, przynajmniej jedna rola projektowa

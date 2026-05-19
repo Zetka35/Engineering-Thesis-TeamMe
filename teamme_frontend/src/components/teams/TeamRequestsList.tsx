@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { RecruitmentRequest } from "../../models/Team";
 
 type Props = {
@@ -8,7 +8,8 @@ type Props = {
   actingRequestId?: number | null;
   onRespond?: (
     requestId: number,
-    decision: "ACCEPTED" | "REJECTED" | "CANCELLED"
+    decision: "ACCEPTED" | "REJECTED" | "CANCELLED",
+    options?: { showOnPublicProfile?: boolean | null }
   ) => void | Promise<void>;
 };
 
@@ -52,6 +53,29 @@ export default function TeamRequestsList({
   actingRequestId = null,
   onRespond,
 }: Props) {
+  const [visibilityByRequestId, setVisibilityByRequestId] = useState<
+    Record<number, boolean>
+  >({});
+
+  function getVisibilityChoice(request: RecruitmentRequest) {
+    return visibilityByRequestId[request.id] ?? request.showOnPublicProfile ?? true;
+  }
+
+  function setVisibilityChoice(requestId: number, value: boolean) {
+    setVisibilityByRequestId((prev) => ({
+      ...prev,
+      [requestId]: value,
+    }));
+  }
+
+  function shouldAskVisibilityOnAccept(request: RecruitmentRequest) {
+    return (
+      request.status === "PENDING" &&
+      request.requestType === "INVITATION" &&
+      request.username === currentUsername
+    );
+  }
+
   function canAcceptOrReject(request: RecruitmentRequest) {
     if (request.status !== "PENDING") return false;
 
@@ -97,21 +121,61 @@ export default function TeamRequestsList({
             gap: 8,
           }}
         >
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <b>{request.fullName}</b>
             <span className="muted">@{request.username}</span>
             <span className="pill">{requestTypeLabel(request.requestType)}</span>
             <span className="pill">{requestStatusLabel(request.status)}</span>
-            {request.targetRoleName && <span className="pill">rola: {request.targetRoleName}</span>}
+            {request.targetRoleName && (
+              <span className="pill">rola: {request.targetRoleName}</span>
+            )}
           </div>
 
           <div className="muted">
-            Utworzono: {formatPl(request.createdAt)} | Autor: {request.createdByUsername || "—"}
+            Utworzono: {formatPl(request.createdAt)} | Autor:{" "}
+            {request.createdByUsername || "—"}
           </div>
 
           <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
             {request.message || "Brak wiadomości."}
           </div>
+
+          {shouldAskVisibilityOnAccept(request) && (
+            <div
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: 12,
+                padding: 10,
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <label className="checkbox-line">
+                <input
+                  type="checkbox"
+                  checked={getVisibilityChoice(request)}
+                  onChange={(e) =>
+                    setVisibilityChoice(request.id, e.target.checked)
+                  }
+                />
+                <span>
+                  Po dołączeniu pokaż ten projekt na moim profilu publicznym
+                </span>
+              </label>
+
+              <div className="field-help">
+                Jeśli wyłączysz tę opcję, projekt oraz oceny z tego projektu nie
+                będą widoczne publicznie.
+              </div>
+            </div>
+          )}
 
           {(canAcceptOrReject(request) || canCancel(request)) && onRespond && (
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -120,9 +184,15 @@ export default function TeamRequestsList({
                   <button
                     className="btn btn-solid"
                     disabled={actingRequestId === request.id}
-                    onClick={() => void onRespond(request.id, "ACCEPTED")}
+                    onClick={() =>
+                      void onRespond(request.id, "ACCEPTED", {
+                        showOnPublicProfile: getVisibilityChoice(request),
+                      })
+                    }
                   >
-                    {actingRequestId === request.id ? "Zapisywanie…" : "Akceptuj"}
+                    {actingRequestId === request.id
+                      ? "Zapisywanie…"
+                      : "Akceptuj"}
                   </button>
 
                   <button

@@ -29,6 +29,9 @@ public class TeamMember {
     @Column(name = "left_at")
     private OffsetDateTime leftAt;
 
+    @Column(name = "show_on_public_profile", nullable = false)
+    private boolean showOnPublicProfile = true;
+
     public TeamMemberId getId() { return id; }
     public void setId(TeamMemberId id) { this.id = id; }
 
@@ -45,4 +48,12 @@ public class TeamMember {
 
     public OffsetDateTime getLeftAt() { return leftAt; }
     public void setLeftAt(OffsetDateTime leftAt) { this.leftAt = leftAt; }
+
+    public boolean isShowOnPublicProfile() {
+        return showOnPublicProfile;
+    }
+
+    public void setShowOnPublicProfile(boolean showOnPublicProfile) {
+        this.showOnPublicProfile = showOnPublicProfile;
+    }
 }

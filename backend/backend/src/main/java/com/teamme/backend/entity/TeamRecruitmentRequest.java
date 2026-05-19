@@ -30,6 +30,9 @@ public class TeamRecruitmentRequest {
     @Column(name = "message")
     private String message;
 
+    @Column(name = "show_on_public_profile", nullable = false)
+    private boolean showOnPublicProfile = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdByUser;
@@ -63,6 +66,14 @@ public class TeamRecruitmentRequest {
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+
+    public boolean isShowOnPublicProfile() {
+        return showOnPublicProfile;
+    }
+
+    public void setShowOnPublicProfile(boolean showOnPublicProfile) {
+        this.showOnPublicProfile = showOnPublicProfile;
+    }
 
     public User getCreatedByUser() { return createdByUser; }
     public void setCreatedByUser(User createdByUser) { this.createdByUser = createdByUser; }

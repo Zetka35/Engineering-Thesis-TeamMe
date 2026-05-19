@@ -301,6 +301,10 @@ export default function History() {
                           {item.current && <span className="pill">aktywny</span>}
                         </div>
 
+                        <span className="pill">
+                        {item.showOnPublicProfile ? "widoczny publicznie" : "ukryty publicznie"}
+                        </span>
+
                         <div className="muted">
                           Dołączono: {formatPl(item.joinedAt)} | Zakończono:{" "}
                           {item.current ? "—" : formatPl(item.leftAt)}
