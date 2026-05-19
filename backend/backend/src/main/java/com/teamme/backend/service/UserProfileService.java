@@ -259,7 +259,7 @@ public class UserProfileService {
         );
     }
 
-    private UserProfileDto toProfileDto(User user, boolean publicView) { 
+    private UserProfileDto toProfileDto(User user, boolean publicView) {
         List<ExperienceDto> experiences = user.getExperiences().stream()
                 .sorted(
                         Comparator.comparing(UserExperience::isCurrent).reversed()

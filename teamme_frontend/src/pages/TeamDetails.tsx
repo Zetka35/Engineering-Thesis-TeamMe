@@ -623,7 +623,7 @@ setSuccessMsg(
 
           {activeTab === "overview" && (
   <>
-    <div className="profile-block" style={{ display: "grid", gap: 8 }}>
+    {/* <div className="profile-block" style={{ display: "grid", gap: 8 }}>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <span className="pill">status projektu: {team.status}</span>
         <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
@@ -638,7 +638,7 @@ setSuccessMsg(
       <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
         {team.description || "Brak opisu projektu."}
       </div>
-    </div>
+    </div> */}
 
     <div className="profile-block">
       <div className="profile-block-title">Technologie projektu</div>
