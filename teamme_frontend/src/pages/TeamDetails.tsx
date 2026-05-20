@@ -623,22 +623,6 @@ setSuccessMsg(
 
           {activeTab === "overview" && (
   <>
-    {/* <div className="profile-block" style={{ display: "grid", gap: 8 }}>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <span className="pill">status projektu: {team.status}</span>
-        <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
-        <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
-        <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
-        <span className="pill">
-          członkowie: {team.members.length}/{team.maxMembers}
-        </span>
-        <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
-      </div>
-
-      <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
-        {team.description || "Brak opisu projektu."}
-      </div>
-    </div> */}
 
     <div className="profile-block">
       <div className="profile-block-title">Technologie projektu</div>
