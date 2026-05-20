@@ -4,6 +4,7 @@ import type { TeamSummary } from "../models/Team";
 import { createTeam, fetchTeams, searchTeams, type TeamUpsertPayload } from "../api/teams.api";
 import { extractApiMessage } from "../api/http";
 import TeamForm, { type TeamFormValue } from "../components/teams/TeamForm";
+import TeamRoleBadge from "../components/TeamRoleBadge";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "Brak terminu";
@@ -235,7 +236,12 @@ export default function Teams() {
                     </div>
 
                     <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span className="pill">moja rola: {team.myRole || "—"}</span>
+                      <span className="pill">rola techniczna: {team.myRole || "—"}</span>
+{team.myTeamRole ? (
+  <TeamRoleBadge role={team.myTeamRole} />
+) : (
+  <span className="pill">rola zespołowa: nie ustawiono</span>
+)}
                       <span className="pill">członkowie: {team.memberCount}/{team.maxMembers}</span>
                       <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
                       <span className="pill">obszar: {team.projectArea || "nie podano"}</span>

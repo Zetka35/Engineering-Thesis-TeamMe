@@ -32,6 +32,7 @@ public class ProjectHistoryService {
             String reviewedUsername,
             String reviewedFullName,
             String roleLabel,
+            String teamRoleLabel,
             String leftAt
     ) {}
 
@@ -56,7 +57,8 @@ public class ProjectHistoryService {
             Long reviewedUserId,
             String reviewedUsername,
             String reviewedFullName,
-            String projectRoleLabel,
+            String projectRoleLabel
+            String reviewedTeamRoleLabel,
             Integer engagementRating,
             Integer roleExecutionRating,
             Integer collaborationRating,
@@ -124,6 +126,7 @@ public class ProjectHistoryService {
                             teammate.getUser().getUsername(),
                             fullName(teammate.getUser()),
                             teammate.getRoleLabel(),
+                            teammate.getUser().getSelectedRole(),
                             membership.getLeftAt() == null ? null : membership.getLeftAt().toString()
                     ));
                 }
@@ -240,6 +243,7 @@ public class ProjectHistoryService {
                 review.getReviewedUser().getUsername(),
                 fullName(review.getReviewedUser()),
                 review.getProjectRoleLabel(),
+                review.getReviewedUser().getSelectedRole(),
                 review.getEngagementRating(),
                 review.getRoleExecutionRating(),
                 review.getCollaborationRating(),

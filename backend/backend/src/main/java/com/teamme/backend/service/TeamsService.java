@@ -35,6 +35,7 @@ public class TeamsService {
           Integer maxMembers,
           long memberCount,
           String myRole,
+          String myTeamRole,
           String nextMeetingAt,
           String projectArea,
           String experienceLevel,
@@ -46,6 +47,7 @@ public class TeamsService {
           String username,
           String fullName,
           String roleLabel,
+          String teamRoleLabel,
           boolean showOnPublicProfile
   ) {}
 
@@ -216,8 +218,8 @@ public class TeamsService {
 
   @Transactional(readOnly = true)
   public List<TeamSummary> getTeamsForUser(String username) {
-    userRepository.findByUsername(username)
-            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika: " + username));
+    User currentUser = userRepository.findByUsername(username)
+            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika: " + username));;
 
     return teamRepository.findAllForUsername(username).stream()
             .map(team -> {
@@ -244,6 +246,7 @@ public class TeamsService {
                       team.getMaxMembers(),
                       memberCount,
                       myRole,
+                      currentUser.getSelectedRole(),
                       nextMeetingAt,
                       team.getProjectArea(),
                       team.getExperienceLevel(),
@@ -255,7 +258,7 @@ public class TeamsService {
 
   @Transactional(readOnly = true)
   public List<TeamSummary> searchOpenTeams(String username) {
-    userRepository.findByUsername(username)
+    User currentUser = userRepository.findByUsername(username)
             .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika: " + username));
 
     return teamRepository.findAllOpenRecruitment().stream()
@@ -283,6 +286,7 @@ public class TeamsService {
                       team.getMaxMembers(),
                       memberCount,
                       myRole,
+                      currentUser.getSelectedRole(),
                       nextMeetingAt,
                       team.getProjectArea(),
                       team.getExperienceLevel(),
@@ -488,6 +492,7 @@ public class TeamsService {
                     tm.getUser().getUsername(),
                     fullName(tm.getUser()),
                     tm.getRoleLabel(),
+                    tm.getUser().getSelectedRole(),
                     tm.isShowOnPublicProfile()
             ))
             .toList();

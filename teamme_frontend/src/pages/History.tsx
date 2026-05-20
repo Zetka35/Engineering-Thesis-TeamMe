@@ -10,6 +10,7 @@ import {
 } from "../api/projectHistory.api";
 import { extractApiMessage } from "../api/http";
 import VisibilityBadge from "../components/VisibilityBadge";
+import TeamRoleBadge from "../components/TeamRoleBadge";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -346,10 +347,21 @@ export default function History() {
                             <span className="muted">(@{item.reviewedUsername})</span>
                           </div>
 
-                          <div className="muted">
-                            Rola projektowa: {item.roleLabel || "—"} | Projekt zakończono:{" "}
-                            {formatPl(item.leftAt)}
-                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+  <span className="pill">
+    Rola techniczna: {item.roleLabel || "—"}
+  </span>
+
+  {item.teamRoleLabel ? (
+    <TeamRoleBadge role={item.teamRoleLabel} />
+  ) : (
+    <span className="pill">Rola zespołowa: nie ustawiono</span>
+  )}
+
+  <span className="pill">
+    projekt zakończono: {formatPl(item.leftAt)}
+  </span>
+</div>
 
                           <div
                             style={{
@@ -497,7 +509,17 @@ export default function History() {
                           }}
                         >
                           <b>{review.teamName}</b>
-                          <span className="pill">rola: {review.projectRoleLabel}</span>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+  <span className="pill">
+    Rola techniczna: {review.projectRoleLabel || "—"}
+  </span>
+
+  {review.reviewedTeamRoleLabel ? (
+    <TeamRoleBadge role={review.reviewedTeamRoleLabel} />
+  ) : (
+    <span className="pill">Rola zespołowa: nie ustawiono</span>
+  )}
+</div>
                           <span className="pill">
                             średnia: {formatRating(review.averageRating)}
                           </span>
@@ -552,7 +574,17 @@ export default function History() {
                         >
                           <b>{review.teamName}</b>
                           <span className="pill">dla: {review.reviewedFullName}</span>
-                          <span className="pill">rola: {review.projectRoleLabel}</span>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+  <span className="pill">
+    Rola techniczna: {review.projectRoleLabel || "—"}
+  </span>
+
+  {review.reviewedTeamRoleLabel ? (
+    <TeamRoleBadge role={review.reviewedTeamRoleLabel} />
+  ) : (
+    <span className="pill">Rola zespołowa: nie ustawiono</span>
+  )}
+</div>
                           <span className="pill">
                             średnia: {formatRating(review.averageRating)}
                           </span>

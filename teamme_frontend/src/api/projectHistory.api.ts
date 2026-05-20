@@ -7,6 +7,7 @@ export interface PendingReviewTarget {
   reviewedUsername: string;
   reviewedFullName: string;
   roleLabel: string;
+  teamRoleLabel?: string | null;
   leftAt?: string | null;
 }
 
@@ -23,6 +24,7 @@ export interface CollaborationReview {
   reviewedFullName: string;
 
   projectRoleLabel: string;
+  reviewedTeamRoleLabel?: string | null;
 
   engagementRating: number;
   roleExecutionRating: number;

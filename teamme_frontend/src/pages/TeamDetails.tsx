@@ -21,6 +21,7 @@ import { extractApiMessage } from "../api/http";
 import TeamForm, { type TeamFormValue } from "../components/teams/TeamForm";
 import RecruitmentPanel from "../components/teams/RecruitmentPanel";
 import RecommendedCandidates from "../components/teams/RecommendedCandidates";
+import TeamRoleBadge from "../components/TeamRoleBadge";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -565,8 +566,14 @@ setSuccessMsg(
         <div className="card-header">
           <h2 className="card-title">{team.name}</h2>
           <p className="card-subtitle">
-            Właściciel: {team.ownerUsername || "—"} · moja rola: {team.myRole || "—"}
-          </p>
+  Właściciel: {team.ownerUsername || "—"} · rola techniczna:{" "}
+  {team.myRole || "—"}
+</p>
+{user?.selectedRole && (
+  <div style={{ marginTop: 8 }}>
+    <TeamRoleBadge role={user.selectedRole} />
+  </div>
+)}
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 14 }}>
@@ -840,11 +847,34 @@ setSuccessMsg(
     <div className="profile-block-title">Członkowie</div>
     <div style={{ display: "grid", gap: 8 }}>
       {team.members.map((member) => (
-        <div key={member.userId}>
-          <b>{member.fullName}</b>{" "}
-          <span className="muted">(@{member.username})</span> · {member.roleLabel}
-        </div>
-      ))}
+  <div
+    key={member.userId}
+    style={{
+      border: "1px solid var(--line)",
+      borderRadius: 12,
+      padding: 12,
+      display: "grid",
+      gap: 8,
+    }}
+  >
+    <div>
+      <b>{member.fullName}</b>{" "}
+      <span className="muted">(@{member.username})</span>
+    </div>
+
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <span className="pill">
+        Rola techniczna: {member.roleLabel || "—"}
+      </span>
+
+      {member.teamRoleLabel ? (
+        <TeamRoleBadge role={member.teamRoleLabel} />
+      ) : (
+        <span className="pill">Rola zespołowa: nie ustawiono</span>
+      )}
+    </div>
+  </div>
+))}
     </div>
   </div>
 )}

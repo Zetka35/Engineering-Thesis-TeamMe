@@ -33,6 +33,7 @@ export interface TeamSummary {
   maxMembers: number;
   memberCount: number;
   myRole?: string | null;
+  myTeamRole?: string | null;
   nextMeetingAt?: string | null;
   projectArea?: string | null;
   experienceLevel: TeamExperienceLevel;
@@ -44,6 +45,7 @@ export interface TeamMember {
   username: string;
   fullName: string;
   roleLabel: string;
+  teamRoleLabel?: string | null;
   showOnPublicProfile: boolean;
 }
 
