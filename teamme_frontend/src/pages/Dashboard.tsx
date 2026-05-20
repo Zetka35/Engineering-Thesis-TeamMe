@@ -149,7 +149,7 @@ export default function Dashboard() {
                 style={{
                   display: "grid",
                   gap: 16,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                  gridTemplateColumns: "repeat(2, minmax(320px, 1fr))",
                 }}
               >
                 <div className="profile-block">
