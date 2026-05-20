@@ -75,6 +75,16 @@ export default function Messages() {
 
   const currentUsername = user?.username ?? "";
 
+  const incomingApplications = useMemo(
+  () =>
+    requests.filter(
+      (request) =>
+        request.requestType === "APPLICATION" &&
+        request.createdByUsername !== currentUsername
+    ),
+  [requests, currentUsername]
+);
+
   const incomingInvitations = useMemo(
     () =>
       requests.filter(
@@ -132,16 +142,42 @@ export default function Messages() {
   function renderActions(request: RecruitmentRequest) {
     if (request.status !== "PENDING") return null;
 
-    const isIncomingInvitation =
-      request.requestType === "INVITATION" && request.username === currentUsername;
+    const isIncomingApplication =
+  request.requestType === "APPLICATION" &&
+  request.createdByUsername !== currentUsername;
 
-    const isOutgoingInvitation =
-      request.requestType === "INVITATION" &&
-      request.createdByUsername === currentUsername;
+const isIncomingInvitation =
+  request.requestType === "INVITATION" && request.username === currentUsername;
 
-    const isMyApplication =
-      request.requestType === "APPLICATION" &&
-      request.createdByUsername === currentUsername;
+const isOutgoingInvitation =
+  request.requestType === "INVITATION" &&
+  request.createdByUsername === currentUsername;
+
+const isMyApplication =
+  request.requestType === "APPLICATION" &&
+  request.createdByUsername === currentUsername;
+
+  if (isIncomingApplication) {
+  return (
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <button
+        className="btn btn-solid"
+        disabled={actingRequestId === request.id}
+        onClick={() => void handleRespond(request.id, "ACCEPTED")}
+      >
+        {actingRequestId === request.id ? "Zapisywanie…" : "Akceptuj aplikację"}
+      </button>
+
+      <button
+        className="btn btn-ghost"
+        disabled={actingRequestId === request.id}
+        onClick={() => void handleRespond(request.id, "REJECTED")}
+      >
+        Odrzuć aplikację
+      </button>
+    </div>
+  );
+}
 
     if (isIncomingInvitation) {
       return (
@@ -254,7 +290,7 @@ export default function Messages() {
             <div>
               <h2 className="card-title">Zaproszenia i zgłoszenia</h2>
               <p className="card-subtitle">
-                Tu znajdziesz otrzymane zaproszenia, wysłane zaproszenia, własne aplikacje i historię decyzji.
+                Tu znajdziesz aplikacje do Twoich zespołów, otrzymane zaproszenia, wysłane zaproszenia, własne aplikacje i historię decyzji.
               </p>
             </div>
 
@@ -279,7 +315,26 @@ export default function Messages() {
               <div className="muted">Ładowanie wiadomości…</div>
             </div>
           ) : (
+
+            
             <>
+            <div className="profile-block">
+  <div className="profile-block-title">
+    Aplikacje do moich zespołów ({incomingApplications.length})
+  </div>
+
+  {incomingApplications.length ? (
+    <div style={{ display: "grid", gap: 12 }}>
+      {incomingApplications.map((request) =>
+        renderRequestCard(request, "incoming-applications")
+      )}
+    </div>
+  ) : (
+    <div className="muted">
+      Brak nowych aplikacji do Twoich zespołów
+    </div>
+  )}
+</div>
               <div className="profile-block">
                 <div className="profile-block-title">
                   Otrzymane zaproszenia ({incomingInvitations.length})

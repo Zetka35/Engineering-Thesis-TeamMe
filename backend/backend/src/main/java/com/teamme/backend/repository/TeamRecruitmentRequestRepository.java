@@ -16,5 +16,7 @@ public interface TeamRecruitmentRequestRepository extends JpaRepository<TeamRecr
             String createdByUsername
     );
 
+    List<TeamRecruitmentRequest> findByTeam_OwnerUser_UsernameOrderByCreatedAtDesc(String ownerUsername);
+
     Optional<TeamRecruitmentRequest> findByTeam_IdAndUser_IdAndStatus(Long teamId, Long userId, String status);
 }

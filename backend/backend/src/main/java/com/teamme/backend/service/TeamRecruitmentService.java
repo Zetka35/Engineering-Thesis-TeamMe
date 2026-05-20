@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.teamme.backend.notification.NotificationEvent;
 import com.teamme.backend.notification.NotificationWebSocketService;
+import java.util.Comparator;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -183,9 +184,26 @@ public class TeamRecruitmentService {
 
     @Transactional(readOnly = true)
     public List<RecruitmentRequestView> listMyRequests(String username) {
-        return teamRecruitmentRequestRepository
-                .findByUser_UsernameOrCreatedByUser_UsernameOrderByCreatedAtDesc(username, username)
-                .stream()
+        List<TeamRecruitmentRequest> directlyRelatedRequests =
+                teamRecruitmentRequestRepository
+                        .findByUser_UsernameOrCreatedByUser_UsernameOrderByCreatedAtDesc(username, username);
+
+        List<TeamRecruitmentRequest> ownedTeamRequests =
+                teamRecruitmentRequestRepository
+                        .findByTeam_OwnerUser_UsernameOrderByCreatedAtDesc(username);
+
+        var uniqueById = Stream.concat(directlyRelatedRequests.stream(), ownedTeamRequests.stream())
+                .collect(Collectors.toMap(
+                        TeamRecruitmentRequest::getId,
+                        request -> request,
+                        (first, second) -> first
+                ));
+
+        return uniqueById.values().stream()
+                .sorted(Comparator.comparing(
+                        TeamRecruitmentRequest::getCreatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
                 .map(this::toView)
                 .toList();
     }
