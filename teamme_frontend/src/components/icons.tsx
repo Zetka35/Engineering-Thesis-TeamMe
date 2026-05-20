@@ -14,6 +14,20 @@ export function TeamMeLogo({ size = 70 }: { size?: number }) {
   );
 }
 
+export function TeamMeLogoBlack({ size = 60 }: { size?: number }) {
+  return (
+      <img
+        src={logo}
+        alt="TeamMeBlack"
+        width={size}
+        height={size}
+        style={{ 
+          objectFit: 'contain'}}
+        className="tm-logo-img-black"
+      />
+  );
+}
+
 export function TeamworkIcon({ size = 220 }: { size?: number }) {
   return (
     <img

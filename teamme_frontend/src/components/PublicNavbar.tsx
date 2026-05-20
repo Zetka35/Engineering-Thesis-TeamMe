@@ -1,13 +1,14 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
 import { TeamMeLogo } from "./icons";
+import { TeamMeLogoBlack } from "./icons";
 
 export default function PublicNavbar() {
   return (
     <header className="public-topbar">
       <div className="public-topbar-inner">
         <Link to="/" className="public-brand">
-          <TeamMeLogo />
+          <TeamMeLogoBlack />
         </Link>
 
         <nav className="public-nav" aria-label="Nawigacja publiczna">

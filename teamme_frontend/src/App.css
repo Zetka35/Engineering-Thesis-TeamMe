@@ -199,7 +199,7 @@
 }
 
 .sidebar-brand-scale{
-  transform: scale(1.25);   /* <-- powiększenie tylko tu */
+  transform: scale(1.25);   
   transform-origin: center;
 }
 
@@ -1855,4 +1855,7 @@ textarea.input:disabled {
   background: #f8fafc;
   border-color: #cbd5e1;
   color: #475569;
+}
+.tm-logo-img-black {
+  filter: brightness(0) saturate(100%) invert(0%) sepia(0%) saturate(7500%) hue-rotate(193deg) brightness(96%) contrast(105%);
 }
