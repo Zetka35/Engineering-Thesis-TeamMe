@@ -3,6 +3,7 @@ import type { RecruitmentRequest, TeamRecruitmentStatus, TeamRoleRequirement } f
 import type { NetworkUser } from "../../api/user.api";
 import TeamRequestsList from "./TeamRequestsList";
 import TeamRoleBadge from "../TeamRoleBadge";
+import { TEAM_ROLE_OPTIONS } from "../../data/teamRoles";
 
 type Props = {
   isOwner: boolean;
@@ -18,6 +19,7 @@ type Props = {
   actingRequestId?: number | null;
   onApply?: (payload: {
   targetRoleName?: string | null;
+  teamRoleLabel?: string | null;
   message?: string;
   showOnPublicProfile?: boolean | null;
 }) => void | Promise<void>;
@@ -57,6 +59,7 @@ export default function RecruitmentPanel({
   const [inviteUsername, setInviteUsername] = useState("");
   const [inviteTargetRoleName, setInviteTargetRoleName] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [applyTeamRoleLabel, setApplyTeamRoleLabel] = useState("");
 
   const visibleRequests = useMemo(() => {
     if (isOwner) return requests;
@@ -94,10 +97,13 @@ export default function RecruitmentPanel({
 
   async function handleApply(e: React.FormEvent) {
     e.preventDefault();
+
+    
     if (!onApply) return;
 
     await onApply({
   targetRoleName: applyTargetRoleName || null,
+  teamRoleLabel: applyTeamRoleLabel || null,
   message: applyMessage,
   showOnPublicProfile: applyShowOnPublicProfile,
 });
@@ -145,6 +151,25 @@ export default function RecruitmentPanel({
                 ))}
               </select>
             </div>
+
+            <label className="field">
+  <span className="field-label">Rola zespołowa w tym projekcie</span>
+  <select
+    className="input"
+    value={applyTeamRoleLabel}
+    onChange={(e) => setApplyTeamRoleLabel(e.target.value)}
+  >
+    <option value="">Użyj mojej domyślnej roli z profilu</option>
+    {TEAM_ROLE_OPTIONS.map((role) => (
+      <option key={role} value={role}>
+        {role}
+      </option>
+    ))}
+  </select>
+  <span className="field-help">
+    Możesz wybrać inną rolę zespołową niż ta ustawiona w profilu, jeśli chcesz sprawdzić się w innym sposobie pracy.
+  </span>
+</label>
 
             <div className="field">
               <label className="field-label"><b>Wiadomość</b></label>

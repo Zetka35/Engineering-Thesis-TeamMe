@@ -27,6 +27,9 @@ public class TeamRecruitmentRequest {
     @Column(name = "target_role_name", length = 80)
     private String targetRoleName;
 
+    @Column(name = "team_role_label", length = 80)
+    private String teamRoleLabel;
+
     @Column(name = "message")
     private String message;
 
@@ -63,6 +66,14 @@ public class TeamRecruitmentRequest {
 
     public String getTargetRoleName() { return targetRoleName; }
     public void setTargetRoleName(String targetRoleName) { this.targetRoleName = targetRoleName; }
+
+    public String getTeamRoleLabel() {
+        return teamRoleLabel;
+    }
+
+    public void setTeamRoleLabel(String teamRoleLabel) {
+        this.teamRoleLabel = teamRoleLabel;
+    }
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }

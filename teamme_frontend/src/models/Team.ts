@@ -34,6 +34,7 @@ export interface TeamSummary {
   memberCount: number;
   myRole?: string | null;
   myTeamRole?: string | null;
+  myPreferredTeamRole?: string | null;
   nextMeetingAt?: string | null;
   projectArea?: string | null;
   experienceLevel: TeamExperienceLevel;
@@ -46,6 +47,7 @@ export interface TeamMember {
   fullName: string;
   roleLabel: string;
   teamRoleLabel?: string | null;
+  preferredTeamRoleLabel?: string | null;
   showOnPublicProfile: boolean;
 }
 
@@ -96,6 +98,7 @@ export interface RecruitmentRequest {
   requestType: RecruitmentRequestType;
   status: RecruitmentRequestStatus;
   targetRoleName?: string | null;
+  teamRoleLabel?: string | null;
   message?: string | null;
   showOnPublicProfile?: boolean | null;
   createdByUsername?: string | null;

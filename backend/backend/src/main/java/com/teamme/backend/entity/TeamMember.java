@@ -23,6 +23,8 @@ public class TeamMember {
     @Column(name = "role_label", nullable = false, length = 60)
     private String roleLabel = "Member";
 
+    @Column(name = "team_role_label", length = 80)
+    private String teamRoleLabel;
     @Column(name = "joined_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime joinedAt;
 
@@ -43,6 +45,14 @@ public class TeamMember {
 
     public String getRoleLabel() { return roleLabel; }
     public void setRoleLabel(String roleLabel) { this.roleLabel = roleLabel; }
+
+    public String getTeamRoleLabel() {
+        return teamRoleLabel;
+    }
+
+    public void setTeamRoleLabel(String teamRoleLabel) {
+        this.teamRoleLabel = teamRoleLabel;
+    }
 
     public OffsetDateTime getJoinedAt() { return joinedAt; }
 

@@ -36,10 +36,15 @@ public class TeamsService {
           long memberCount,
           String myRole,
           String myTeamRole,
+          String myPreferredTeamRole,
           String nextMeetingAt,
           String projectArea,
           String experienceLevel,
           String recruitmentStatus
+  ) {}
+
+  public record MyTeamRoleUpdate(
+          String teamRoleLabel
   ) {}
 
   public record MemberView(
@@ -48,6 +53,7 @@ public class TeamsService {
           String fullName,
           String roleLabel,
           String teamRoleLabel,
+          String preferredTeamRoleLabel,
           boolean showOnPublicProfile
   ) {}
 
@@ -90,13 +96,17 @@ public class TeamsService {
 
   public record RecruitmentRequestView(
           Long id,
+          Long teamId,
+          String teamName,
           Long userId,
           String username,
           String fullName,
           String requestType,
           String status,
           String targetRoleName,
+          String teamRoleLabel,
           String message,
+          Boolean showOnPublicProfile,
           String createdByUsername,
           String respondedByUsername,
           String createdAt,
@@ -225,9 +235,11 @@ public class TeamsService {
             .map(team -> {
               long memberCount = teamMemberRepository.countByTeam_Id(team.getId());
 
-              String myRole = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
-                      .map(TeamMember::getRoleLabel)
-                      .orElse("Member");
+              TeamMember myMembership = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
+                      .orElse(null);
+
+              String myRole = myMembership == null ? "Member" : myMembership.getRoleLabel();
+              String myTeamRole = myMembership == null ? null : myMembership.getTeamRoleLabel();
 
               List<TeamMeeting> meetings = teamMeetingRepository.findByTeam_IdOrderByStartsAtAsc(team.getId());
 
@@ -246,6 +258,7 @@ public class TeamsService {
                       team.getMaxMembers(),
                       memberCount,
                       myRole,
+                      myTeamRole,
                       currentUser.getSelectedRole(),
                       nextMeetingAt,
                       team.getProjectArea(),
@@ -265,9 +278,11 @@ public class TeamsService {
             .map(team -> {
               long memberCount = teamMemberRepository.countByTeam_Id(team.getId());
 
-              String myRole = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
-                      .map(TeamMember::getRoleLabel)
+              TeamMember myMembership = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
                       .orElse(null);
+
+              String myRole = myMembership == null ? null : myMembership.getRoleLabel();
+              String myTeamRole = myMembership == null ? null : myMembership.getTeamRoleLabel();
 
               List<TeamMeeting> meetings = teamMeetingRepository.findByTeam_IdOrderByStartsAtAsc(team.getId());
 
@@ -286,6 +301,7 @@ public class TeamsService {
                       team.getMaxMembers(),
                       memberCount,
                       myRole,
+                      myTeamRole,
                       currentUser.getSelectedRole(),
                       nextMeetingAt,
                       team.getProjectArea(),
@@ -355,6 +371,7 @@ public class TeamsService {
     ownerMembership.setTeam(saved);
     ownerMembership.setUser(owner);
     ownerMembership.setRoleLabel("Owner");
+    ownerMembership.setTeamRoleLabel(owner.getSelectedRole());
     ownerMembership.setShowOnPublicProfile(req.showOnPublicProfile() == null || req.showOnPublicProfile());
     teamMemberRepository.save(ownerMembership);
 
@@ -362,6 +379,19 @@ public class TeamsService {
     replaceRoleRequirements(saved, req.roleRequirements());
 
     return toPrivateDetails(saved, username);
+  }
+
+  public TeamDetails updateMyTeamRole(Long teamId, MyTeamRoleUpdate req, String username) {
+    Team team = getAccessibleTeam(teamId, username);
+
+    TeamMember membership = teamMemberRepository.findByTeam_IdAndUser_Username(teamId, username)
+            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono Twojego członkostwa w tym zespole."));
+
+    String teamRoleLabel = normalizeTeamRole(req.teamRoleLabel());
+    membership.setTeamRoleLabel(teamRoleLabel);
+    teamMemberRepository.save(membership);
+
+    return toPrivateDetails(team, username);
   }
 
   public TeamDetails updateTeam(Long teamId, TeamUpsert req, String username) {
@@ -492,6 +522,7 @@ public class TeamsService {
                     tm.getUser().getUsername(),
                     fullName(tm.getUser()),
                     tm.getRoleLabel(),
+                    tm.getTeamRoleLabel(),
                     tm.getUser().getSelectedRole(),
                     tm.isShowOnPublicProfile()
             ))
@@ -509,13 +540,17 @@ public class TeamsService {
             )
             .map(r -> new RecruitmentRequestView(
                     r.getId(),
+                    r.getTeam().getId(),
+                    r.getTeam().getName(),
                     r.getUser().getId(),
                     r.getUser().getUsername(),
                     fullName(r.getUser()),
                     r.getRequestType(),
                     r.getStatus(),
                     r.getTargetRoleName(),
+                    r.getTeamRoleLabel(),
                     r.getMessage(),
+                    r.isShowOnPublicProfile(),
                     r.getCreatedByUser() == null ? null : r.getCreatedByUser().getUsername(),
                     r.getRespondedByUser() == null ? null : r.getRespondedByUser().getUsername(),
                     r.getCreatedAt() == null ? null : r.getCreatedAt().toString(),

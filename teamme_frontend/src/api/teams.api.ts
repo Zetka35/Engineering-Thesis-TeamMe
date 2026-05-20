@@ -53,6 +53,7 @@ export type TaskCreatePayload = {
 
 export type ApplyToTeamPayload = {
   targetRoleName?: string | null;
+  teamRoleLabel?: string | null;
   message?: string;
   showOnPublicProfile?: boolean | null;
 };
@@ -63,9 +64,21 @@ export type InviteToTeamPayload = {
   message?: string;
 };
 
+export type UpdateMyTeamRolePayload = {
+  teamRoleLabel: string;
+};
+
+export function updateMyTeamRole(
+  teamId: number,
+  payload: UpdateMyTeamRolePayload
+): Promise<TeamDetails> {
+  return put<TeamDetails>(`/api/teams/${teamId}/my-team-role`, payload);
+}
+
 export type RespondToRequestPayload = {
   decision: "ACCEPTED" | "REJECTED" | "CANCELLED";
   showOnPublicProfile?: boolean | null;
+  teamRoleLabel?: string | null;
 };
 
 export type UpdateMyTeamVisibilityPayload = {

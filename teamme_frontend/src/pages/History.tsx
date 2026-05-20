@@ -72,21 +72,9 @@ function RatingSelect({
   return (
     <div className="field">
       <label className="field-label">{label}</label>
-      {description && (
-        <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
-          {description}
-        </div>
-      )}
-      <select
-        className="input"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      >
-        {RATING_VALUES.map((rating) => (
-          <option key={rating} value={rating}>
-            {rating}
-          </option>
-        ))}
+      {description && <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>{description}</div>}
+      <select className="input" value={value} onChange={(e) => onChange(Number(e.target.value))}>
+        {RATING_VALUES.map((rating) => <option key={rating} value={rating}>{rating}</option>)}
       </select>
     </div>
   );
@@ -95,10 +83,27 @@ function RatingSelect({
 function ReviewRatingsSummary({ review }: { review: CollaborationReview }) {
   return (
     <div className="muted">
-      Zaangażowanie: {review.engagementRating} | Realizacja roli:{" "}
-      {review.roleExecutionRating} | Współpraca: {review.collaborationRating} |
-      Odpowiedzialność: {review.reliabilityRating} | Jakość wkładu:{" "}
-      {review.contributionQualityRating}
+      Zaangażowanie: {review.engagementRating} | Realizacja roli: {review.roleExecutionRating} | Współpraca: {review.collaborationRating} | Odpowiedzialność: {review.reliabilityRating} | Jakość wkładu: {review.contributionQualityRating}
+    </div>
+  );
+}
+
+function RoleContextBadges({
+  projectRoleLabel,
+  teamRoleLabel,
+  preferredTeamRoleLabel,
+}: {
+  projectRoleLabel?: string | null;
+  teamRoleLabel?: string | null;
+  preferredTeamRoleLabel?: string | null;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <span className="pill">rola projektowa: {projectRoleLabel || "—"}</span>
+      {teamRoleLabel ? <TeamRoleBadge role={teamRoleLabel} /> : <span className="pill">rola zespołowa w projekcie: nie ustawiono</span>}
+      {preferredTeamRoleLabel && preferredTeamRoleLabel !== teamRoleLabel && (
+        <span className="pill">domyślna rola z profilu: {preferredTeamRoleLabel}</span>
+      )}
     </div>
   );
 }
@@ -139,17 +144,11 @@ export default function History() {
     }
   }
 
-  useEffect(() => {
-    void load();
-  }, []);
+  useEffect(() => { void load(); }, []);
 
   const receivedAverage = useMemo(() => {
     if (!receivedReviews.length) return null;
-
-    const avg =
-      receivedReviews.reduce((sum, review) => sum + review.averageRating, 0) /
-      receivedReviews.length;
-
+    const avg = receivedReviews.reduce((sum, review) => sum + review.averageRating, 0) / receivedReviews.length;
     return Math.round(avg * 100) / 100;
   }, [receivedReviews]);
 
@@ -163,14 +162,7 @@ export default function History() {
 
   function updateDraft(item: PendingReviewTarget, patch: Partial<ReviewDraft>) {
     const key = draftKey(item);
-
-    setDrafts((prev) => ({
-      ...prev,
-      [key]: {
-        ...(prev[key] ?? emptyDraft()),
-        ...patch,
-      },
-    }));
+    setDrafts((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptyDraft()), ...patch } }));
   }
 
   function toggleStrengthTag(item: PendingReviewTarget, tag: string) {
@@ -178,9 +170,7 @@ export default function History() {
     const selected = draft.strengthTags.includes(tag);
 
     if (selected) {
-      updateDraft(item, {
-        strengthTags: draft.strengthTags.filter((currentTag) => currentTag !== tag),
-      });
+      updateDraft(item, { strengthTags: draft.strengthTags.filter((currentTag) => currentTag !== tag) });
       return;
     }
 
@@ -190,15 +180,12 @@ export default function History() {
     }
 
     setError("");
-    updateDraft(item, {
-      strengthTags: [...draft.strengthTags, tag],
-    });
+    updateDraft(item, { strengthTags: [...draft.strengthTags, tag] });
   }
 
   async function handleSubmitReview(item: PendingReviewTarget) {
     const key = draftKey(item);
     const draft = getDraft(item);
-
     setSubmittingKey(key);
     setError("");
     setSuccessMsg("");
@@ -222,7 +209,6 @@ export default function History() {
         delete next[key];
         return next;
       });
-
       await load();
     } catch (e: unknown) {
       setError(`Nie udało się zapisać oceny wkładu w projekt. ${extractApiMessage(e)}`);
@@ -231,246 +217,117 @@ export default function History() {
     }
   }
 
+  function renderReviewCard(review: CollaborationReview, mode: "received" | "given") {
+    return (
+      <div key={review.id} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <b>{review.teamName}</b>
+          {mode === "given" && <span className="pill">dla: {review.reviewedFullName}</span>}
+          <span className="pill">średnia: {formatRating(review.averageRating)}</span>
+          {mode === "received" && <span className="pill">od: @{review.reviewerUsername}</span>}
+        </div>
+
+        <RoleContextBadges
+          projectRoleLabel={review.projectRoleLabel}
+          teamRoleLabel={review.reviewedTeamRoleLabel}
+          preferredTeamRoleLabel={review.reviewedPreferredTeamRoleLabel}
+        />
+
+        <ReviewRatingsSummary review={review} />
+
+        {review.strengthTags.length > 0 && <div className="muted">Mocne strony: {review.strengthTags.join(", ")}</div>}
+        <div className="muted">{review.comment || "Brak komentarza."}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="page" style={{ display: "grid", gap: 18 }}>
       <section className="card">
         <div className="card-header">
           <h2 className="card-title">Historia pracy</h2>
-          <p className="card-subtitle">
-            Zobacz zakończone projekty i wystaw oceny wkładu w projekt po zakończeniu pracy zespołowej.
-          </p>
+          <p className="card-subtitle">Zobacz zakończone projekty i wystaw oceny wkładu w projekt po zakończeniu pracy zespołowej.</p>
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 16 }}>
           {error && <div className="alert alert-error">{error}</div>}
-
-          {successMsg && (
-            <div
-              className="alert alert-success"
-              style={{
-                background: "#ecfdf3",
-                color: "#166534",
-                borderColor: "#bbf7d0",
-              }}
-            >
-              {successMsg}
-            </div>
-          )}
+          {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
           {loading ? (
-            <div className="profile-block">
-              <div className="muted">Ładowanie historii pracy…</div>
-            </div>
+            <div className="profile-block"><div className="muted">Ładowanie historii pracy…</div></div>
           ) : (
             <>
               <div className="profile-block">
                 <div className="profile-block-title">Podsumowanie ocen</div>
-                <div className="muted">
-                  Średnia ocen otrzymanych:{" "}
-                  {receivedAverage === null ? "Brak danych" : formatRating(receivedAverage)}
-                </div>
+                <div className="muted">Średnia ocen otrzymanych: {receivedAverage === null ? "Brak danych" : formatRating(receivedAverage)}</div>
               </div>
 
               <div className="profile-block">
-                <div className="profile-block-title">
-                  Projekty w historii ({projectHistory.length})
-                </div>
-
+                <div className="profile-block-title">Projekty w historii ({projectHistory.length})</div>
                 {projectHistory.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     {projectHistory.map((item) => (
-                      <div
-                        key={`${item.teamId}-${item.joinedAt}-${item.roleLabel}`}
-                        style={{
-                          border: "1px solid var(--line)",
-                          borderRadius: 14,
-                          padding: 12,
-                          display: "grid",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                          }}
-                        >
+                      <div key={`${item.teamId}-${item.joinedAt}-${item.roleLabel}`} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <b>{item.teamName}</b>
-                          <span className="pill">{item.roleLabel}</span>
+                          <span className="pill">rola projektowa: {item.roleLabel}</span>
                           <span className="pill">{item.teamStatus || "—"}</span>
                           {item.current && <span className="pill">aktywny</span>}
                           <VisibilityBadge visible={item.showOnPublicProfile} />
                         </div>
-
-                        <span className="pill">
-                        {item.showOnPublicProfile ? "widoczny publicznie" : "ukryty publicznie"}
-                        </span>
-
-                        <div className="muted">
-                          Dołączono: {formatPl(item.joinedAt)} | Zakończono:{" "}
-                          {item.current ? "—" : formatPl(item.leftAt)}
-                        </div>
+                        <div className="muted">Dołączono: {formatPl(item.joinedAt)} | Zakończono: {item.current ? "—" : formatPl(item.leftAt)}</div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="muted">Brak historii projektów.</div>
+                  <div className="muted">Brak historii projektów..</div>
                 )}
               </div>
 
               <div className="profile-block">
-                <div className="profile-block-title">
-                  Oczekujące oceny wkładu w projekt ({pendingReviews.length})
-                </div>
-
+                <div className="profile-block-title">Oczekujące oceny wkładu w projekt ({pendingReviews.length})</div>
                 {pendingReviews.length ? (
                   <div style={{ display: "grid", gap: 14 }}>
                     {pendingReviews.map((item) => {
                       const draft = getDraft(item);
                       const key = draftKey(item);
-
                       return (
-                        <div
-                          key={key}
-                          style={{
-                            border: "1px solid var(--line)",
-                            borderRadius: 14,
-                            padding: 12,
-                            display: "grid",
-                            gap: 12,
-                          }}
-                        >
-                          <div>
-                            <b>{item.teamName}</b> · {item.reviewedFullName}{" "}
-                            <span className="muted">(@{item.reviewedUsername})</span>
-                          </div>
+                        <div key={key} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 12 }}>
+                          <div><b>{item.teamName}</b> · {item.reviewedFullName} <span className="muted">(@{item.reviewedUsername})</span></div>
+                          <RoleContextBadges projectRoleLabel={item.roleLabel} teamRoleLabel={item.teamRoleLabel} preferredTeamRoleLabel={item.preferredTeamRoleLabel} />
+                          <div className="muted">Projekt zakończono: {formatPl(item.leftAt)}</div>
 
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-  <span className="pill">
-    Rola techniczna: {item.roleLabel || "—"}
-  </span>
-
-  {item.teamRoleLabel ? (
-    <TeamRoleBadge role={item.teamRoleLabel} />
-  ) : (
-    <span className="pill">Rola zespołowa: nie ustawiono</span>
-  )}
-
-  <span className="pill">
-    projekt zakończono: {formatPl(item.leftAt)}
-  </span>
-</div>
-
-                          <div
-                            style={{
-                              background: "#f8fafc",
-                              border: "1px solid var(--line)",
-                              borderRadius: 12,
-                              padding: 12,
-                              display: "grid",
-                              gap: 4,
-                            }}
-                          >
+                          <div style={{ background: "#f8fafc", border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 4 }}>
                             <b>Jak oceniasz wkład tej osoby w ten projekt?</b>
-                            <span className="muted">
-                              Oceń zachowanie i efekty pracy w kontekście konkretnego projektu oraz przyjętej roli.
-                            </span>
+                            <span className="muted">Oceń zachowanie i efekty pracy w kontekście konkretnego projektu oraz przyjętej roli.</span>
                           </div>
 
                           <div className="form-grid-2">
-                            <RatingSelect
-                              label="Zaangażowanie w projekt"
-                              description="Czy osoba realnie angażowała się w pracę, była aktywna i wnosiła wkład?"
-                              value={draft.engagementRating}
-                              onChange={(value) =>
-                                updateDraft(item, { engagementRating: value })
-                              }
-                            />
-
-                            <RatingSelect
-                              label="Realizacja przyjętej roli"
-                              description="Jak dobrze poradziła sobie w roli projektowej, którą pełniła?"
-                              value={draft.roleExecutionRating}
-                              onChange={(value) =>
-                                updateDraft(item, { roleExecutionRating: value })
-                              }
-                            />
-
-                            <RatingSelect
-                              label="Współpraca zespołowa"
-                              description="Jak układała się codzienna współpraca z tą osobą?"
-                              value={draft.collaborationRating}
-                              onChange={(value) =>
-                                updateDraft(item, { collaborationRating: value })
-                              }
-                            />
-
-                            <RatingSelect
-                              label="Odpowiedzialność i terminowość"
-                              description="Czy można było na niej polegać i czy domykała zadania?"
-                              value={draft.reliabilityRating}
-                              onChange={(value) =>
-                                updateDraft(item, { reliabilityRating: value })
-                              }
-                            />
-
-                            <RatingSelect
-                              label="Jakość wkładu merytorycznego"
-                              description="Czy jej rozwiązania, pomysły lub zadania były wartościowe?"
-                              value={draft.contributionQualityRating}
-                              onChange={(value) =>
-                                updateDraft(item, { contributionQualityRating: value })
-                              }
-                            />
+                            <RatingSelect label="Zaangażowanie w projekt" description="Czy osoba realnie angażowała się w pracę, była aktywna i wnosiła wkład?" value={draft.engagementRating} onChange={(value) => updateDraft(item, { engagementRating: value })} />
+                            <RatingSelect label="Realizacja przyjętej roli" description="Jak dobrze poradziła sobie w roli projektowej, którą pełniła?" value={draft.roleExecutionRating} onChange={(value) => updateDraft(item, { roleExecutionRating: value })} />
+                            <RatingSelect label="Współpraca zespołowa" description="Jak układała się codzienna współpraca z tą osobą?" value={draft.collaborationRating} onChange={(value) => updateDraft(item, { collaborationRating: value })} />
+                            <RatingSelect label="Odpowiedzialność i terminowość" description="Czy można było na niej polegać i czy domykała zadania?" value={draft.reliabilityRating} onChange={(value) => updateDraft(item, { reliabilityRating: value })} />
+                            <RatingSelect label="Jakość wkładu merytorycznego" description="Czy jej rozwiązania, pomysły lub zadania były wartościowe?" value={draft.contributionQualityRating} onChange={(value) => updateDraft(item, { contributionQualityRating: value })} />
                           </div>
 
                           <div className="field">
-                            <label className="field-label">
-                              Najczęściej widoczne mocne strony — wybierz maksymalnie 3
-                            </label>
-
+                            <label className="field-label">Najczęściej widoczne mocne strony — wybierz maksymalnie 3</label>
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               {STRENGTH_TAG_OPTIONS.map((tag) => {
                                 const selected = draft.strengthTags.includes(tag);
-
-                                return (
-                                  <button
-                                    key={tag}
-                                    type="button"
-                                    className={selected ? "btn btn-solid" : "btn btn-ghost"}
-                                    onClick={() => toggleStrengthTag(item, tag)}
-                                  >
-                                    {tag}
-                                  </button>
-                                );
+                                return <button key={tag} type="button" className={selected ? "btn btn-solid" : "btn btn-ghost"} onClick={() => toggleStrengthTag(item, tag)}>{tag}</button>;
                               })}
                             </div>
                           </div>
 
                           <div className="field">
                             <label className="field-label">Komentarz</label>
-                            <textarea
-                              className="input"
-                              rows={3}
-                              value={draft.comment}
-                              onChange={(e) =>
-                                updateDraft(item, { comment: e.target.value })
-                              }
-                              placeholder="Napisz krótko, jaki był wkład tej osoby w projekt."
-                            />
+                            <textarea className="input" rows={3} value={draft.comment} onChange={(e) => updateDraft(item, { comment: e.target.value })} placeholder="Napisz krótko, jaki był wkład tej osoby w projekt." />
                           </div>
 
                           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                            <button
-                              className="btn btn-solid"
-                              disabled={submittingKey === key}
-                              onClick={() => void handleSubmitReview(item)}
-                            >
-                              {submittingKey === key
-                                ? "Zapisywanie…"
-                                : "Zapisz ocenę wkładu"}
+                            <button className="btn btn-solid" disabled={submittingKey === key} onClick={() => void handleSubmitReview(item)}>
+                              {submittingKey === key ? "Zapisywanie…" : "Zapisz ocenę wkładu"}
                             </button>
                           </div>
                         </div>
@@ -478,137 +335,41 @@ export default function History() {
                     })}
                   </div>
                 ) : (
-                  <div className="muted">Brak oczekujących ocen wkładu w projekt.</div>
+                  <div className="muted">Brak oczekujących ocen do przesłania.</div>
                 )}
               </div>
 
               <div className="profile-block">
-                <div className="profile-block-title">
-                  Otrzymane oceny ({receivedReviews.length})
-                </div>
+  <div className="profile-block-title">
+    Otrzymane oceny ({receivedReviews.length})
+  </div>
 
-                {receivedReviews.length ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {receivedReviews.map((review) => (
-                      <div
-                        key={review.id}
-                        style={{
-                          border: "1px solid var(--line)",
-                          borderRadius: 14,
-                          padding: 12,
-                          display: "grid",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                          }}
-                        >
-                          <b>{review.teamName}</b>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-  <span className="pill">
-    Rola techniczna: {review.projectRoleLabel || "—"}
-  </span>
-
-  {review.reviewedTeamRoleLabel ? (
-    <TeamRoleBadge role={review.reviewedTeamRoleLabel} />
+  {receivedReviews.length ? (
+    <div style={{ display: "grid", gap: 12 }}>
+      {receivedReviews.map((review) => renderReviewCard(review, "received"))}
+    </div>
   ) : (
-    <span className="pill">Rola zespołowa: nie ustawiono</span>
+    <div className="muted" style={{ padding: "8px 0", lineHeight: 1.5 }}>
+      Brak otrzymanych ocen. 
+    </div>
   )}
 </div>
-                          <span className="pill">
-                            średnia: {formatRating(review.averageRating)}
-                          </span>
-                          <span className="pill">od: @{review.reviewerUsername}</span>
-                          {review.editable && <span className="pill">możliwa edycja</span>}
-                        </div>
 
-                        <ReviewRatingsSummary review={review} />
+<div className="profile-block">
+  <div className="profile-block-title">
+    Wystawione oceny ({givenReviews.length})
+  </div>
 
-                        {review.strengthTags.length > 0 && (
-                          <div className="muted">
-                            Mocne strony: {review.strengthTags.join(", ")}
-                          </div>
-                        )}
-
-                        <div className="muted">
-                          {review.comment || "Brak komentarza."}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">Brak otrzymanych ocen.</div>
-                )}
-              </div>
-
-              <div className="profile-block">
-                <div className="profile-block-title">
-                  Wystawione oceny ({givenReviews.length})
-                </div>
-
-                {givenReviews.length ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {givenReviews.map((review) => (
-                      <div
-                        key={review.id}
-                        style={{
-                          border: "1px solid var(--line)",
-                          borderRadius: 14,
-                          padding: 12,
-                          display: "grid",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            flexWrap: "wrap",
-                            alignItems: "center",
-                          }}
-                        >
-                          <b>{review.teamName}</b>
-                          <span className="pill">dla: {review.reviewedFullName}</span>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-  <span className="pill">
-    Rola techniczna: {review.projectRoleLabel || "—"}
-  </span>
-
-  {review.reviewedTeamRoleLabel ? (
-    <TeamRoleBadge role={review.reviewedTeamRoleLabel} />
+  {givenReviews.length ? (
+    <div style={{ display: "grid", gap: 12 }}>
+      {givenReviews.map((review) => renderReviewCard(review, "given"))}
+    </div>
   ) : (
-    <span className="pill">Rola zespołowa: nie ustawiono</span>
+    <div className="muted" style={{ padding: "8px 0", lineHeight: 1.5 }}>
+      Brak wystawionych ocen.
+    </div>
   )}
 </div>
-                          <span className="pill">
-                            średnia: {formatRating(review.averageRating)}
-                          </span>
-                          {review.editable && <span className="pill">możliwa edycja</span>}
-                        </div>
-
-                        <ReviewRatingsSummary review={review} />
-
-                        {review.strengthTags.length > 0 && (
-                          <div className="muted">
-                            Mocne strony: {review.strengthTags.join(", ")}
-                          </div>
-                        )}
-
-                        <div className="muted">
-                          {review.comment || "Brak komentarza."}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="muted">Brak wystawionych ocen.</div>
-                )}
-              </div>
             </>
           )}
         </div>

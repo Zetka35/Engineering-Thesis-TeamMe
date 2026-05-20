@@ -29,6 +29,7 @@ public class TeamRecruitmentService {
 
     public record ApplyRequest(
             String targetRoleName,
+            String teamRoleLabel,
             String message,
             Boolean showOnPublicProfile
     ) {}
@@ -41,7 +42,8 @@ public class TeamRecruitmentService {
 
     public record RespondRequest(
             String decision,
-            Boolean showOnPublicProfile
+            Boolean showOnPublicProfile,
+            String teamRoleLabel
     ) {}
 
     public record RecruitmentRequestView(
@@ -54,6 +56,7 @@ public class TeamRecruitmentService {
             String requestType,
             String status,
             String targetRoleName,
+            String teamRoleLabel,
             String message,
             Boolean showOnPublicProfile,
             String createdByUsername,
@@ -85,6 +88,35 @@ public class TeamRecruitmentService {
         this.notificationWebSocketService = notificationWebSocketService;
     }
 
+    private static final List<String> TEAM_ROLE_NAMES = List.of(
+            "Inicjator Pomysłów",
+            "Koordynator Relacji",
+            "Realizator Zadań",
+            "Kontroler Jakości",
+            "Analityk Strategiczny",
+            "Filar Wsparcia",
+            "Łowca Informacji"
+    );
+
+    private String normalizeTeamRoleOrFallback(String value, String fallback) {
+        String normalizedValue = normalize(value, 80);
+        String normalizedFallback = normalize(fallback, 80);
+
+        String roleToCheck = normalizedValue != null ? normalizedValue : normalizedFallback;
+
+        if (roleToCheck == null) {
+            return null;
+        }
+
+        return TEAM_ROLE_NAMES.stream()
+                .filter(role -> role.equalsIgnoreCase(roleToCheck))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Nieprawidłowa rola zespołowa. Dozwolone wartości: "
+                                + String.join(", ", TEAM_ROLE_NAMES)
+                ));
+    }
+
     public RecruitmentRequestView applyToTeam(Long teamId, ApplyRequest req, String username) {
         User applicant = loadUser(username);
         Team team = loadTeam(teamId);
@@ -96,6 +128,7 @@ public class TeamRecruitmentService {
 
         String targetRoleName = normalize(req.targetRoleName(), 80);
         validateTargetRoleIfProvided(teamId, targetRoleName);
+        String teamRoleLabel = normalizeTeamRoleOrFallback(req.teamRoleLabel(), applicant.getSelectedRole());
 
         TeamRecruitmentRequest request = new TeamRecruitmentRequest();
         request.setTeam(team);
@@ -103,6 +136,7 @@ public class TeamRecruitmentService {
         request.setRequestType("APPLICATION");
         request.setStatus("PENDING");
         request.setTargetRoleName(targetRoleName);
+        request.setTeamRoleLabel(teamRoleLabel);
         request.setMessage(normalize(req.message(), 4000));
         request.setShowOnPublicProfile(req.showOnPublicProfile() == null || req.showOnPublicProfile());
         request.setCreatedByUser(applicant);
@@ -143,6 +177,7 @@ public class TeamRecruitmentService {
 
         String targetRoleName = normalize(req.targetRoleName(), 80);
         validateTargetRoleIfProvided(teamId, targetRoleName);
+        String teamRoleLabel = normalizeTeamRoleOrFallback(null, targetUser.getSelectedRole());
 
         TeamRecruitmentRequest request = new TeamRecruitmentRequest();
         request.setTeam(team);
@@ -150,6 +185,7 @@ public class TeamRecruitmentService {
         request.setRequestType("INVITATION");
         request.setStatus("PENDING");
         request.setTargetRoleName(targetRoleName);
+        request.setTeamRoleLabel(teamRoleLabel);
         request.setMessage(normalize(req.message(), 4000));
         request.setShowOnPublicProfile(true);
         request.setCreatedByUser(owner);
@@ -246,7 +282,7 @@ public class TeamRecruitmentService {
         }
 
         if ("ACCEPTED".equals(decision)) {
-            acceptRequest(request, actor, req.showOnPublicProfile());
+            acceptRequest(request, actor, req.showOnPublicProfile(), req.teamRoleLabel());
         } else {
             request.setStatus(decision);
             request.setRespondedByUser(actor);
@@ -307,7 +343,12 @@ public class TeamRecruitmentService {
         );
     }
 
-    private void acceptRequest(TeamRecruitmentRequest request, User actor, Boolean showOnPublicProfileFromResponse) {
+    private void acceptRequest(
+            TeamRecruitmentRequest request,
+            User actor,
+            Boolean showOnPublicProfileFromResponse,
+            String teamRoleLabelFromResponse
+    ) {
         Team team = request.getTeam();
         User user = request.getUser();
 
@@ -330,6 +371,15 @@ public class TeamRecruitmentService {
                         ? "Member"
                         : request.getTargetRoleName()
         );
+        String teamRoleLabel;
+
+        if ("INVITATION".equals(request.getRequestType())) {
+            teamRoleLabel = normalizeTeamRoleOrFallback(teamRoleLabelFromResponse, user.getSelectedRole());
+        } else {
+            teamRoleLabel = normalizeTeamRoleOrFallback(request.getTeamRoleLabel(), user.getSelectedRole());
+        }
+
+        membership.setTeamRoleLabel(teamRoleLabel);
 
         boolean showOnPublicProfile;
 
@@ -443,6 +493,7 @@ public class TeamRecruitmentService {
                 request.getRequestType(),
                 request.getStatus(),
                 request.getTargetRoleName(),
+                request.getTeamRoleLabel(),
                 request.getMessage(),
                 request.isShowOnPublicProfile(),
                 request.getCreatedByUser() == null ? null : request.getCreatedByUser().getUsername(),

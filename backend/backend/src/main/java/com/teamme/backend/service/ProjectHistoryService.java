@@ -33,6 +33,7 @@ public class ProjectHistoryService {
             String reviewedFullName,
             String roleLabel,
             String teamRoleLabel,
+            String preferredTeamRoleLabel,
             String leftAt
     ) {}
 
@@ -57,8 +58,9 @@ public class ProjectHistoryService {
             Long reviewedUserId,
             String reviewedUsername,
             String reviewedFullName,
-            String projectRoleLabel
+            String projectRoleLabel,
             String reviewedTeamRoleLabel,
+            String reviewedPreferredTeamRoleLabel,
             Integer engagementRating,
             Integer roleExecutionRating,
             Integer collaborationRating,
@@ -126,6 +128,7 @@ public class ProjectHistoryService {
                             teammate.getUser().getUsername(),
                             fullName(teammate.getUser()),
                             teammate.getRoleLabel(),
+                            teammate.getTeamRoleLabel(),
                             teammate.getUser().getSelectedRole(),
                             membership.getLeftAt() == null ? null : membership.getLeftAt().toString()
                     ));
@@ -233,6 +236,14 @@ public class ProjectHistoryService {
                         + review.getContributionQualityRating()
         ) / 5.0;
 
+        TeamMember reviewedMembership = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(review.getTeam().getId()).stream()
+                .filter(tm -> tm.getUser() != null)
+                .filter(tm -> review.getReviewedUser().getId().equals(tm.getUser().getId()))
+                .findFirst()
+                .orElse(null);
+
+        String reviewedTeamRoleLabel = reviewedMembership == null ? null : reviewedMembership.getTeamRoleLabel();
+
         return new CollaborationReviewView(
                 review.getId(),
                 review.getTeam().getId(),
@@ -243,6 +254,7 @@ public class ProjectHistoryService {
                 review.getReviewedUser().getUsername(),
                 fullName(review.getReviewedUser()),
                 review.getProjectRoleLabel(),
+                reviewedTeamRoleLabel,
                 review.getReviewedUser().getSelectedRole(),
                 review.getEngagementRating(),
                 review.getRoleExecutionRating(),

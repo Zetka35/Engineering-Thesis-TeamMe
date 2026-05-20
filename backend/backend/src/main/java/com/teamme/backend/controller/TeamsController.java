@@ -80,6 +80,14 @@ public class TeamsController {
     return teamsService.updateMyTeamVisibility(teamId, req, currentUsername());
   }
 
+  @PutMapping("/{teamId}/my-team-role")
+  public TeamsService.TeamDetails updateMyTeamRole(
+          @PathVariable Long teamId,
+          @RequestBody TeamsService.MyTeamRoleUpdate req
+  ) {
+    return teamsService.updateMyTeamRole(teamId, req, currentUsername());
+  }
+
   @PostMapping("/{teamId}/meetings")
   public TeamsService.TeamDetails addMeeting(
           @PathVariable Long teamId,

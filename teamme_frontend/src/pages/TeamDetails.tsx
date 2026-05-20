@@ -14,6 +14,7 @@ import {
   updateTeam,
   completeTeam,
   updateMyTeamVisibility,
+  updateMyTeamRole,
   type RecommendedCandidate,
   type TeamUpsertPayload,
 } from "../api/teams.api";
@@ -22,6 +23,8 @@ import TeamForm, { type TeamFormValue } from "../components/teams/TeamForm";
 import RecruitmentPanel from "../components/teams/RecruitmentPanel";
 import RecommendedCandidates from "../components/teams/RecommendedCandidates";
 import TeamRoleBadge from "../components/TeamRoleBadge";
+import VisibilityBadge from "../components/VisibilityBadge";
+import { TEAM_ROLE_OPTIONS } from "../data/teamRoles";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -133,25 +136,14 @@ function toPayload(form: TeamFormValue): TeamUpsertPayload {
         description: r.description,
         priority: r.priority === "" ? 3 : Number(r.priority),
         preferredTeamRole: r.preferredTeamRole.trim() || null,
-        teamRoleImportance:
-          r.teamRoleImportance === "" ? 3 : Number(r.teamRoleImportance),
+        teamRoleImportance: r.teamRoleImportance === "" ? 3 : Number(r.teamRoleImportance),
       })),
   };
 }
 
-type TeamDetailsTab =
-  | "overview"
-  | "members"
-  | "recruitment"
-  | "tasks"
-  | "meetings"
-  | "settings";
+type TeamDetailsTab = "overview" | "members" | "recruitment" | "tasks" | "meetings" | "settings";
 
-const TEAM_DETAILS_TABS: Array<{
-  key: TeamDetailsTab;
-  label: string;
-  ownerOnly?: boolean;
-}> = [
+const TEAM_DETAILS_TABS: Array<{ key: TeamDetailsTab; label: string; ownerOnly?: boolean }> = [
   { key: "overview", label: "Przegląd" },
   { key: "members", label: "Członkowie" },
   { key: "recruitment", label: "Rekrutacja" },
@@ -177,6 +169,9 @@ export default function TeamDetails() {
   const [savingInvite, setSavingInvite] = useState(false);
   const [actingRequestId, setActingRequestId] = useState<number | null>(null);
   const [savingComplete, setSavingComplete] = useState(false);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [savingTeamRole, setSavingTeamRole] = useState(false);
+
   const [activeTab, setActiveTab] = useState<TeamDetailsTab>("overview");
   const [editingTeam, setEditingTeam] = useState(false);
 
@@ -200,15 +195,14 @@ export default function TeamDetails() {
 
   const [inviteCandidates, setInviteCandidates] = useState<NetworkUser[]>([]);
   const [loadingInviteCandidates, setLoadingInviteCandidates] = useState(false);
-  const [savingVisibility, setSavingVisibility] = useState(false);
 
-  const isOwner =
-    !!team && !!user && team.ownerUsername === user.username;
+  const isOwner = !!team && !!user && team.ownerUsername === user.username;
+  const isMember = !!team && !!user && team.members.some((member) => member.username === user.username);
 
-  const isMember =
-    !!team &&
-    !!user &&
-    team.members.some((member) => member.username === user.username);
+  const currentMember = useMemo(() => {
+    if (!team || !user?.username) return null;
+    return team.members.find((member) => member.username === user.username) ?? null;
+  }, [team, user?.username]);
 
   async function load() {
     if (!Number.isFinite(numericTeamId)) return;
@@ -232,11 +226,7 @@ export default function TeamDetails() {
           ]);
 
           setRecommendedCandidates(candidates ?? []);
-          setInviteCandidates(
-            (networkUsers ?? []).filter(
-              (candidate) => candidate.username !== user.username
-            )
-          );
+          setInviteCandidates((networkUsers ?? []).filter((candidate) => candidate.username !== user.username));
         } catch (e: unknown) {
           setRecommendedCandidates([]);
           setInviteCandidates([]);
@@ -264,20 +254,16 @@ export default function TeamDetails() {
 
   useEffect(() => {
     const state = location.state as { successMessage?: string } | null;
-
     if (state?.successMessage) {
       setSuccessMsg(state.successMessage);
       nav(location.pathname, { replace: true, state: null });
     }
   }, [location.pathname, location.state, nav]);
 
-  const teamFormInitialValue = useMemo(() => {
-    return team ? toTeamFormValue(team) : undefined;
-  }, [team]);
+  const teamFormInitialValue = useMemo(() => (team ? toTeamFormValue(team) : undefined), [team]);
 
   async function handleSaveProfile(form: TeamFormValue) {
     if (!team) return;
-
     setSavingProfile(true);
     setError("");
     setSuccessMsg("");
@@ -285,150 +271,125 @@ export default function TeamDetails() {
     try {
       const updated = await updateTeam(team.id, toPayload(form));
       setTeam(updated);
-setEditingTeam(false);
-setActiveTab("overview");
-setSuccessMsg(
-  "Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów."
-);
+      setEditingTeam(false);
+      setActiveTab("overview");
+      setSuccessMsg("Zmiany zostały zapisane. Profil zespołu jest już zaktualizowany i widoczny dla członków oraz kandydatów.");
     } catch (e: unknown) {
-      setError(
-        `Nie udało się zapisać zmian w profilu zespołu. ${extractApiMessage(e)}`
-      );
+      setError(`Nie udało się zapisać zmian w profilu zespołu. ${extractApiMessage(e)}`);
     } finally {
       setSavingProfile(false);
     }
   }
 
   async function handleChangeMyVisibility(showOnPublicProfile: boolean) {
-  if (!team) return;
-
-  setSavingVisibility(true);
-  setError("");
-  setSuccessMsg("");
-
-  try {
-    const updated = await updateMyTeamVisibility(team.id, { showOnPublicProfile });
-    setTeam(updated);
-    setSuccessMsg(
-      showOnPublicProfile
-        ? "Projekt będzie widoczny na Twoim profilu publicznym."
-        : "Projekt został ukryty na Twoim profilu publicznym. Oceny z tego projektu nie będą uwzględniane w publicznych średnich."
-    );
-  } catch (e: unknown) {
-    setError(`Nie udało się zmienić widoczności projektu. ${extractApiMessage(e)}`);
-  } finally {
-    setSavingVisibility(false);
-  }
-}
-
-  async function handleApply(payload: {
-    targetRoleName?: string | null;
-    message?: string;
-  }) {
     if (!team) return;
+    setSavingVisibility(true);
+    setError("");
+    setSuccessMsg("");
 
+    try {
+      const updated = await updateMyTeamVisibility(team.id, { showOnPublicProfile });
+      setTeam(updated);
+      setSuccessMsg(showOnPublicProfile ? "Projekt będzie widoczny na Twoim profilu publicznym." : "Projekt został ukryty na Twoim profilu publicznym. Oceny z tego projektu nie będą uwzględniane w publicznych średnich.");
+    } catch (e: unknown) {
+      setError(`Nie udało się zmienić widoczności projektu. ${extractApiMessage(e)}`);
+    } finally {
+      setSavingVisibility(false);
+    }
+  }
+
+  async function handleChangeMyTeamRole(teamRoleLabel: string) {
+    if (!team) return;
+    setSavingTeamRole(true);
+    setError("");
+    setSuccessMsg("");
+
+    try {
+      const updated = await updateMyTeamRole(team.id, { teamRoleLabel: teamRoleLabel || "" });
+      setTeam(updated);
+      setSuccessMsg("Rola zespołowa w tym projekcie została zaktualizowana.");
+    } catch (e: unknown) {
+      setError(`Nie udało się zmienić roli zespołowej w projekcie. ${extractApiMessage(e)}`);
+    } finally {
+      setSavingTeamRole(false);
+    }
+  }
+
+  async function handleApply(payload: { targetRoleName?: string | null; teamRoleLabel?: string | null; message?: string; showOnPublicProfile?: boolean | null }) {
+    if (!team) return;
     setSavingApply(true);
     setError("");
     setSuccessMsg("");
 
     try {
       await applyToTeam(team.id, payload);
-      setSuccessMsg(
-        "Aplikacja została wysłana. Gdy właściciel zespołu podejmie decyzję, zobaczysz jej status w sekcji aplikacji i zaproszeń."
-      );
+      setSuccessMsg("Aplikacja została wysłana. Gdy właściciel zespołu podejmie decyzję, zobaczysz jej status w sekcji aplikacji i zaproszeń.");
       await load();
     } catch (e: unknown) {
-      setError(
-        `Nie udało się wysłać aplikacji do zespołu. ${extractApiMessage(e)}`
-      );
+      setError(`Nie udało się wysłać aplikacji do zespołu. ${extractApiMessage(e)}`);
     } finally {
       setSavingApply(false);
     }
   }
 
   async function handleCompleteProject() {
-  if (!team) return;
-
-  setSavingComplete(true);
-  setError("");
-  setSuccessMsg("");
-
-  try {
-    const updated = await completeTeam(team.id);
-    setTeam(updated);
-    setSuccessMsg(
-      "Projekt został oznaczony jako zakończony. Historia pracy została domknięta, a członkowie mogą teraz wystawiać oceny współpracy."
-    );
-  } catch (e: unknown) {
-    setError(
-      `Nie udało się zakończyć projektu. ${extractApiMessage(e)}`
-    );
-  } finally {
-    setSavingComplete(false);
-  }
-}
-
-  async function handleInvite(payload: {
-    username: string;
-    targetRoleName?: string | null;
-    message?: string;
-  }) {
     if (!team) return;
+    setSavingComplete(true);
+    setError("");
+    setSuccessMsg("");
 
+    try {
+      const updated = await completeTeam(team.id);
+      setTeam(updated);
+      setSuccessMsg("Projekt został oznaczony jako zakończony. Historia pracy została domknięta, a członkowie mogą teraz wystawiać oceny współpracy.");
+    } catch (e: unknown) {
+      setError(`Nie udało się zakończyć projektu. ${extractApiMessage(e)}`);
+    } finally {
+      setSavingComplete(false);
+    }
+  }
+
+  async function handleInvite(payload: { username: string; targetRoleName?: string | null; message?: string }) {
+    if (!team) return;
     setSavingInvite(true);
     setError("");
     setSuccessMsg("");
 
     try {
       await inviteToTeam(team.id, payload);
-      setSuccessMsg(
-        "Zaproszenie zostało wysłane. Odpowiedź zaproszonej osoby pojawi się na liście zgłoszeń i zaproszeń."
-      );
+      setSuccessMsg("Zaproszenie zostało wysłane. Odpowiedź zaproszonej osoby pojawi się na liście zgłoszeń i zaproszeń.");
       await load();
     } catch (e: unknown) {
-      setError(
-        `Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`
-      );
+      setError(`Nie udało się wysłać zaproszenia. ${extractApiMessage(e)}`);
     } finally {
       setSavingInvite(false);
     }
   }
 
-  async function handleRespondRequest(
-  requestId: number,
-  decision: "ACCEPTED" | "REJECTED" | "CANCELLED",
-  options?: { showOnPublicProfile?: boolean | null }
-) {
-  setActingRequestId(requestId);
-  setError("");
-  setSuccessMsg("");
+  async function handleRespondRequest(requestId: number, decision: "ACCEPTED" | "REJECTED" | "CANCELLED", options?: { showOnPublicProfile?: boolean | null; teamRoleLabel?: string | null }) {
+    setActingRequestId(requestId);
+    setError("");
+    setSuccessMsg("");
 
-  try {
-    await respondToRequest(requestId, {
-      decision,
-      showOnPublicProfile: options?.showOnPublicProfile ?? null,
-    });
+    try {
+      await respondToRequest(requestId, {
+        decision,
+        showOnPublicProfile: options?.showOnPublicProfile ?? null,
+        teamRoleLabel: options?.teamRoleLabel ?? null,
+      });
 
-    await load();
-
-    setSuccessMsg(
-      decision === "ACCEPTED"
-        ? "Zgłoszenie zostało zaakceptowane."
-        : decision === "REJECTED"
-          ? "Zgłoszenie zostało odrzucone."
-          : "Zgłoszenie zostało anulowane."
-    );
-  } catch (e: unknown) {
-    setError(`Nie udało się obsłużyć zgłoszenia. ${extractApiMessage(e)}`);
-  } finally {
-    setActingRequestId(null);
+      await load();
+      setSuccessMsg(decision === "ACCEPTED" ? "Zgłoszenie zostało zaakceptowane." : decision === "REJECTED" ? "Zgłoszenie zostało odrzucone." : "Zgłoszenie zostało anulowane.");
+    } catch (e: unknown) {
+      setError(`Nie udało się obsłużyć zgłoszenia. ${extractApiMessage(e)}`);
+    } finally {
+      setActingRequestId(null);
+    }
   }
-}
 
   async function onCreateMeeting(e: React.FormEvent) {
     e.preventDefault();
     if (!team) return;
-
     setSavingMeeting(true);
     setError("");
     setSuccessMsg("");
@@ -441,7 +402,6 @@ setSuccessMsg(
         endsAt: toIso(meetingEndsAt),
         location: meetingLocation,
       });
-
       setTeam(updated);
       setMeetingTitle("");
       setMeetingDescription("");
@@ -459,7 +419,6 @@ setSuccessMsg(
   async function onCreateTask(e: React.FormEvent) {
     e.preventDefault();
     if (!team) return;
-
     setSavingTask(true);
     setError("");
     setSuccessMsg("");
@@ -471,7 +430,6 @@ setSuccessMsg(
         dueAt: toIso(taskDueAt),
         assigneeUserId: assigneeUserId === "" ? null : assigneeUserId,
       });
-
       setTeam(updated);
       setTaskTitle("");
       setTaskDescription("");
@@ -487,7 +445,6 @@ setSuccessMsg(
 
   async function handleInviteCandidate(username: string) {
     if (!team) return;
-
     setSavingInvite(true);
     setError("");
     setSuccessMsg("");
@@ -498,66 +455,40 @@ setSuccessMsg(
         targetRoleName: null,
         message: "Zaproszenie wysłane z panelu rekomendowanych kandydatów.",
       });
-      setSuccessMsg(
-        "Zaproszenie zostało wysłane do rekomendowanego kandydata."
-      );
+      setSuccessMsg("Zaproszenie zostało wysłane do rekomendowanego kandydata.");
       await load();
     } catch (e: unknown) {
-      setError(
-        `Nie udało się wysłać zaproszenia do rekomendowanego kandydata. ${extractApiMessage(e)}`
-      );
+      setError(`Nie udało się wysłać zaproszenia do rekomendowanego kandydata. ${extractApiMessage(e)}`);
     } finally {
       setSavingInvite(false);
     }
   }
 
-  function renderTabButton(tab: {
-  key: TeamDetailsTab;
-  label: string;
-  ownerOnly?: boolean;
-}) {
-  const active = activeTab === tab.key;
-
-  return (
-    <button
-      key={tab.key}
-      type="button"
-      className={active ? "btn btn-solid" : "btn btn-ghost"}
-      onClick={() => {
-        setActiveTab(tab.key);
-        setError("");
-        setSuccessMsg("");
-
-        if (tab.key !== "settings") {
-          setEditingTeam(false);
-        }
-      }}
-    >
-      {tab.label}
-    </button>
-  );
-}
-
-  if (loading) {
+  function renderTabButton(tab: { key: TeamDetailsTab; label: string; ownerOnly?: boolean }) {
+    const active = activeTab === tab.key;
     return (
-      <div className="page">
-        <section className="card">
-          <div className="card-body">Ładowanie zespołu…</div>
-        </section>
-      </div>
+      <button
+        key={tab.key}
+        type="button"
+        className={active ? "btn btn-solid" : "btn btn-ghost"}
+        onClick={() => {
+          setActiveTab(tab.key);
+          setError("");
+          setSuccessMsg("");
+          if (tab.key !== "settings") setEditingTeam(false);
+        }}
+      >
+        {tab.label}
+      </button>
     );
   }
 
+  if (loading) {
+    return <div className="page"><section className="card"><div className="card-body">Ładowanie zespołu…</div></section></div>;
+  }
+
   if (!team) {
-    return (
-      <div className="page">
-        <section className="card">
-          <div className="card-body">
-            {error || "Nie udało się załadować zespołu."}
-          </div>
-        </section>
-      </div>
-    );
+    return <div className="page"><section className="card"><div className="card-body">{error || "Nie udało się załadować zespołu."}</div></section></div>;
   }
 
   return (
@@ -566,50 +497,28 @@ setSuccessMsg(
         <div className="card-header">
           <h2 className="card-title">{team.name}</h2>
           <p className="card-subtitle">
-  Właściciel: {team.ownerUsername || "—"} · rola techniczna:{" "}
-  {team.myRole || "—"}
-</p>
-{user?.selectedRole && (
-  <div style={{ marginTop: 8 }}>
-    <TeamRoleBadge role={user.selectedRole} />
-  </div>
-)}
+            Właściciel: {team.ownerUsername || "—"} · rola projektowa: {team.myRole || "—"}
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            {currentMember?.teamRoleLabel ? <TeamRoleBadge role={currentMember.teamRoleLabel} /> : <span className="pill">rola zespołowa w projekcie: nie ustawiono</span>}
+            {currentMember?.preferredTeamRoleLabel && currentMember.preferredTeamRoleLabel !== currentMember.teamRoleLabel && (
+              <span className="pill">domyślna rola z profilu: {currentMember.preferredTeamRoleLabel}</span>
+            )}
+            <VisibilityBadge visible={team.myShowOnPublicProfile} />
+          </div>
         </div>
 
         <div className="card-body" style={{ display: "grid", gap: 14 }}>
           {error && <div className="alert alert-error">{error}</div>}
-          {successMsg && (
-            <div
-              className="alert alert-success"
-              style={{
-                background: "#ecfdf3",
-                color: "#166534",
-                borderColor: "#bbf7d0",
-              }}
-            >
-              {successMsg}
-            </div>
-          )}
+          {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
           <div style={{ marginBottom: 4 }}>
-            <button className="btn btn-ghost" onClick={() => nav("/teams")}>
-              ← Wróć do listy
-            </button>
+            <button className="btn btn-ghost" onClick={() => nav("/teams")}>← Wróć do listy</button>
           </div>
 
-          <div
-  style={{
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    borderBottom: "1px solid var(--line)",
-    paddingBottom: 12,
-  }}
->
-  {TEAM_DETAILS_TABS
-    .filter((tab) => !tab.ownerOnly || isOwner)
-    .map(renderTabButton)}
-</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", borderBottom: "1px solid var(--line)", paddingBottom: 12 }}>
+            {TEAM_DETAILS_TABS.filter((tab) => !tab.ownerOnly || isOwner).map(renderTabButton)}
+          </div>
 
           <div className="profile-block" style={{ display: "grid", gap: 8 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -617,461 +526,212 @@ setSuccessMsg(
               <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
               <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
               <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
-              <span className="pill">
-                członkowie: {team.members.length}/{team.maxMembers}
-              </span>
+              <span className="pill">członkowie: {team.members.length}/{team.maxMembers}</span>
               <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
             </div>
-
-            <div className="muted" style={{ whiteSpace: "pre-wrap" }}>
-              {team.description || "Brak opisu projektu."}
-            </div>
+            <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{team.description || "Brak opisu projektu."}</div>
           </div>
 
           {activeTab === "overview" && (
-  <>
-
-    <div className="profile-block">
-      <div className="profile-block-title">Technologie projektu</div>
-      {team.technologies.length ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {team.technologies.map((technology) => (
-            <span key={technology.id} className="pill">
-              {technology.name}
-              {technology.requiredLevel ? ` • ${technology.requiredLevel}/5` : ""}
-              {technology.required ? " • wymagana" : ""}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <div className="muted">Brak określonych technologii.</div>
-      )}
-    </div>
-
-    <div className="profile-block">
-      <div className="profile-block-title">Role projektowe</div>
-      {team.roleRequirements.length ? (
-        <div style={{ display: "grid", gap: 10 }}>
-          {team.roleRequirements.map((roleRequirement) => (
-            <div
-              key={roleRequirement.id}
-              style={{
-                border: "1px solid var(--line)",
-                borderRadius: 12,
-                padding: 12,
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                }}
-              >
-                <b>{roleRequirement.projectRoleName}</b>
-                <span className="pill">miejsca: {roleRequirement.slots}</span>
-                <span className="pill">priorytet: {roleRequirement.priority}</span>
-                <span className="pill">{roleRequirement.status}</span>
-                {roleRequirement.preferredTeamRole && (
-                  <span className="pill">
-                    preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
-                  </span>
-                )}
-                <span className="pill">
-                  ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
-                </span>
+            <>
+              <div className="profile-block">
+                <div className="profile-block-title">Technologie projektu</div>
+                {team.technologies.length ? (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {team.technologies.map((technology) => (
+                      <span key={technology.id} className="pill">
+                        {technology.name}{technology.requiredLevel ? ` • ${technology.requiredLevel}/5` : ""}{technology.required ? " • wymagana" : ""}
+                      </span>
+                    ))}
+                  </div>
+                ) : <div className="muted">Brak określonych technologii.</div>}
               </div>
-              <div className="muted">
-                {roleRequirement.description || "Brak opisu roli."}
+
+              <div className="profile-block">
+                <div className="profile-block-title">Role projektowe</div>
+                {team.roleRequirements.length ? (
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {team.roleRequirements.map((roleRequirement) => (
+                      <div key={roleRequirement.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 6 }}>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                          <b>{roleRequirement.projectRoleName}</b>
+                          <span className="pill">miejsca: {roleRequirement.slots}</span>
+                          <span className="pill">priorytet: {roleRequirement.priority}</span>
+                          <span className="pill">{roleRequirement.status}</span>
+                          {roleRequirement.preferredTeamRole && <TeamRoleBadge role={roleRequirement.preferredTeamRole} />}
+                          <span className="pill">ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5</span>
+                        </div>
+                        <div className="muted">{roleRequirement.description || "Brak opisu roli."}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <div className="muted">Brak zdefiniowanych ról projektowych.</div>}
               </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="muted">Brak zdefiniowanych ról projektowych.</div>
-      )}
-    </div>
 
-    {isOwner && team.status !== "COMPLETED" && (
-      <div className="profile-block">
-        <div className="profile-block-title">Akcje projektu</div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button
-            className="btn btn-solid"
-            disabled={savingComplete}
-            onClick={() => void handleCompleteProject()}
-          >
-            {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
-          </button>
-
-          <button
-            className="btn btn-ghost"
-            onClick={() => {
-              setActiveTab("settings");
-              setEditingTeam(true);
-              setError("");
-              setSuccessMsg("");
-            }}
-          >
-            Edytuj zespół
-          </button>
-        </div>
-      </div>
-    )}
-  </>
-)}
-
-{activeTab === "settings" && (
-  <>
-    <div className="profile-block">
-      <div className="profile-block-title">
-        Widoczność projektu na profilu publicznym
-      </div>
-
-      <label className="checkbox-line">
-        <input
-          type="checkbox"
-          checked={team.myShowOnPublicProfile ?? true}
-          disabled={savingVisibility}
-          onChange={(e) => void handleChangeMyVisibility(e.target.checked)}
-        />
-        <span>Pokaż ten projekt na moim profilu publicznym</span>
-      </label>
-
-      <p className="field-help">
-        Jeśli wyłączysz tę opcję, projekt nie będzie widoczny na Twoim profilu
-        publicznym, a oceny z tego projektu nie będą uwzględniane w publicznych
-        średnich.
-      </p>
-    </div>
-
-    {isOwner && (
-      <div className="profile-block">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <div className="profile-block-title">Ustawienia zespołu</div>
-            <div className="muted">
-              Tutaj możesz zmodyfikować opis, wymagania, technologie i status
-              rekrutacji zespołu.
-            </div>
-          </div>
-
-          {!editingTeam ? (
-            <button
-              className="btn btn-solid"
-              onClick={() => {
-                setEditingTeam(true);
-                setError("");
-                setSuccessMsg("");
-              }}
-            >
-              Edytuj zespół
-            </button>
-          ) : (
-            <button
-              className="btn btn-ghost"
-              disabled={savingProfile}
-              onClick={() => {
-                setEditingTeam(false);
-                setError("");
-                setSuccessMsg("");
-              }}
-            >
-              Anuluj edycję
-            </button>
+              {isOwner && team.status !== "COMPLETED" && (
+                <div className="profile-block">
+                  <div className="profile-block-title">Akcje projektu</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button className="btn btn-solid" disabled={savingComplete} onClick={() => void handleCompleteProject()}>
+                      {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => { setActiveTab("settings"); setEditingTeam(true); setError(""); setSuccessMsg(""); }}>
+                      Edytuj zespół
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </div>
 
-        {editingTeam ? (
-          <div style={{ marginTop: 14 }}>
-            <TeamForm
-              title="Edytuj zespół"
-              submitLabel="Zapisz zmiany"
-              initialValue={teamFormInitialValue}
-              saving={savingProfile}
-              onSubmit={handleSaveProfile}
-            />
-          </div>
-        ) : (
-          <div className="muted" style={{ marginTop: 12 }}>
-            Kliknij „Edytuj zespół”, aby otworzyć formularz modyfikacji danych
-            projektu.
-          </div>
-        )}
+          {activeTab === "settings" && (
+            <>
+              <div className="profile-block">
+                <div className="profile-block-title">Widoczność projektu na profilu publicznym</div>
+                <label className="checkbox-line">
+                  <input type="checkbox" checked={team.myShowOnPublicProfile ?? true} disabled={savingVisibility} onChange={(e) => void handleChangeMyVisibility(e.target.checked)} />
+                  <span>Pokaż ten projekt na moim profilu publicznym</span>
+                </label>
+                <p className="field-help">Jeśli wyłączysz tę opcję, projekt nie będzie widoczny na Twoim profilu publicznym, a oceny z tego projektu nie będą uwzględniane w publicznych średnich.</p>
+              </div>
 
-        {team.status !== "COMPLETED" && (
-          <div
-            style={{
-              marginTop: 18,
-              borderTop: "1px solid var(--line)",
-              paddingTop: 14,
-              display: "grid",
-              gap: 8,
-            }}
-          >
-            <div className="profile-block-title">Zakończenie projektu</div>
-            <div className="muted">
-              Po zakończeniu projektu członkowie będą mogli wystawić oceny
-              wkładu w projekt.
-            </div>
+              <div className="profile-block">
+                <div className="profile-block-title">Moja rola zespołowa w tym projekcie</div>
+                <p className="field-help">To rola zespołowa przyjęta tylko w tym projekcie. Może być inna niż domyślna rola z profilu.</p>
+                <select className="input" value={currentMember?.teamRoleLabel ?? ""} disabled={savingTeamRole} onChange={(e) => void handleChangeMyTeamRole(e.target.value)}>
+                  <option value="">Nie ustawiono / użyj domyślnej roli</option>
+                  {TEAM_ROLE_OPTIONS.map((role) => <option key={role} value={role}>{role}</option>)}
+                </select>
+                {currentMember?.preferredTeamRoleLabel && <div className="field-help" style={{ marginTop: 8 }}>Domyślna rola z profilu: {currentMember.preferredTeamRoleLabel}</div>}
+              </div>
 
-            <div>
-              <button
-                className="btn btn-solid"
-                disabled={savingComplete}
-                onClick={() => void handleCompleteProject()}
-              >
-                {savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-  </>
-)}
+              {isOwner && (
+                <div className="profile-block">
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                    <div>
+                      <div className="profile-block-title">Ustawienia zespołu</div>
+                      <div className="muted">Tutaj możesz zmodyfikować opis, wymagania, technologie i status rekrutacji zespołu.</div>
+                    </div>
+                    {!editingTeam ? (
+                      <button className="btn btn-solid" onClick={() => { setEditingTeam(true); setError(""); setSuccessMsg(""); }}>Edytuj zespół</button>
+                    ) : (
+                      <button className="btn btn-ghost" disabled={savingProfile} onClick={() => { setEditingTeam(false); setError(""); setSuccessMsg(""); }}>Anuluj edycję</button>
+                    )}
+                  </div>
+
+                  {editingTeam ? (
+                    <div style={{ marginTop: 14 }}>
+                      <TeamForm title="Edytuj zespół" submitLabel="Zapisz zmiany" initialValue={teamFormInitialValue} saving={savingProfile} onSubmit={handleSaveProfile} />
+                    </div>
+                  ) : <div className="muted" style={{ marginTop: 12 }}>Kliknij „Edytuj zespół”, aby otworzyć formularz modyfikacji danych projektu.</div>}
+
+                  {team.status !== "COMPLETED" && (
+                    <div style={{ marginTop: 18, borderTop: "1px solid var(--line)", paddingTop: 14, display: "grid", gap: 8 }}>
+                      <div className="profile-block-title">Zakończenie projektu</div>
+                      <div className="muted">Po zakończeniu projektu członkowie będą mogli wystawić oceny wkładu w projekt.</div>
+                      <div><button className="btn btn-solid" disabled={savingComplete} onClick={() => void handleCompleteProject()}>{savingComplete ? "Kończenie projektu…" : "Zakończ projekt"}</button></div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
 
           {activeTab === "members" && (
-  <div className="profile-block">
-    <div className="profile-block-title">Członkowie</div>
-    <div style={{ display: "grid", gap: 8 }}>
-      {team.members.map((member) => (
-  <div
-    key={member.userId}
-    style={{
-      border: "1px solid var(--line)",
-      borderRadius: 12,
-      padding: 12,
-      display: "grid",
-      gap: 8,
-    }}
-  >
-    <div>
-      <b>{member.fullName}</b>{" "}
-      <span className="muted">(@{member.username})</span>
-    </div>
-
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <span className="pill">
-        Rola techniczna: {member.roleLabel || "—"}
-      </span>
-
-      {member.teamRoleLabel ? (
-        <TeamRoleBadge role={member.teamRoleLabel} />
-      ) : (
-        <span className="pill">Rola zespołowa: nie ustawiono</span>
-      )}
-    </div>
-  </div>
-))}
-    </div>
-  </div>
-)}
+            <div className="profile-block">
+              <div className="profile-block-title">Członkowie</div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {team.members.map((member) => (
+                  <div key={member.userId} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
+                    <div><b>{member.fullName}</b> <span className="muted">(@{member.username})</span></div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <span className="pill">rola projektowa: {member.roleLabel || "—"}</span>
+                      {member.teamRoleLabel ? <TeamRoleBadge role={member.teamRoleLabel} /> : <span className="pill">rola zespołowa w projekcie: nie ustawiono</span>}
+                      {member.preferredTeamRoleLabel && member.preferredTeamRoleLabel !== member.teamRoleLabel && <span className="pill">domyślna rola z profilu: {member.preferredTeamRoleLabel}</span>}
+                      <VisibilityBadge visible={member.showOnPublicProfile} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {activeTab === "recruitment" && (
-  <>
-    <RecruitmentPanel
-      isOwner={isOwner}
-      isMember={isMember}
-      currentUsername={user?.username ?? null}
-      recruitmentStatus={team.recruitmentStatus}
-      roleRequirements={team.roleRequirements}
-      requests={team.recruitmentRequests}
-      inviteCandidates={inviteCandidates}
-      loadingInviteCandidates={loadingInviteCandidates}
-      savingApply={savingApply}
-      savingInvite={savingInvite}
-      actingRequestId={actingRequestId}
-      onApply={handleApply}
-      onInvite={handleInvite}
-      onRespond={handleRespondRequest}
-    />
-
-    {isOwner && (
-      <RecommendedCandidates
-        candidates={recommendedCandidates}
-        loading={loadingRecommendedCandidates}
-        error={recommendedCandidatesError}
-        onInviteCandidate={handleInviteCandidate}
-      />
-    )}
-  </>
-)}
+            <>
+              <RecruitmentPanel
+                isOwner={isOwner}
+                isMember={isMember}
+                currentUsername={user?.username ?? null}
+                recruitmentStatus={team.recruitmentStatus}
+                roleRequirements={team.roleRequirements}
+                requests={team.recruitmentRequests}
+                inviteCandidates={inviteCandidates}
+                loadingInviteCandidates={loadingInviteCandidates}
+                savingApply={savingApply}
+                savingInvite={savingInvite}
+                actingRequestId={actingRequestId}
+                onApply={handleApply}
+                onInvite={handleInvite}
+                onRespond={handleRespondRequest}
+              />
+              {isOwner && <RecommendedCandidates candidates={recommendedCandidates} loading={loadingRecommendedCandidates} error={recommendedCandidatesError} onInviteCandidate={handleInviteCandidate} />}
+            </>
+          )}
 
           {activeTab === "meetings" && (
-  <div className="profile-block">
-    <div className="profile-block-title">Spotkania</div>
+            <div className="profile-block">
+              <div className="profile-block-title">Spotkania</div>
+              <form onSubmit={onCreateMeeting} style={{ display: "grid", gap: 12 }}>
+                <input className="input" placeholder="Tytuł spotkania" value={meetingTitle} onChange={(e) => setMeetingTitle(e.target.value)} required />
+                <textarea className="input" rows={3} placeholder="Opis spotkania" value={meetingDescription} onChange={(e) => setMeetingDescription(e.target.value)} />
+                <input className="input" type="datetime-local" value={meetingStartsAt} onChange={(e) => setMeetingStartsAt(e.target.value)} required />
+                <input className="input" type="datetime-local" value={meetingEndsAt} onChange={(e) => setMeetingEndsAt(e.target.value)} />
+                <input className="input" placeholder="Miejsce / link" value={meetingLocation} onChange={(e) => setMeetingLocation(e.target.value)} />
+                <div><button className="btn btn-solid" disabled={savingMeeting}>{savingMeeting ? "Dodawanie…" : "Dodaj spotkanie"}</button></div>
+              </form>
 
-    <form onSubmit={onCreateMeeting} style={{ display: "grid", gap: 12 }}>
-      <input
-        className="input"
-        placeholder="Tytuł spotkania"
-        value={meetingTitle}
-        onChange={(e) => setMeetingTitle(e.target.value)}
-        required
-      />
-      <textarea
-        className="input"
-        rows={3}
-        placeholder="Opis spotkania"
-        value={meetingDescription}
-        onChange={(e) => setMeetingDescription(e.target.value)}
-      />
-      <input
-        className="input"
-        type="datetime-local"
-        value={meetingStartsAt}
-        onChange={(e) => setMeetingStartsAt(e.target.value)}
-        required
-      />
-      <input
-        className="input"
-        type="datetime-local"
-        value={meetingEndsAt}
-        onChange={(e) => setMeetingEndsAt(e.target.value)}
-      />
-      <input
-        className="input"
-        placeholder="Miejsce / link"
-        value={meetingLocation}
-        onChange={(e) => setMeetingLocation(e.target.value)}
-      />
-      <div>
-        <button className="btn btn-solid" disabled={savingMeeting}>
-          {savingMeeting ? "Dodawanie…" : "Dodaj spotkanie"}
-        </button>
-      </div>
-    </form>
-
-    {team.meetings.length > 0 ? (
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        {team.meetings.map((meeting) => (
-          <div
-            key={meeting.id}
-            style={{
-              border: "1px solid var(--line)",
-              borderRadius: 12,
-              padding: 12,
-              display: "grid",
-              gap: 6,
-            }}
-          >
-            <b>{meeting.title}</b>
-            <div className="muted">
-              {formatPl(meeting.startsAt)}
-              {meeting.endsAt ? ` – ${formatPl(meeting.endsAt)}` : ""}
+              {team.meetings.length > 0 ? (
+                <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                  {team.meetings.map((meeting) => (
+                    <div key={meeting.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 6 }}>
+                      <b>{meeting.title}</b>
+                      <div className="muted">{formatPl(meeting.startsAt)}{meeting.endsAt ? ` – ${formatPl(meeting.endsAt)}` : ""}</div>
+                      <div className="muted">{meeting.location || "Brak lokalizacji"}</div>
+                      <div className="muted">{meeting.description || "Brak opisu."}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="muted" style={{ marginTop: 12 }}>Brak zaplanowanych spotkań.</div>}
             </div>
-            <div className="muted">{meeting.location || "Brak lokalizacji"}</div>
-            <div className="muted">{meeting.description || "Brak opisu."}</div>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <div className="muted" style={{ marginTop: 12 }}>
-        Brak zaplanowanych spotkań.
-      </div>
-    )}
-  </div>
-)}
+          )}
 
           {activeTab === "tasks" && (
-  <div className="profile-block">
-    <div className="profile-block-title">Zadania</div>
+            <div className="profile-block">
+              <div className="profile-block-title">Zadania</div>
+              <form onSubmit={onCreateTask} style={{ display: "grid", gap: 12 }}>
+                <input className="input" placeholder="Tytuł zadania" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required />
+                <textarea className="input" rows={3} placeholder="Opis zadania" value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} />
+                <input className="input" type="datetime-local" value={taskDueAt} onChange={(e) => setTaskDueAt(e.target.value)} />
+                <select className="input" value={assigneeUserId} onChange={(e) => setAssigneeUserId(e.target.value === "" ? "" : Number(e.target.value))}>
+                  <option value="">Cały zespół / bez przypisania</option>
+                  {team.members.map((member) => <option key={member.userId} value={member.userId}>{member.fullName} (@{member.username})</option>)}
+                </select>
+                <div><button className="btn btn-solid" disabled={savingTask}>{savingTask ? "Dodawanie…" : "Dodaj zadanie"}</button></div>
+              </form>
 
-    <form onSubmit={onCreateTask} style={{ display: "grid", gap: 12 }}>
-      <input
-        className="input"
-        placeholder="Tytuł zadania"
-        value={taskTitle}
-        onChange={(e) => setTaskTitle(e.target.value)}
-        required
-      />
-      <textarea
-        className="input"
-        rows={3}
-        placeholder="Opis zadania"
-        value={taskDescription}
-        onChange={(e) => setTaskDescription(e.target.value)}
-      />
-      <input
-        className="input"
-        type="datetime-local"
-        value={taskDueAt}
-        onChange={(e) => setTaskDueAt(e.target.value)}
-      />
-
-      <select
-        className="input"
-        value={assigneeUserId}
-        onChange={(e) =>
-          setAssigneeUserId(e.target.value === "" ? "" : Number(e.target.value))
-        }
-      >
-        <option value="">Cały zespół / bez przypisania</option>
-        {team.members.map((member) => (
-          <option key={member.userId} value={member.userId}>
-            {member.fullName} (@{member.username})
-          </option>
-        ))}
-      </select>
-
-      <div>
-        <button className="btn btn-solid" disabled={savingTask}>
-          {savingTask ? "Dodawanie…" : "Dodaj zadanie"}
-        </button>
-      </div>
-    </form>
-
-    {team.tasks.length > 0 ? (
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        {team.tasks.map((task) => (
-          <div
-            key={task.id}
-            style={{
-              border: "1px solid var(--line)",
-              borderRadius: 12,
-              padding: 12,
-              display: "grid",
-              gap: 6,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                alignItems: "center",
-              }}
-            >
-              <b>{task.title}</b>
-              <span className="pill">{task.status}</span>
+              {team.tasks.length > 0 ? (
+                <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                  {team.tasks.map((task) => (
+                    <div key={task.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 6 }}>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}><b>{task.title}</b><span className="pill">{task.status}</span></div>
+                      <div className="muted">Termin: {formatPl(task.dueAt)} | Przypisano: {task.assigneeUsername || "nie przypisano"}</div>
+                      <div className="muted">{task.description || "Brak opisu."}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="muted" style={{ marginTop: 12 }}>Brak zadań w tym zespole.</div>}
             </div>
-            <div className="muted">
-              Termin: {formatPl(task.dueAt)} | Przypisano:{" "}
-              {task.assigneeUsername || "nie przypisano"}
-            </div>
-            <div className="muted">{task.description || "Brak opisu."}</div>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <div className="muted" style={{ marginTop: 12 }}>
-        Brak zadań w tym zespole.
-      </div>
-    )}
-  </div>
-)}
+          )}
         </div>
       </section>
     </div>
