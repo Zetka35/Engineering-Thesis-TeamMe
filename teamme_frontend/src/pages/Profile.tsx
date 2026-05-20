@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { extractApiFieldErrors, extractApiMessage, pickFieldErrors } from "../api/http";
 import { getMySurveyState, type SurveyStateDto } from "../api/survey.api";
 import TeamRoleBadge from "../components/TeamRoleBadge";
+import VisibilityBadge from "../components/VisibilityBadge";
 
 import {
   getMyProfile,
@@ -481,6 +482,14 @@ export default function Profile() {
               <button type="button" className="btn btn-ghost" onClick={() => nav("/survey")}>
                 {surveyActionLabel(surveyState)}
               </button>
+
+              <button
+  type="button"
+  className="btn btn-ghost"
+  onClick={() => nav(`/network/${encodeURIComponent(profile.username)}`)}
+>
+  Podgląd profilu publicznego
+</button>
             </div>
           </div>
 
@@ -650,9 +659,10 @@ export default function Profile() {
                         </div>
 
                         <div className="profile-entry-pills">
-                          <span className="pill">{projectStatusLabel(project.teamStatus)}</span>
-                          {project.current && <span className="pill">aktywny projekt</span>}
-                        </div>
+  <span className="pill">{projectStatusLabel(project.teamStatus)}</span>
+  {project.current && <span className="pill">aktywny projekt</span>}
+  <VisibilityBadge visible={project.showOnPublicProfile} />
+</div>
                       </div>
 
                       <div className="profile-entry-meta">

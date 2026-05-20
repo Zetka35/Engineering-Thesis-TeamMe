@@ -1724,3 +1724,135 @@ textarea.input:disabled {
     width: min(620px, calc(100vw - 36px));
   }
 }
+
+/* ===== Alerts ===== */
+
+.alert {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  border: 1px solid transparent;
+}
+
+.alert-error {
+  background: #fff3f3;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.alert-success {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.alert-info {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.alert-warning {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+/* ===== Empty states ===== */
+
+.empty-state {
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #f8fafc;
+}
+
+.empty-state-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.empty-state-content {
+  display: grid;
+  gap: 6px;
+}
+
+.empty-state-title {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.empty-state-description {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+/* ===== Status badges ===== */
+
+.status-badge,
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 900;
+}
+
+.status-badge-pending {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.status-badge-accepted {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.status-badge-rejected {
+  background: #fff3f3;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.status-badge-cancelled {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.status-badge-default {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+/* ===== Project visibility ===== */
+
+.visibility-badge-public {
+  background: #ecfdf3;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.visibility-badge-hidden {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}

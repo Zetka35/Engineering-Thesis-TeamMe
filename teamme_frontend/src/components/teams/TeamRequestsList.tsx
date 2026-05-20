@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { RecruitmentRequest } from "../../models/Team";
+import RequestStatusBadge from "../RequestStatusBadge";
 
 type Props = {
   requests: RecruitmentRequest[];
@@ -132,7 +133,7 @@ export default function TeamRequestsList({
             <b>{request.fullName}</b>
             <span className="muted">@{request.username}</span>
             <span className="pill">{requestTypeLabel(request.requestType)}</span>
-            <span className="pill">{requestStatusLabel(request.status)}</span>
+            <RequestStatusBadge status={request.status} />
             {request.targetRoleName && (
               <span className="pill">rola: {request.targetRoleName}</span>
             )}

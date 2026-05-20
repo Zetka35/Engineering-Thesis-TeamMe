@@ -1,4 +1,5 @@
 import React from "react";
+import TeamRoleBadge from "../TeamRoleBadge";
 
 export interface RecommendedCandidate {
   userId: number;
@@ -52,7 +53,9 @@ export default function RecommendedCandidates({
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <b>{candidate.fullName}</b>
                 <span className="muted">@{candidate.username}</span>
-                {candidate.selectedRole && <span className="pill">{candidate.selectedRole}</span>}
+                {candidate.selectedRole && (
+  <TeamRoleBadge role={candidate.selectedRole} />
+)}
                 <span className="pill">dopasowanie: {candidate.score.toFixed(2)}</span>
               </div>
 

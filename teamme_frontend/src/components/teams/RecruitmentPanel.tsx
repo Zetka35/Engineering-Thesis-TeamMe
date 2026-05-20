@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import type { RecruitmentRequest, TeamRecruitmentStatus, TeamRoleRequirement } from "../../models/Team";
 import type { NetworkUser } from "../../api/user.api";
 import TeamRequestsList from "./TeamRequestsList";
+import TeamRoleBadge from "../TeamRoleBadge";
 
 type Props = {
   isOwner: boolean;
@@ -217,9 +218,9 @@ export default function RecruitmentPanel({
                       <span style={{ textAlign: "left" }}>
                         <b>{candidate.fullName || candidate.username}</b>{" "}
                         <span className="muted">@{candidate.username}</span>
-                        {candidate.selectedRole ? (
-                          <span className="muted"> · rola zespołowa: {candidate.selectedRole}</span>
-                        ) : null}
+                        {candidate.selectedRole && (
+  <TeamRoleBadge role={candidate.selectedRole} />
+)}
                       </span>
                       <span className="muted">
                         {(candidate.topSkills ?? []).slice(0, 3).map((skill) => skill.name).join(", ")}

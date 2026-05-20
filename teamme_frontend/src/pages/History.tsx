@@ -9,6 +9,7 @@ import {
   type PendingReviewTarget,
 } from "../api/projectHistory.api";
 import { extractApiMessage } from "../api/http";
+import VisibilityBadge from "../components/VisibilityBadge";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -299,6 +300,7 @@ export default function History() {
                           <span className="pill">{item.roleLabel}</span>
                           <span className="pill">{item.teamStatus || "—"}</span>
                           {item.current && <span className="pill">aktywny</span>}
+                          <VisibilityBadge visible={item.showOnPublicProfile} />
                         </div>
 
                         <span className="pill">

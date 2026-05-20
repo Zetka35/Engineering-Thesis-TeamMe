@@ -6,6 +6,7 @@ import { fetchTeam, fetchTeams, inviteToTeam } from "../api/teams.api";
 import type { TeamDetails as TeamDetailsModel, TeamSummary } from "../models/Team";
 import { extractApiMessage } from "../api/http";
 import TeamRoleBadge from "../components/TeamRoleBadge";
+import EmptyState from "../components/EmptyState";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -393,9 +394,7 @@ export default function PublicProfile() {
           {error && <div className="alert alert-error">{error}</div>}
           {successMsg && (
             <div
-              className="alert alert-success"
-              style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
-            >
+              className="alert alert-success">
               {successMsg}
             </div>
           )}
@@ -512,7 +511,10 @@ export default function PublicProfile() {
                 ))}
               </div>
             ) : (
-              <div className="muted">Brak wpisanych umiejętności.</div>
+              <EmptyState
+  title="Brak publicznych umiejętności"
+  description="Ten użytkownik nie dodał jeszcze umiejętności widocznych w profilu publicznym."
+/>
             )}
           </div>
 
@@ -557,7 +559,10 @@ export default function PublicProfile() {
                 ))}
               </div>
             ) : (
-              <div className="muted">Brak doświadczenia zawodowego.</div>
+              <EmptyState
+  title="Brak publicznego doświadczenia"
+  description="Po dodaniu doświadczenia zawodowego będzie ono widoczne w tej sekcji profilu."
+/>
             )}
           </div>
 
@@ -613,7 +618,10 @@ export default function PublicProfile() {
                 ))}
               </div>
             ) : (
-              <div className="muted">Brak historii projektów.</div>
+              <EmptyState
+  title="Brak publicznej historii projektów"
+  description="Użytkownik nie opublikował jeszcze żadnego projektu na profilu publicznym albo ukrył wybrane projekty w ustawieniach widoczności."
+/>
             )}
           </div>
         </div>

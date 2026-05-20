@@ -5,6 +5,8 @@ import type { RecruitmentRequest } from "../models/Team";
 import { fetchMyRecruitmentRequests, respondToRequest } from "../api/teams.api";
 import { extractApiMessage } from "../api/http";
 import { useNotifications } from "../notifications/NotificationsContext";
+import EmptyState from "../components/EmptyState";
+import RequestStatusBadge from "../components/RequestStatusBadge";
 
 function requestTypeLabel(value?: string | null) {
   switch (value) {
@@ -198,7 +200,7 @@ export default function Messages() {
       >
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <span className="pill">{requestTypeLabel(request.requestType)}</span>
-          <span className="pill">{requestStatusLabel(request.status)}</span>
+          <RequestStatusBadge status={request.status} />
           {request.targetRoleName && (
             <span className="pill">rola projektowa: {request.targetRoleName}</span>
           )}
@@ -267,7 +269,6 @@ export default function Messages() {
           {successMsg && (
             <div
               className="alert alert-success"
-              style={{ background: "#ecfdf3", color: "#166534", borderColor: "#bbf7d0" }}
             >
               {successMsg}
             </div>
