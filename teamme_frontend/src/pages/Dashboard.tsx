@@ -120,7 +120,7 @@ export default function Dashboard() {
                 }}
               >
                 <div className="profile-block">
-                  <div className="profile-block-title">Aktywne zespoły</div>
+                  <div className="profile-block-title">Moje zespoły</div>
                   <div style={{ fontSize: 24, fontWeight: 900 }}>{summary.activeTeams}</div>
                 </div>
 

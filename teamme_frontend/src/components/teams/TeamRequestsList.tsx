@@ -156,12 +156,12 @@ export default function TeamRequestsList({
             <span className="pill">{requestTypeLabel(request.requestType)}</span>
             <RequestStatusBadge status={request.status} />
             {request.targetRoleName && (
-              <span className="pill">rola projektowa: {request.targetRoleName}</span>
+              <span className="pill">Rola projektowa: {request.targetRoleName}</span>
             )}
             {request.teamRoleLabel ? (
               <TeamRoleBadge role={request.teamRoleLabel} />
             ) : (
-              <span className="pill">rola zespołowa: nie ustawiono</span>
+              <span className="pill">Rola zespołowa: nie ustawiono</span>
             )}
           </div>
 

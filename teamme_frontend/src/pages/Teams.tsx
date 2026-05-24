@@ -16,15 +16,15 @@ function formatPl(iso?: string | null) {
 function recruitmentLabel(value?: string | null) {
   switch (value) {
     case "OPEN":
-      return "rekrutacja otwarta";
+      return "Rekrutacja otwarta";
     case "PAUSED":
-      return "rekrutacja wstrzymana";
+      return "Rekrutacja wstrzymana";
     case "CLOSED":
-      return "rekrutacja zamknięta";
+      return "Rekrutacja zamknięta";
     case "FULL":
-      return "komplet";
+      return "Komplet";
     default:
-      return value || "brak";
+      return value || "Brak";
   }
 }
 

@@ -7,10 +7,7 @@ import {
 import { fetchMyRecruitmentRequests } from "../api/teams.api";
 import { useAuth } from "../auth/AuthContext";
 import { useNotifications } from "./NotificationsContext";
-
-function countPendingRecruitmentRequests(requests: Array<{ status?: string | null }>) {
-  return requests.filter((request) => request.status === "PENDING").length;
-}
+import { countActionableRecruitmentRequests } from "../data/recruitmentNotifications";
 
 export default function NotificationWatcher() {
   const { user } = useAuth();
@@ -26,13 +23,16 @@ export default function NotificationWatcher() {
   const reconnectTimeoutRef = useRef<number | null>(null);
 
   async function refreshPendingCount() {
-    try {
-      const requests = await fetchMyRecruitmentRequests();
-      setPendingRecruitmentCount(countPendingRecruitmentRequests(requests ?? []));
-    } catch {
-      // Nie pokazujemy błędu globalnie, bo to tylko licznik pomocniczy.
-    }
+  try {
+    const requests = await fetchMyRecruitmentRequests();
+
+    setPendingRecruitmentCount(
+      countActionableRecruitmentRequests(requests ?? [], user?.username)
+    );
+  } catch {
+    
   }
+}
 
   useEffect(() => {
     if (!user) {

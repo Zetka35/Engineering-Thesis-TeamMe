@@ -15,7 +15,7 @@ export default function VisibilityBadge({ visible }: Props) {
           : "visibility-badge visibility-badge-hidden"
       }
     >
-      {isVisible ? "widoczny publicznie" : "ukryty publicznie"}
+      {isVisible ? "Widoczny publicznie" : "Ukryty publicznie"}
     </span>
   );
 }

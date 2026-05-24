@@ -9,6 +9,7 @@ import EmptyState from "../components/EmptyState";
 import RequestStatusBadge from "../components/RequestStatusBadge";
 import TeamRoleBadge from "../components/TeamRoleBadge";
 import { TEAM_ROLE_OPTIONS } from "../data/teamRoles";
+import { countActionableRecruitmentRequests } from "../data/recruitmentNotifications";
 
 type RespondOptions = {
   showOnPublicProfile?: boolean | null;
@@ -54,7 +55,9 @@ export default function Messages() {
     try {
       const data = await fetchMyRecruitmentRequests();
       setRequests(data ?? []);
-      setPendingRecruitmentCount((data ?? []).filter((request) => request.status === "PENDING").length);
+      setPendingRecruitmentCount(
+  countActionableRecruitmentRequests(data ?? [], user?.username)
+);
     } catch (e: unknown) {
       setError(`Nie udało się załadować zaproszeń i zgłoszeń. ${extractApiMessage(e)}`);
     } finally {
@@ -69,29 +72,53 @@ export default function Messages() {
   const currentUsername = user?.username ?? "";
 
   const incomingApplications = useMemo(
-    () => requests.filter((request) => request.requestType === "APPLICATION" && request.createdByUsername !== currentUsername),
-    [requests, currentUsername]
-  );
+  () =>
+    requests.filter(
+      (request) =>
+        request.status === "PENDING" &&
+        request.requestType === "APPLICATION" &&
+        request.createdByUsername !== currentUsername
+    ),
+  [requests, currentUsername]
+);
 
   const incomingInvitations = useMemo(
-    () => requests.filter((request) => request.requestType === "INVITATION" && request.username === currentUsername),
-    [requests, currentUsername]
-  );
+  () =>
+    requests.filter(
+      (request) =>
+        request.status === "PENDING" &&
+        request.requestType === "INVITATION" &&
+        request.username === currentUsername
+    ),
+  [requests, currentUsername]
+);
 
-  const outgoingInvitations = useMemo(
-    () => requests.filter((request) => request.requestType === "INVITATION" && request.createdByUsername === currentUsername),
-    [requests, currentUsername]
-  );
+const outgoingInvitations = useMemo(
+  () =>
+    requests.filter(
+      (request) =>
+        request.status === "PENDING" &&
+        request.requestType === "INVITATION" &&
+        request.createdByUsername === currentUsername
+    ),
+  [requests, currentUsername]
+);
 
-  const myApplications = useMemo(
-    () => requests.filter((request) => request.requestType === "APPLICATION" && request.createdByUsername === currentUsername),
-    [requests, currentUsername]
-  );
+const myApplications = useMemo(
+  () =>
+    requests.filter(
+      (request) =>
+        request.status === "PENDING" &&
+        request.requestType === "APPLICATION" &&
+        request.createdByUsername === currentUsername
+    ),
+  [requests, currentUsername]
+);
 
-  const historyRequests = useMemo(
-    () => requests.filter((request) => request.status !== "PENDING"),
-    [requests]
-  );
+const historyRequests = useMemo(
+  () => requests.filter((request) => request.status !== "PENDING"),
+  [requests]
+);
 
   function getVisibilityChoice(request: RecruitmentRequest) {
     return visibilityByRequestId[request.id] ?? request.showOnPublicProfile ?? true;

@@ -19,15 +19,15 @@ function formatPl(iso?: string | null) {
 function recruitmentLabel(value?: string | null) {
   switch (value) {
     case "OPEN":
-      return "rekrutacja otwarta";
+      return "Rekrutacja otwarta";
     case "PAUSED":
-      return "rekrutacja wstrzymana";
+      return "Rekrutacja wstrzymana";
     case "CLOSED":
-      return "rekrutacja zamknięta";
+      return "Rekrutacja zamknięta";
     case "FULL":
-      return "komplet";
+      return "Komplet";
     default:
-      return value || "brak";
+      return value || "Brak";
   }
 }
 
@@ -297,12 +297,12 @@ export default function TeamSearch() {
                     </div>
 
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
-                      <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
+                      <span className="pill">Obszar: {team.projectArea || "nie podano"}</span>
+                      <span className="pill">Poziom: {experienceLabel(team.experienceLevel)}</span>
                       <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
-                      <span className="pill">członkowie: {team.memberCount}/{team.maxMembers}</span>
-                      <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
-                      <span className="pill">spotkanie: {formatPl(team.nextMeetingAt)}</span>
+                      <span className="pill">Członkowie: {team.memberCount}/{team.maxMembers}</span>
+                      <span className="pill">Czas: {team.expectedTimeText || "nie podano"}</span>
+                      <span className="pill">Spotkanie: {formatPl(team.nextMeetingAt)}</span>
                     </div>
 
                     {isApplyOpen && (

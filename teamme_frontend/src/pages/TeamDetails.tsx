@@ -36,15 +36,15 @@ function formatPl(iso?: string | null) {
 function recruitmentLabel(value?: string | null) {
   switch (value) {
     case "OPEN":
-      return "rekrutacja otwarta";
+      return "Rekrutacja otwarta";
     case "PAUSED":
-      return "rekrutacja wstrzymana";
+      return "Rekrutacja wstrzymana";
     case "CLOSED":
-      return "rekrutacja zamknięta";
+      return "Rekrutacja zamknięta";
     case "FULL":
-      return "komplet";
+      return "Komplet";
     default:
-      return value || "brak";
+      return value || "Brak";
   }
 }
 
@@ -497,12 +497,12 @@ export default function TeamDetails() {
         <div className="card-header">
           <h2 className="card-title">{team.name}</h2>
           <p className="card-subtitle">
-            Właściciel: {team.ownerUsername || "—"} · rola projektowa: {team.myRole || "—"}
+            Właściciel: {team.ownerUsername || "—"} · Rola projektowa: {team.myRole || "—"}
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-            {currentMember?.teamRoleLabel ? <TeamRoleBadge role={currentMember.teamRoleLabel} /> : <span className="pill">rola zespołowa w projekcie: nie ustawiono</span>}
+            {currentMember?.teamRoleLabel ? <TeamRoleBadge role={currentMember.teamRoleLabel} /> : <span className="pill">Rola zespołowa w projekcie: nie ustawiono</span>}
             {currentMember?.preferredTeamRoleLabel && currentMember.preferredTeamRoleLabel !== currentMember.teamRoleLabel && (
-              <span className="pill">domyślna rola z profilu: {currentMember.preferredTeamRoleLabel}</span>
+              <span className="pill">Domyślna rola z profilu: {currentMember.preferredTeamRoleLabel}</span>
             )}
             <VisibilityBadge visible={team.myShowOnPublicProfile} />
           </div>
@@ -599,7 +599,7 @@ export default function TeamDetails() {
                 <div className="profile-block-title">Moja rola zespołowa w tym projekcie</div>
                 <p className="field-help">To rola zespołowa przyjęta tylko w tym projekcie. Może być inna niż domyślna rola z profilu.</p>
                 <select className="input" value={currentMember?.teamRoleLabel ?? ""} disabled={savingTeamRole} onChange={(e) => void handleChangeMyTeamRole(e.target.value)}>
-                  <option value="">Nie ustawiono / użyj domyślnej roli</option>
+                  <option value="">Nie ustawiono </option>
                   {TEAM_ROLE_OPTIONS.map((role) => <option key={role} value={role}>{role}</option>)}
                 </select>
                 {currentMember?.preferredTeamRoleLabel && <div className="field-help" style={{ marginTop: 8 }}>Domyślna rola z profilu: {currentMember.preferredTeamRoleLabel}</div>}
@@ -645,9 +645,9 @@ export default function TeamDetails() {
                   <div key={member.userId} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
                     <div><b>{member.fullName}</b> <span className="muted">(@{member.username})</span></div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <span className="pill">rola projektowa: {member.roleLabel || "—"}</span>
-                      {member.teamRoleLabel ? <TeamRoleBadge role={member.teamRoleLabel} /> : <span className="pill">rola zespołowa w projekcie: nie ustawiono</span>}
-                      {member.preferredTeamRoleLabel && member.preferredTeamRoleLabel !== member.teamRoleLabel && <span className="pill">domyślna rola z profilu: {member.preferredTeamRoleLabel}</span>}
+                      <span className="pill">Rola projektowa: {member.roleLabel || "—"}</span>
+                      {member.teamRoleLabel ? <TeamRoleBadge role={member.teamRoleLabel} /> : <span className="pill">Rola zespołowa w projekcie: nie ustawiono</span>}
+                      {member.preferredTeamRoleLabel && member.preferredTeamRoleLabel !== member.teamRoleLabel && <span className="pill">Domyślna rola z profilu: {member.preferredTeamRoleLabel}</span>}
                       <VisibilityBadge visible={member.showOnPublicProfile} />
                     </div>
                   </div>
