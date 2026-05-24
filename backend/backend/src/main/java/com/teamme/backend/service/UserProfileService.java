@@ -71,6 +71,8 @@ public class UserProfileService {
             String teamName,
             String teamStatus,
             String roleLabel,
+            String teamRoleLabel,
+            String preferredTeamRoleLabel,
             String joinedAt,
             String leftAt,
             boolean current,
@@ -567,19 +569,20 @@ public class UserProfileService {
             return Math.round(value * 100.0) / 100.0;
         }
 
-        private ProjectHistoryDto toProjectHistoryDto(TeamMember tm) {
-            return new ProjectHistoryDto(
-                    tm.getTeam().getId(),
-                    tm.getTeam().getName(),
-                    tm.getTeam().getStatus(),
-                    tm.getRoleLabel(),
-                    tm.getJoinedAt() == null ? null : tm.getJoinedAt().toString(),
-                    tm.getLeftAt() == null ? null : tm.getLeftAt().toString(),
-                    tm.getLeftAt() == null,
-                    tm.isShowOnPublicProfile()
-            );
-        }
-
+    private ProjectHistoryDto toProjectHistoryDto(TeamMember tm) {
+        return new ProjectHistoryDto(
+                tm.getTeam().getId(),
+                tm.getTeam().getName(),
+                tm.getTeam().getStatus(),
+                tm.getRoleLabel(),
+                tm.getTeamRoleLabel(),
+                tm.getUser() == null ? null : tm.getUser().getSelectedRole(),
+                tm.getJoinedAt() == null ? null : tm.getJoinedAt().toString(),
+                tm.getLeftAt() == null ? null : tm.getLeftAt().toString(),
+                tm.getLeftAt() == null,
+                tm.isShowOnPublicProfile()
+        );
+    }
         private void replaceExperiences(User user, List<ExperienceRequest> requests) {
             user.getExperiences().clear();
             if (requests == null) return;

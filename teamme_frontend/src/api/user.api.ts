@@ -40,6 +40,8 @@ export interface ProjectHistoryItem {
   teamName: string;
   teamStatus?: string | null;
   roleLabel: string;
+  teamRoleLabel?: string | null;
+  preferredTeamRoleLabel?: string | null;
   joinedAt?: string | null;
   leftAt?: string | null;
   current: boolean;

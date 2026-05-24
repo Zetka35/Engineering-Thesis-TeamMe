@@ -522,12 +522,12 @@ export default function TeamDetails() {
 
           <div className="profile-block" style={{ display: "grid", gap: 8 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <span className="pill">status projektu: {team.status}</span>
+              <span className="pill">Status projektu: {team.status}</span>
               <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
-              <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
-              <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
-              <span className="pill">członkowie: {team.members.length}/{team.maxMembers}</span>
-              <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
+              <span className="pill">Obszar: {team.projectArea || "nie podano"}</span>
+              <span className="pill">Poziom: {experienceLabel(team.experienceLevel)}</span>
+              <span className="pill">Członkowie: {team.members.length}/{team.maxMembers}</span>
+              <span className="pill">Czas: {team.expectedTimeText || "nie podano"}</span>
             </div>
             <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{team.description || "Brak opisu projektu."}</div>
           </div>
@@ -555,11 +555,11 @@ export default function TeamDetails() {
                       <div key={roleRequirement.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 6 }}>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <b>{roleRequirement.projectRoleName}</b>
-                          <span className="pill">miejsca: {roleRequirement.slots}</span>
-                          <span className="pill">priorytet: {roleRequirement.priority}</span>
+                          <span className="pill">Miejsca: {roleRequirement.slots}</span>
+                          <span className="pill">Priorytet: {roleRequirement.priority}</span>
                           <span className="pill">{roleRequirement.status}</span>
                           {roleRequirement.preferredTeamRole && <TeamRoleBadge role={roleRequirement.preferredTeamRole} />}
-                          <span className="pill">ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5</span>
+                          <span className="pill">Ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5</span>
                         </div>
                         <div className="muted">{roleRequirement.description || "Brak opisu roli."}</div>
                       </div>
