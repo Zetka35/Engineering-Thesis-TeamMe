@@ -215,12 +215,12 @@ export default function PublicTeamDetails() {
 
                       {roleRequirement.preferredTeamRole && (
                         <span className="pill">
-                          preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
+                          Preferowana rola zespołowa: {roleRequirement.preferredTeamRole}
                         </span>
                       )}
 
                       <span className="pill">
-                        ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
+                        Ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5
                       </span>
                     </div>
 

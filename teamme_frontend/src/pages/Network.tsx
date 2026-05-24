@@ -284,7 +284,7 @@ export default function Network() {
                       </div>
 
                       {networkUser.selectedRole && (
-  <span className="pill">rola zespołowa: {networkUser.selectedRole}</span>
+  <span className="pill">Rola zespołowa: {networkUser.selectedRole}</span>
 )}
                     </div>
 

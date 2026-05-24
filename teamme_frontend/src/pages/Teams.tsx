@@ -236,18 +236,18 @@ export default function Teams() {
                     </div>
 
                     <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span className="pill">rola techniczna: {team.myRole || "—"}</span>
+                      <span className="pill">Rola techniczna (projektowa): {team.myRole || "—"}</span>
 {team.myTeamRole ? (
   <TeamRoleBadge role={team.myTeamRole} />
 ) : (
-  <span className="pill">rola zespołowa: nie ustawiono</span>
+  <span className="pill">Rola zespołowa: nie ustawiono</span>
 )}
-                      <span className="pill">członkowie: {team.memberCount}/{team.maxMembers}</span>
-                      <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
-                      <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
-                      <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
+                      <span className="pill">Członkowie: {team.memberCount}/{team.maxMembers}</span>
+                      <span className="pill">Czas: {team.expectedTimeText || "nie podano"}</span>
+                      <span className="pill">Obszar: {team.projectArea || "nie podano"}</span>
+                      <span className="pill">Poziom: {experienceLabel(team.experienceLevel)}</span>
                       <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
-                      <span className="pill">spotkanie: {formatPl(team.nextMeetingAt)}</span>
+                      <span className="pill">Spotkanie: {formatPl(team.nextMeetingAt)}</span>
                     </div>
                   </div>
                 ))}
@@ -302,11 +302,11 @@ export default function Teams() {
                     </div>
 
                     <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span className="pill">członkowie: {team.memberCount}/{team.maxMembers}</span>
-                      <span className="pill">obszar: {team.projectArea || "nie podano"}</span>
-                      <span className="pill">poziom: {experienceLabel(team.experienceLevel)}</span>
+                      <span className="pill">Członkowie: {team.memberCount}/{team.maxMembers}</span>
+                      <span className="pill">Obszar: {team.projectArea || "nie podano"}</span>
+                      <span className="pill">Poziom: {experienceLabel(team.experienceLevel)}</span>
                       <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
-                      <span className="pill">czas: {team.expectedTimeText || "nie podano"}</span>
+                      <span className="pill">Czas: {team.expectedTimeText || "nie podano"}</span>
                     </div>
                   </div>
                 ))}

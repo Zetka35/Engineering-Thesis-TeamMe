@@ -99,10 +99,10 @@ function RoleContextBadges({
 }) {
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-      <span className="pill">rola projektowa: {projectRoleLabel || "—"}</span>
-      {teamRoleLabel ? <TeamRoleBadge role={teamRoleLabel} /> : <span className="pill">rola zespołowa w projekcie: nie ustawiono</span>}
+      <span className="pill">Rola projektowa: {projectRoleLabel || "—"}</span>
+      {teamRoleLabel ? <TeamRoleBadge role={teamRoleLabel} /> : <span className="pill">Rola zespołowa w projekcie: nie ustawiono</span>}
       {preferredTeamRoleLabel && preferredTeamRoleLabel !== teamRoleLabel && (
-        <span className="pill">domyślna rola z profilu: {preferredTeamRoleLabel}</span>
+        <span className="pill">Domyślna rola z profilu: {preferredTeamRoleLabel}</span>
       )}
     </div>
   );
@@ -270,7 +270,7 @@ export default function History() {
                       <div key={`${item.teamId}-${item.joinedAt}-${item.roleLabel}`} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <b>{item.teamName}</b>
-                          <span className="pill">rola projektowa: {item.roleLabel}</span>
+                          <span className="pill">Rola projektowa: {item.roleLabel}</span>
                           <span className="pill">{item.teamStatus || "—"}</span>
                           {item.current && <span className="pill">aktywny</span>}
                           <VisibilityBadge visible={item.showOnPublicProfile} />

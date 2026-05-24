@@ -56,7 +56,7 @@ export default function RecommendedCandidates({
                 {candidate.selectedRole && (
   <TeamRoleBadge role={candidate.selectedRole} />
 )}
-                <span className="pill">dopasowanie: {candidate.score.toFixed(2)}</span>
+                <span className="pill">Dopasowanie: {candidate.score.toFixed(2)}</span>
               </div>
 
               {candidate.matchedSkills.length > 0 && (
