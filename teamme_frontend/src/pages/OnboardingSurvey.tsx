@@ -23,7 +23,7 @@ export default function OnboardingSurvey() {
             <button className="btn btn-solid" onClick={() => nav("/survey")}>
               Wykonaj teraz
             </button>
-            <button className="btn btn-ghost" onClick={() => nav("/teams")}>
+            <button className="btn btn-ghost" onClick={() => nav("/dashboard")}>
               Pomiń na później
             </button>
           </div>
