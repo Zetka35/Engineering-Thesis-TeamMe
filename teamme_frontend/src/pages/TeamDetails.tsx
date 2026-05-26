@@ -464,6 +464,56 @@ export default function TeamDetails() {
     }
   }
 
+  function projectRoleLabel(value?: string | null) {
+  switch (value) {
+    case "Owner":
+      return "Właściciel";
+    case "Member":
+      return "Członek";
+    default:
+      return value || "—";
+  }
+}
+
+function projectStatusLabel(value?: string | null) {
+  switch (value) {
+    case "ACTIVE":
+      return "Aktywny";
+    case "COMPLETED":
+      return "Zakończony";
+    case "ARCHIVED":
+      return "Zarchiwizowany";
+    default:
+      return value || "—";
+  }
+}
+
+function roleRequirementStatusLabel(value?: string | null) {
+  switch (value) {
+    case "OPEN":
+      return "Otwarta";
+    case "FILLED":
+      return "Obsadzona";
+    case "CLOSED":
+      return "Zamknięta";
+    default:
+      return value || "—";
+  }
+}
+
+function taskStatusLabel(value?: string | null) {
+  switch (value) {
+    case "TODO":
+      return "Do zrobienia";
+    case "IN_PROGRESS":
+      return "W trakcie";
+    case "DONE":
+      return "Zakończone";
+    default:
+      return value || "—";
+  }
+}
+
   function renderTabButton(tab: { key: TeamDetailsTab; label: string; ownerOnly?: boolean }) {
     const active = activeTab === tab.key;
     return (
@@ -497,7 +547,7 @@ export default function TeamDetails() {
         <div className="card-header">
           <h2 className="card-title">{team.name}</h2>
           <p className="card-subtitle">
-            Właściciel: {team.ownerUsername || "—"} · Rola projektowa: {team.myRole || "—"}
+            Właściciel: {team.ownerUsername || "—"} · Rola projektowa: {projectRoleLabel(team.myRole)}
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
             {currentMember?.teamRoleLabel ? <TeamRoleBadge role={currentMember.teamRoleLabel} /> : <span className="pill">Rola zespołowa w projekcie: nie ustawiono</span>}
@@ -522,7 +572,7 @@ export default function TeamDetails() {
 
           <div className="profile-block" style={{ display: "grid", gap: 8 }}>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <span className="pill">Status projektu: {team.status}</span>
+              <span className="pill">status projektu: {projectStatusLabel(team.status)}</span>
               <span className="pill">{recruitmentLabel(team.recruitmentStatus)}</span>
               <span className="pill">Obszar: {team.projectArea || "nie podano"}</span>
               <span className="pill">Poziom: {experienceLabel(team.experienceLevel)}</span>
@@ -557,7 +607,9 @@ export default function TeamDetails() {
                           <b>{roleRequirement.projectRoleName}</b>
                           <span className="pill">Miejsca: {roleRequirement.slots}</span>
                           <span className="pill">Priorytet: {roleRequirement.priority}</span>
-                          <span className="pill">{roleRequirement.status}</span>
+                          <span className="pill">
+  Status roli: {roleRequirementStatusLabel(roleRequirement.status)}
+</span>
                           {roleRequirement.preferredTeamRole && <TeamRoleBadge role={roleRequirement.preferredTeamRole} />}
                           <span className="pill">Ważność dopasowania zespołowego: {roleRequirement.teamRoleImportance}/5</span>
                         </div>
@@ -723,7 +775,7 @@ export default function TeamDetails() {
                 <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
                   {team.tasks.map((task) => (
                     <div key={task.id} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 6 }}>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}><b>{task.title}</b><span className="pill">{task.status}</span></div>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}><b>{task.title}</b><span className="pill">{taskStatusLabel(task.status)}</span></div>
                       <div className="muted">Termin: {formatPl(task.dueAt)} | Przypisano: {task.assigneeUsername || "nie przypisano"}</div>
                       <div className="muted">{task.description || "Brak opisu."}</div>
                     </div>

@@ -302,10 +302,8 @@ public class TeamRecruitmentService {
         String recipientUsername = null;
 
         if ("APPLICATION".equals(request.getRequestType())) {
-            // Przy aplikacji decyzję podejmuje właściciel, więc powiadamiamy aplikującego.
             recipientUsername = request.getUser().getUsername();
         } else if ("INVITATION".equals(request.getRequestType())) {
-            // Przy zaproszeniu odpowiada zaproszony użytkownik, więc powiadamiamy autora zaproszenia.
             if (request.getCreatedByUser() != null) {
                 recipientUsername = request.getCreatedByUser().getUsername();
             }
@@ -368,7 +366,7 @@ public class TeamRecruitmentService {
         membership.setUser(user);
         membership.setRoleLabel(
                 request.getTargetRoleName() == null || request.getTargetRoleName().isBlank()
-                        ? "Member"
+                        ? "Członek zespołu"
                         : request.getTargetRoleName()
         );
         String teamRoleLabel;

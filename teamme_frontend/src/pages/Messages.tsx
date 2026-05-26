@@ -315,7 +315,7 @@ const historyRequests = useMemo(
                 {incomingApplications.length ? (
                   <div style={{ display: "grid", gap: 12 }}>{incomingApplications.map((request) => renderRequestCard(request, "incoming-applications"))}</div>
                 ) : (
-                  <div className="muted">Brak nowych aplikacji do Twoich zespołow. </div>
+                  <div className="muted">Brak nowych aplikacji do Twoich zespołów. </div>
                 )}
               </div>
 

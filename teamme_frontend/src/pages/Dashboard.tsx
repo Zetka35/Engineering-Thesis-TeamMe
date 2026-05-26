@@ -7,6 +7,8 @@ import type { TeamSummary, RecruitmentRequest } from "../models/Team";
 import type { TaskBoardItem } from "../api/tasks.api";
 import type { UserProfile } from "../api/user.api";
 import { extractApiMessage } from "../api/http";
+import { useAuth } from "../auth/AuthContext";
+import { isActionableRecruitmentRequest } from "../data/recruitmentNotifications";
 
 function formatPl(iso?: string | null) {
   if (!iso) return "—";
@@ -25,6 +27,9 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { user } = useAuth();
+  const currentUsername = user?.username ?? "";
 
   async function load() {
     setLoading(true);
@@ -57,7 +62,9 @@ export default function Dashboard() {
     const activeTeams = teams.filter((team) => team.myRole).length;
     const openTasks = tasks.filter((task) => task.status !== "DONE").length;
     const overdueTasks = tasks.filter((task) => task.overdue).length;
-    const pendingMessages = requests.filter((request) => request.status === "PENDING").length;
+    const pendingMessages = requests.filter((request) =>
+  isActionableRecruitmentRequest(request, currentUsername)
+).length;
     const completedProjects =
       profile?.projectHistory?.filter((item) => !item.current).length ?? 0;
 
@@ -88,8 +95,10 @@ export default function Dashboard() {
   }, [tasks]);
 
   const pendingMessages = useMemo(() => {
-    return requests.filter((request) => request.status === "PENDING").slice(0, 5);
-  }, [requests]);
+  return requests
+    .filter((request) => isActionableRecruitmentRequest(request, currentUsername))
+    .slice(0, 5);
+}, [requests, currentUsername]);
 
   return (
     <div className="page" style={{ display: "grid", gap: 18 }}>
@@ -135,7 +144,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="profile-block">
-                  <div className="profile-block-title">Wiadomości oczekujące</div>
+                  <div className="profile-block-title">Oczekujące zgłoszenia</div>
                   <div style={{ fontSize: 24, fontWeight: 900 }}>{summary.pendingMessages}</div>
                 </div>
 
@@ -253,9 +262,9 @@ export default function Dashboard() {
                       flexWrap: "wrap",
                     }}
                   >
-                    <div className="profile-block-title">Oczekujące wiadomości</div>
+                    <div className="profile-block-title">Oczekujące zgłoszenia</div>
                     <button className="btn btn-ghost" onClick={() => nav("/messages")}>
-                      Otwórz skrzynkę
+                      Otwórz skrzynkę zgłoszeń
                     </button>
                   </div>
 

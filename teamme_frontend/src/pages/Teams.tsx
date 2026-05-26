@@ -150,6 +150,17 @@ export default function Teams() {
     setShowCreateForm(false);
   }
 
+  function projectRoleLabel(value?: string | null) {
+  switch (value) {
+    case "Owner":
+      return "Właściciel";
+    case "Member":
+      return "Członek";
+    default:
+      return value || "—";
+  }
+}
+
   return (
     <div className="page" style={{ display: "grid", gap: 18 }}>
       <section className="card">
@@ -236,7 +247,7 @@ export default function Teams() {
                     </div>
 
                     <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span className="pill">Rola techniczna (projektowa): {team.myRole || "—"}</span>
+                      <span className="pill">Rola projektowa: {projectRoleLabel(team.myRole)}</span>
 {team.myTeamRole ? (
   <TeamRoleBadge role={team.myTeamRole} />
 ) : (
@@ -296,7 +307,7 @@ export default function Teams() {
                         <div className="muted">{team.description || "Brak opisu."}</div>
                       </div>
 
-                      <button className="btn btn-ghost" onClick={() => nav(`/teams/${team.id}`)}>
+                      <button className="btn btn-ghost" onClick={() => nav(`/teams/public/${team.id}`)}>
                         Szczegóły
                       </button>
                     </div>

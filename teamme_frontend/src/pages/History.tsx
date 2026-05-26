@@ -217,6 +217,30 @@ export default function History() {
     }
   }
 
+  function projectRoleLabel(value?: string | null) {
+  switch (value) {
+    case "Owner":
+      return "Właściciel";
+    case "Member":
+      return "Członek";
+    default:
+      return value || "—";
+  }
+}
+
+function projectStatusLabel(value?: string | null) {
+  switch (value) {
+    case "ACTIVE":
+      return "Aktywny";
+    case "COMPLETED":
+      return "Zakończony";
+    case "ARCHIVED":
+      return "Zarchiwizowany";
+    default:
+      return value || "—";
+  }
+}
+
   function renderReviewCard(review: CollaborationReview, mode: "received" | "given") {
     return (
       <div key={review.id} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
@@ -267,16 +291,17 @@ export default function History() {
                 {projectHistory.length ? (
                   <div style={{ display: "grid", gap: 12 }}>
                     {projectHistory.map((item) => (
-                      <div key={`${item.teamId}-${item.joinedAt}-${item.roleLabel}`} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
+                      <div key={`${item.teamId}-${item.joinedAt}-${projectRoleLabel(item.roleLabel)}`} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 6 }}>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                           <b>{item.teamName}</b>
+                           <span className="pill">
+                              Rola projektowa: {projectRoleLabel(item.roleLabel)}
+                          </span>
+
                           <span className="pill">
-            Rola projektowa: {item.roleLabel || "—"}
-          </span>
-          <span className="pill">
-            Rola zespołowa: {item.teamRoleLabel || "nie ustawiono"}
-          </span>
-                          <span className="pill">{item.teamStatus || "—"}</span>
+                            Rola zespołowa: {item.teamRoleLabel || "nie ustawiono"}
+                          </span>
+                          <span className="pill">{projectStatusLabel(item.teamStatus)}</span>
                           {item.current && <span className="pill">aktywny</span>}
                           <VisibilityBadge visible={item.showOnPublicProfile} />
                         </div>
@@ -285,7 +310,7 @@ export default function History() {
                     ))}
                   </div>
                 ) : (
-                  <div className="muted">Brak historii projektów..</div>
+                  <div className="muted">Brak historii projektów.</div>
                 )}
               </div>
 
@@ -299,7 +324,7 @@ export default function History() {
                       return (
                         <div key={key} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 12 }}>
                           <div><b>{item.teamName}</b> · {item.reviewedFullName} <span className="muted">(@{item.reviewedUsername})</span></div>
-                          <RoleContextBadges projectRoleLabel={item.roleLabel} teamRoleLabel={item.teamRoleLabel} preferredTeamRoleLabel={item.preferredTeamRoleLabel} />
+                          <RoleContextBadges projectRoleLabel={projectRoleLabel(item.roleLabel)} teamRoleLabel={item.teamRoleLabel} preferredTeamRoleLabel={item.preferredTeamRoleLabel} />
                           <div className="muted">Projekt zakończono: {formatPl(item.leftAt)}</div>
 
                           <div style={{ background: "#f8fafc", border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 4 }}>
