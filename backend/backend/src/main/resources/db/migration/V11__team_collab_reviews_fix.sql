@@ -14,3 +14,4 @@ CREATE TRIGGER team_collaboration_reviews_updated
 BEFORE UPDATE ON team_collaboration_reviews
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
+
