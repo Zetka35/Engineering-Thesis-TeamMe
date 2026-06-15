@@ -2,7 +2,7 @@ ALTER TABLE teams
     ADD COLUMN description TEXT,
     ADD COLUMN expected_time_text VARCHAR(120),
     ADD COLUMN max_members INTEGER NOT NULL DEFAULT 4 CHECK (max_members > 0),
-    ADD COLUMN owner_user_id BIGINT REFERENCES users(id),
+    ADD COLUMN owner_user_id BIGINT NOT NULL REFERENCES users(id),
     ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
