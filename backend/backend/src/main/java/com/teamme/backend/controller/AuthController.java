@@ -56,7 +56,7 @@ public class AuthController {
   public void logout() {
     ResponseCookie cookie = ResponseCookie.from("access_token", "")
             .httpOnly(true)
-            .secure(false)
+            .secure(true)
             .sameSite("Lax")
             .path("/")
             .maxAge(Duration.ZERO)
@@ -78,7 +78,7 @@ public class AuthController {
   private UserDto setCookieAndReturnDto(User u, String token) {
     ResponseCookie cookie = ResponseCookie.from("access_token", token)
             .httpOnly(true)
-            .secure(false)
+            .secure(true)
             .sameSite("Lax")
             .path("/")
             .maxAge(Duration.ofHours(2))

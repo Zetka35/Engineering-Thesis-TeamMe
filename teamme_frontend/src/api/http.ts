@@ -1,4 +1,4 @@
-const API_BASE = import.meta?.env?.VITE_API_URL ?? "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export interface ApiValidationError {
   field?: string | null;
@@ -117,6 +117,29 @@ async function readJson<T>(res: Response): Promise<T> {
   return raw as T;
 }
 
+function readCookie(name: string): string | null {
+  const value = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+
+  return value ? decodeURIComponent(value.split("=")[1]) : null;
+}
+
+function jsonHeaders(includeCsrf: boolean): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (includeCsrf) {
+    const token = readCookie("XSRF-TOKEN");
+    if (token) {
+      headers["X-XSRF-TOKEN"] = token;
+    }
+  }
+
+  return headers;
+}
+
 export function extractApiMessage(error: unknown): string {
   if (error instanceof ApiHttpError) return error.message;
   if (error instanceof Error) return error.message;
@@ -156,7 +179,7 @@ export function pickFieldErrors(
 export async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(false),
     credentials: "include",
   });
   return readJson<T>(res);
@@ -165,7 +188,7 @@ export async function get<T>(path: string): Promise<T> {
 export async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(true),
     credentials: "include",
     body: JSON.stringify(body),
   });
@@ -175,8 +198,7 @@ export async function post<T>(path: string, body: unknown): Promise<T> {
 export async function put<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    headers: jsonHeaders(true),
     body: JSON.stringify(body),
   });
   return readJson<T>(res);
@@ -185,7 +207,7 @@ export async function put<T>(path: string, body: unknown): Promise<T> {
 export async function del<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: jsonHeaders(true),
     credentials: "include",
   });
   return readJson<T>(res);
