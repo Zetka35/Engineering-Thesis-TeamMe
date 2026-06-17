@@ -14,9 +14,14 @@ export interface NotificationEvent {
 }
 
 export function getNotificationsWsUrl() {
-  const apiBase = import.meta?.env?.VITE_API_URL ?? "http://localhost:8080";
+  const apiBase = import.meta.env.VITE_API_URL || "";
 
-  return apiBase
-    .replace(/^http:\/\//, "ws://")
-    .replace(/^https:\/\//, "wss://") + "/ws/notifications";
+  if (apiBase) {
+    return apiBase
+      .replace(/^http:\/\//, "ws://")
+      .replace(/^https:\/\//, "wss://") + "/ws/notifications";
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws/notifications`;
 }

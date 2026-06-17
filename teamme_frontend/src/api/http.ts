@@ -50,6 +50,7 @@ async function tryReadJson(res: Response): Promise<unknown | null> {
   }
 }
 
+
 function normalizeApiError(
   raw: unknown,
   res: Response
@@ -118,11 +119,11 @@ async function readJson<T>(res: Response): Promise<T> {
 }
 
 function readCookie(name: string): string | null {
-  const value = document.cookie
+  const cookie = document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${name}=`));
 
-  return value ? decodeURIComponent(value.split("=")[1]) : null;
+  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
 }
 
 function jsonHeaders(includeCsrf: boolean): HeadersInit {
@@ -199,6 +200,7 @@ export async function put<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "PUT",
     headers: jsonHeaders(true),
+    credentials: "include",
     body: JSON.stringify(body),
   });
   return readJson<T>(res);

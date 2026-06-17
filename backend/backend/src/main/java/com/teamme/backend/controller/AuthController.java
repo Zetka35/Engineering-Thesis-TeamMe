@@ -6,7 +6,11 @@ import com.teamme.backend.service.AuthService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
 import java.time.Duration;
 
 @RestController
@@ -73,6 +77,12 @@ public class AuthController {
 
     User u = authService.loadByUsername(username);
     return toDto(u);
+  }
+
+
+  @GetMapping("/csrf")
+  public Map<String, String> csrf(CsrfToken token) {
+    return Map.of("token", token.getToken());
   }
 
   private UserDto setCookieAndReturnDto(User u, String token) {
