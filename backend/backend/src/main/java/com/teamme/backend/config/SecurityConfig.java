@@ -56,7 +56,7 @@ public class SecurityConfig {
     cfg.setAllowedOrigins(allowedOrigins);
     cfg.setAllowCredentials(true);
     cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    cfg.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+    cfg.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-XSRF-TOKEN"));
     cfg.setExposedHeaders(List.of("Set-Cookie"));
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -1,11 +1,11 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/teamme
-    username: app
-    password: zetka
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/teamme}
+    username: ${SPRING_DATASOURCE_USERNAME:app}
+    password: ${SPRING_DATASOURCE_PASSWORD:zetka}
     driver-class-name: org.postgresql.Driver
 
   flyway:
@@ -17,9 +17,13 @@ spring:
 
 app:
   jwt:
-    secret: "1234567890123456789012345678901234567890123456789012345678901234"
-    issuer: "teamme"
-    accessTokenMinutes: 120
+    secret: ${APP_JWT_SECRET:1234567890123456789012345678901234567890123456789012345678901234}
+    issuer: ${APP_JWT_ISSUER:teamme}
+    accessTokenMinutes: ${APP_JWT_ACCESS_TOKEN_MINUTES:120}
+
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+    sameSite: ${COOKIE_SAME_SITE:Lax}
 
 cors:
-  allowedOrigins: "http://localhost:5173,http://localhost:3000"
+  allowedOrigins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
