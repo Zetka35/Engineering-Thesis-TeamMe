@@ -302,7 +302,6 @@ function projectStatusLabel(value?: string | null) {
                             Rola zespołowa: {item.teamRoleLabel || "nie ustawiono"}
                           </span>
                           <span className="pill">{projectStatusLabel(item.teamStatus)}</span>
-                          {item.current && <span className="pill">aktywny</span>}
                           <VisibilityBadge visible={item.showOnPublicProfile} />
                         </div>
                         <div className="muted">Dołączono: {formatPl(item.joinedAt)} | Zakończono: {item.current ? "—" : formatPl(item.leftAt)}</div>

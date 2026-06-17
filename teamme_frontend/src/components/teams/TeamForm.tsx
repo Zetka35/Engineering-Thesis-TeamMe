@@ -61,6 +61,7 @@ const recruitmentOptions: Array<{ value: TeamRecruitmentStatus; label: string }>
   { value: "FULL", label: "Komplet" },
 ];
 
+
 const PROJECT_AREA_OPTIONS = [
   "Aplikacja webowa",
   "Aplikacja mobilna",
@@ -75,6 +76,7 @@ const PROJECT_AREA_OPTIONS = [
   "SaaS / produkt cyfrowy",
   "Automatyzacja procesów",
 ] as const;
+
 
 function isKnownProjectArea(value?: string | null) {
   if (!value) return false;
@@ -177,7 +179,7 @@ export default function TeamForm({
 }: Props) {
   const [form, setForm] = useState<TeamFormValue>(buildInitialValue(initialValue));
   const [errors, setErrors] = useState<FormErrors>({});
-  const [showOptional, setShowOptional] = useState(Boolean(initialValue));
+  const [showRecruitmentDetails, setShowRecruitmentDetails] = useState(Boolean(initialValue));
   const [projectAreaMode, setProjectAreaMode] = useState<"catalog" | "custom">(
     deriveProjectAreaMode(initialValue?.projectArea)
   );
@@ -185,7 +187,7 @@ export default function TeamForm({
   useEffect(() => {
     setForm(buildInitialValue(initialValue));
     setErrors({});
-    setShowOptional(Boolean(initialValue));
+    setShowRecruitmentDetails(Boolean(initialValue));
     setProjectAreaMode(deriveProjectAreaMode(initialValue?.projectArea));
   }, [initialValue]);
 
@@ -202,10 +204,15 @@ export default function TeamForm({
     e.preventDefault();
 
     const nextErrors = validateForm(form);
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
-      return;
-    }
+if (Object.keys(nextErrors).length > 0) {
+  setErrors(nextErrors);
+
+  if (nextErrors.roleRequirements) {
+    setShowRecruitmentDetails(true);
+  }
+
+  return;
+}
 
     await onSubmit({
       ...form,
@@ -228,6 +235,7 @@ export default function TeamForm({
   }
 
   return (
+
     <div className="profile-block">
       <div className="profile-block-title">{title}</div>
 
@@ -431,15 +439,15 @@ export default function TeamForm({
             </div>
 
             <button
-              type="button"
-              className="btn btn-ghost form-toggle"
-              onClick={() => setShowOptional((prev) => !prev)}
-            >
-              {showOptional ? "Ukryj pola opcjonalne" : "Pokaż pola opcjonalne"}
-            </button>
+  type="button"
+  className="btn btn-ghost form-toggle"
+  onClick={() => setShowRecruitmentDetails((prev) => !prev)}
+>
+  {showRecruitmentDetails ? "Ukryj szczegóły rekrutacji" : "Pokaż szczegóły rekrutacji"}
+</button>
           </div>
 
-          {showOptional && (
+          {showRecruitmentDetails && (
             <>
               <div className="form-grid-3">
                 <div className="field">
@@ -507,14 +515,14 @@ export default function TeamForm({
               )}
 
               <RoleRequirementInputs
-                title="Poszukiwane role"
-                subtitle="Dodaj role projektowe, które chcesz obsadzić. To kluczowy element sensownej rekrutacji."
-                items={form.roleRequirements}
-                onChange={(items) => {
-                  clearError("roleRequirements");
-                  setForm((prev) => ({ ...prev, roleRequirements: items }));
-                }}
-              />
+  title="Poszukiwane role *"
+  subtitle="Dodaj przynajmniej jedną rolę projektową, jeśli rekrutacja jest otwarta. To pozwala kandydatom zrozumieć, kogo szukacie."
+  items={form.roleRequirements}
+  onChange={(items) => {
+    clearError("roleRequirements");
+    setForm((prev) => ({ ...prev, roleRequirements: items }));
+  }}
+/>
             </>
           )}
         </section>
