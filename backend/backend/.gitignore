@@ -27,7 +27,6 @@ out/
 !**/src/test/**/out/
 .env
 .env.*
-.\cert
 
 ### NetBeans ###
 /nbproject/private/
