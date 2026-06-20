@@ -66,8 +66,9 @@ export default function Messages() {
   }
 
   useEffect(() => {
-    void load();
-  }, [refreshSignal]);
+  if (!user) return;
+  void load();
+}, [refreshSignal, user?.username]);
 
   const currentUsername = user?.username ?? "";
 

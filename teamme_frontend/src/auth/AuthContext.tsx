@@ -23,7 +23,7 @@ interface AuthContextValue {
   user: User | null;
   login: (username: string, password: string) => Promise<User>;
   register: (username: string, password: string) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateAvatar: (avatarDataUrl: string | undefined) => void;
   setSelectedRole: (selectedRole: string | null) => void;
   mergeUser: (patch: Partial<User>) => void;
@@ -117,10 +117,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return merged;
       },
 
-      logout: () => {
-        persist(null);
-        setUser(null);
-      },
+      logout: async () => {
+  try {
+    await authApi.logout();
+  } finally {
+    persist(null);
+    setUser(null);
+  }
+},
 
       updateAvatar: (avatarDataUrl) => {
         setUser((prev) => {

@@ -339,10 +339,10 @@ export default function Topbar() {
     }, 300);
   }
 
-  function handleLogout() {
-    logout();
-    nav("/login");
-  }
+  async function handleLogout() {
+  await logout();
+  nav("/login");
+}
 
   function triggerAvatarUpload() {
     fileInputRef.current?.click();

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 import java.time.Duration;
@@ -18,6 +19,11 @@ import java.time.Duration;
 public class AuthController {
   private final AuthService authService;
   private final JwtUtil jwtUtil;
+  @Value("${app.cookie.secure}")
+  private boolean cookieSecure;
+
+  @Value("${app.cookie.sameSite}")
+  private String cookieSameSite;
 
   public AuthController(AuthService authService, JwtUtil jwtUtil) {
     this.authService = authService;
@@ -60,8 +66,8 @@ public class AuthController {
   public void logout() {
     ResponseCookie cookie = ResponseCookie.from("access_token", "")
             .httpOnly(true)
-            .secure(true)
-            .sameSite("Lax")
+            .secure(cookieSecure)
+            .sameSite(cookieSameSite)
             .path("/")
             .maxAge(Duration.ZERO)
             .build();
@@ -88,8 +94,8 @@ public class AuthController {
   private UserDto setCookieAndReturnDto(User u, String token) {
     ResponseCookie cookie = ResponseCookie.from("access_token", token)
             .httpOnly(true)
-            .secure(true)
-            .sameSite("Lax")
+            .secure(cookieSecure)
+            .sameSite(cookieSameSite)
             .path("/")
             .maxAge(Duration.ofHours(2))
             .build();
