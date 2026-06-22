@@ -8,11 +8,12 @@ import java.util.List;
 
 public interface TeamRepository extends JpaRepository<Team, Long> {
     @Query("""
-        select tm.team
-        from TeamMember tm
-        where tm.user.username = :username
-        order by tm.team.createdAt desc
-    """)
+    select tm.team
+    from TeamMember tm
+    where tm.user.username = :username
+      and tm.leftAt is null
+    order by tm.team.createdAt desc
+""")
     List<Team> findAllForUsername(String username);
 
     @Query("""

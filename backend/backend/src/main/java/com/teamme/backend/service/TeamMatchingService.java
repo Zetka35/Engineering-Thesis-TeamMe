@@ -76,9 +76,10 @@ public class TeamMatchingService {
                         .toList();
 
         Set<Long> currentMemberIds = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId).stream()
+                .filter(tm -> tm.getLeftAt() == null)
                 .map(tm -> tm.getUser().getId())
                 .collect(Collectors.toSet());
-
+        
         return userRepository.findAll().stream()
                 .filter(u -> !currentMemberIds.contains(u.getId()))
                 .filter(u -> team.getOwnerUser() == null || !u.getId().equals(team.getOwnerUser().getId()))

@@ -4,6 +4,7 @@ import com.teamme.backend.entity.*;
 import com.teamme.backend.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
@@ -235,9 +236,9 @@ public class TeamsService {
 
     return teamRepository.findAllForUsername(username).stream()
             .map(team -> {
-              long memberCount = teamMemberRepository.countByTeam_Id(team.getId());
+              long memberCount = countActiveMembers(team.getId());
 
-              TeamMember myMembership = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
+              TeamMember myMembership = findActiveMembership(team.getId(), username)
                       .orElse(null);
 
               String myRole = myMembership == null ? "Member" : myMembership.getRoleLabel();
@@ -277,10 +278,11 @@ public class TeamsService {
             .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika: " + username));
 
     return teamRepository.findAllOpenRecruitment().stream()
+            .filter(team -> findActiveMembership(team.getId(), username).isEmpty())
             .map(team -> {
-              long memberCount = teamMemberRepository.countByTeam_Id(team.getId());
+              long memberCount = countActiveMembers(team.getId());
 
-              TeamMember myMembership = teamMemberRepository.findByTeam_IdAndUser_Username(team.getId(), username)
+              TeamMember myMembership = findActiveMembership(team.getId(), username)
                       .orElse(null);
 
               String myRole = myMembership == null ? null : myMembership.getRoleLabel();
@@ -325,13 +327,8 @@ public class TeamsService {
     Team team = teamRepository.findById(teamId)
             .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zespołu."));
 
-    TeamMember membership = teamMemberRepository
-            .findByTeam_IdAndUser_Username(teamId, username)
+    findActiveMembership(teamId, username)
             .orElseThrow(() -> new IllegalArgumentException("Nie masz dostępu do tego zespołu."));
-
-    if (membership.getLeftAt() != null) {
-      throw new IllegalArgumentException("Nie masz dostępu do tego zespołu.");
-    }
 
     return team;
   }
@@ -425,7 +422,7 @@ public class TeamsService {
       throw new IllegalArgumentException("Zespół musi mieć co najmniej 2 miejsca: dla właściciela oraz przynajmniej jednego członka.");
     }
 
-    if (teamMemberRepository.countByTeam_Id(teamId) > maxMembers) {
+    if (countActiveMembers(teamId) > maxMembers) {
       throw new IllegalArgumentException("Nie można ustawić limitu mniejszego niż aktualna liczba członków.");
     }
 
@@ -477,10 +474,8 @@ public class TeamsService {
 
     teamTaskRepository.saveAll(changedTasks);
 
-    if ("FULL".equals(team.getRecruitmentStatus())) {
-      team.setRecruitmentStatus("OPEN");
-      teamRepository.save(team);
-    }
+    syncRoleRequirementStatuses(team);
+    syncRecruitmentStatus(team);
 
     return toPrivateDetails(team, username);
   }
@@ -532,7 +527,7 @@ public class TeamsService {
 
     User assignee = null;
     if (req.assigneeUserId() != null) {
-      if (!teamMemberRepository.existsByTeam_IdAndUser_Id(teamId, req.assigneeUserId())) {
+      if (findActiveMembership(teamId, req.assigneeUserId()).isEmpty()) {
         throw new IllegalArgumentException("Wybrany użytkownik nie należy do tego zespołu.");
       }
       assignee = userRepository.findById(req.assigneeUserId())
@@ -663,8 +658,61 @@ public class TeamsService {
   }
   private long countActiveMembers(Long teamId) {
     return teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId).stream()
-            .filter(member -> member.getLeftAt() == null)
+            .filter(this::isActiveMembership)
             .count();
+  }
+
+  private Optional<TeamMember> findActiveMembership(Long teamId, String username) {
+    return teamMemberRepository.findByTeam_IdAndUser_Username(teamId, username)
+            .filter(this::isActiveMembership);
+  }
+
+  private Optional<TeamMember> findActiveMembership(Long teamId, Long userId) {
+    return teamMemberRepository.findByTeam_IdAndUser_Id(teamId, userId)
+            .filter(this::isActiveMembership);
+  }
+
+  private boolean isActiveMembership(TeamMember membership) {
+    return membership != null && membership.getLeftAt() == null;
+  }
+
+  private List<TeamMember> activeMembers(Long teamId) {
+    return teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId).stream()
+            .filter(this::isActiveMembership)
+            .toList();
+  }
+
+  private void syncRoleRequirementStatuses(Team team) {
+    List<TeamMember> members = activeMembers(team.getId());
+    List<TeamRoleRequirement> roleRequirements =
+            teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(team.getId());
+
+    for (TeamRoleRequirement requirement : roleRequirements) {
+      long assigned = members.stream()
+              .filter(member -> equalsIgnoreCase(member.getRoleLabel(), requirement.getProjectRoleName()))
+              .count();
+
+      requirement.setStatus(assigned >= requirement.getSlots() ? "FILLED" : "OPEN");
+    }
+
+    teamRoleRequirementRepository.saveAll(roleRequirements);
+  }
+
+  private void syncRecruitmentStatus(Team team) {
+    long memberCount = countActiveMembers(team.getId());
+
+    if (memberCount >= team.getMaxMembers()) {
+      team.setRecruitmentStatus("FULL");
+    } else if ("FULL".equals(team.getRecruitmentStatus())) {
+      team.setRecruitmentStatus("OPEN");
+    }
+
+    teamRepository.save(team);
+  }
+
+  private boolean equalsIgnoreCase(String left, String right) {
+    if (left == null || right == null) return false;
+    return left.trim().equalsIgnoreCase(right.trim());
   }
 
   private TeamPublicDetails toPublicDetails(Team team) {

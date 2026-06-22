@@ -353,17 +353,24 @@ public class TeamRecruitmentService {
         ensureRecruitmentOpen(team);
         ensureNotAlreadyMember(team.getId(), user.getId());
 
-        long currentMembers = teamMemberRepository.countByTeam_Id(team.getId());
+        long currentMembers = countActiveMembers(team.getId());
         if (currentMembers >= team.getMaxMembers()) {
             team.setRecruitmentStatus("FULL");
             teamRepository.save(team);
             throw new IllegalArgumentException("Zespół osiągnął już maksymalną liczbę członków.");
         }
 
-        TeamMember membership = new TeamMember();
-        membership.setId(new TeamMemberId(team.getId(), user.getId()));
-        membership.setTeam(team);
-        membership.setUser(user);
+        TeamMember membership = teamMemberRepository
+                .findByTeam_IdAndUser_Id(team.getId(), user.getId())
+                .orElseGet(() -> {
+                    TeamMember created = new TeamMember();
+                    created.setId(new TeamMemberId(team.getId(), user.getId()));
+                    created.setTeam(team);
+                    created.setUser(user);
+                    return created;
+                });
+
+        membership.setLeftAt(null);
         membership.setRoleLabel(
                 request.getTargetRoleName() == null || request.getTargetRoleName().isBlank()
                         ? "Członek zespołu"
@@ -403,7 +410,9 @@ public class TeamRecruitmentService {
     }
 
     private void syncRoleRequirementStatuses(Team team) {
-        List<TeamMember> members = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(team.getId());
+        List<TeamMember> members = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(team.getId()).stream()
+                .filter(this::isActiveMembership)
+                .toList();
         List<TeamRoleRequirement> roleRequirements =
                 teamRoleRequirementRepository.findByTeam_IdOrderByPriorityDescProjectRoleNameAsc(team.getId());
 
@@ -423,7 +432,7 @@ public class TeamRecruitmentService {
     }
 
     private void syncRecruitmentStatus(Team team) {
-        long memberCount = teamMemberRepository.countByTeam_Id(team.getId());
+        long memberCount = countActiveMembers(team.getId());
         if (memberCount >= team.getMaxMembers()) {
             team.setRecruitmentStatus("FULL");
         } else if ("FULL".equals(team.getRecruitmentStatus())) {
@@ -458,9 +467,23 @@ public class TeamRecruitmentService {
     }
 
     private void ensureNotAlreadyMember(Long teamId, Long userId) {
-        if (teamMemberRepository.existsByTeam_IdAndUser_Id(teamId, userId)) {
+        boolean activeMember = teamMemberRepository.findByTeam_IdAndUser_Id(teamId, userId)
+                .filter(this::isActiveMembership)
+                .isPresent();
+
+        if (activeMember) {
             throw new IllegalArgumentException("Ten użytkownik należy już do zespołu.");
         }
+    }
+
+    private long countActiveMembers(Long teamId) {
+        return teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId).stream()
+                .filter(this::isActiveMembership)
+                .count();
+    }
+
+    private boolean isActiveMembership(TeamMember membership) {
+        return membership != null && membership.getLeftAt() == null;
     }
 
     private void ensureNoPendingRequest(Long teamId, Long userId) {
