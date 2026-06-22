@@ -2,6 +2,6 @@
 .env.*
 certs/
 certs/.*
-.demo.sql
-.demo.sql.*
+demo.sql
+demo.sql.*
 
