@@ -17,6 +17,8 @@ import java.util.stream.Stream;
 @Transactional
 public class TeamsService {
 
+  private static final int MIN_TEAM_MEMBERS = 2;
+
   private static final List<String> TEAM_ROLE_NAMES = List.of(
           "Inicjator Pomysłów",
           "Koordynator Relacji",
@@ -349,8 +351,8 @@ public class TeamsService {
     }
 
     Integer maxMembers = req.maxMembers() == null ? 4 : req.maxMembers();
-    if (maxMembers < 1) {
-      throw new IllegalArgumentException("Liczba członków musi być większa od 0.");
+    if (maxMembers < MIN_TEAM_MEMBERS) {
+      throw new IllegalArgumentException("Zespół musi mieć co najmniej 2 miejsca: dla właściciela oraz przynajmniej jednego członka.");
     }
 
     Team team = new Team();
@@ -403,8 +405,8 @@ public class TeamsService {
     }
 
     Integer maxMembers = req.maxMembers() == null ? team.getMaxMembers() : req.maxMembers();
-    if (maxMembers < 1) {
-      throw new IllegalArgumentException("Liczba członków musi być większa od 0.");
+    if (maxMembers < MIN_TEAM_MEMBERS) {
+      throw new IllegalArgumentException("Zespół musi mieć co najmniej 2 miejsca: dla właściciela oraz przynajmniej jednego członka.");
     }
 
     if (teamMemberRepository.countByTeam_Id(teamId) > maxMembers) {

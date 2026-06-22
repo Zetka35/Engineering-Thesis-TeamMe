@@ -1,44 +1,45 @@
-import React from "react";
-
 type Props = {
   role?: string | null;
 };
 
-const ROLE_STYLES: Record<string, { background: string; border: string; color: string }> = {
+const ROLE_STYLES: Record<
+  string,
+  { background: string; border: string; color: string }
+> = {
   "Koordynator Relacji": {
     background: "#eff6ff",
-    border: "#93c5fd",
-    color: "#1e40af",
+    border: "#bfdbfe",
+    color: "#1d4ed8",
   },
   "Realizator Zadań": {
-    background: "#ecfdf3",
-    border: "#86efac",
-    color: "#166534",
+    background: "#ecfdf5",
+    border: "#bbf7d0",
+    color: "#047857",
   },
   "Inicjator Pomysłów": {
-    background: "#f5f3ff",
-    border: "#c4b5fd",
-    color: "#5b21b6",
+    background: "#faf5ff",
+    border: "#e9d5ff",
+    color: "#7e22ce",
   },
   "Kontroler Jakości": {
     background: "#fff7ed",
-    border: "#fdba74",
-    color: "#9a3412",
+    border: "#fed7aa",
+    color: "#c2410c",
   },
   "Analityk Strategiczny": {
-    background: "#f1f5f9",
-    border: "#94a3b8",
+    background: "#f8fafc",
+    border: "#cbd5e1",
     color: "#334155",
   },
   "Filar Wsparcia": {
-    background: "#f1f5f9",
-    border: "#f7b1e8",
-    color: "#f828a5",
+    background: "#fdf2f8",
+    border: "#fbcfe8",
+    color: "#be185d",
   },
   "Łowca Informacji": {
-    background: "#f1f5f9",
-    border: "#22fdbf",
-    color: "#00f7ff",
+    background: "#ecfeff",
+    border: "#a5f3fc",
+    color: "#0e7490",
   },
 };
 
@@ -62,7 +63,9 @@ export default function TeamRoleBadge({ role }: Props) {
         background: style.background,
         border: `1px solid ${style.border}`,
         color: style.color,
-        fontWeight: 900,
+        fontWeight: 800,
+        lineHeight: 1.2,
+        whiteSpace: "nowrap",
       }}
     >
       {role}

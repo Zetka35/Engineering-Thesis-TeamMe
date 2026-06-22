@@ -29,7 +29,7 @@ export default function OnboardingSurvey() {
           </div>
 
           <p style={{ marginTop: 12, color: "var(--muted)", fontWeight: 700 }}>
-            Ankietę możesz uruchomić później z poziomu: Profil → „Moja rola w zespole”.
+            Ankietę możesz uruchomić później z poziomu: Profil → „Uruchom ankietę”.
           </p>
         </div>
       </section>

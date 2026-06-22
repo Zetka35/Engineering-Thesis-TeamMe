@@ -155,7 +155,7 @@ export default function RoleRequirementInputs({
                   ))}
                 </select>
                 <p className="field-help">
-                  To Twoja autorska rola zespołowa — określa preferowany styl współpracy, a nie kompetencje techniczne.
+                  To Twoja rola zespołowa — określa preferowany styl współpracy, a nie kompetencje techniczne.
                 </p>
               </div>
 

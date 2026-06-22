@@ -45,6 +45,49 @@ function completionInfo(result?: SurveyResultDto | null) {
   return { all, top };
 }
 
+function clamp01(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+function formatRoleFit(value: number) {
+  return clamp01(value).toLocaleString("pl-PL", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function RoleFit({ score }: { score: number }) {
+  const value = clamp01(score);
+
+  return (
+    <div style={{ display: "grid", gap: 5, minWidth: 160 }}>
+      <div className="muted" style={{ marginTop: 0 }}>
+        dopasowanie: <b>{formatRoleFit(value)} / 1</b>
+      </div>
+
+      <div
+        aria-hidden="true"
+        style={{
+          height: 7,
+          borderRadius: 999,
+          background: "rgba(148, 163, 184, 0.18)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${value * 100}%`,
+            height: "100%",
+            borderRadius: 999,
+            background: "rgba(111,168,199,.85)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Survey() {
   const { user, setSelectedRole } = useAuth();
   const nav = useNavigate();
@@ -415,7 +458,7 @@ export default function Survey() {
           <div className="card-header">
             <h2 className="card-title">Wynik ankiety</h2>
             <p className="card-subtitle">
-              Oto pełna lista 7 ról. Top 3 zostały oznaczone jako rekomendowane na podstawie Twoich odpowiedzi.
+              Na podstawie odpowiedzi wyznaczyliśmy poziom dopasowania do każdej roli zespołowej. Trzy najwyższe wyniki zostały oznaczone jako rekomendowane.
             </p>
           </div>
 
@@ -434,7 +477,7 @@ export default function Survey() {
               <div><b>Status:</b> {surveyStatusLabel(status)}</div>
               <div className="muted">Ukończono: {formatDate(completedAt)}</div>
               <div className="muted">
-                Wynik ankiety jest wskazówką. Możesz przypisać do profilu jedną z rekomendowanych ról albo wybrać inną z pełnej listy.
+                Wynik ankiety jest wskazówką, a nie oceną użytkownika. Liczba przy roli pokazuje poziom dopasowania w skali od 0 do 1. Możesz przypisać do profilu jedną z rekomendowanych ról albo wybrać inną z pełnej listy.
               </div>
             </div>
 
@@ -454,11 +497,12 @@ export default function Survey() {
                       }}
                     >
                       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                        <b>{role.key}</b>
-                        <span className="pill">Top 3</span>
-                        <span className="pill">wynik: {role.finalScore.toFixed(3)}</span>
-                        {isSelected && <span className="pill">wybrana rola</span>}
-                      </div>
+  <b>{role.key}</b>
+  <span className="pill">rekomendowana</span>
+  {isSelected && <span className="pill">wybrana rola</span>}
+</div>
+
+<RoleFit score={role.finalScore} />
 
                       <div className="muted" style={{ marginTop: 8 }}>
                         {role.explanation}
@@ -479,35 +523,6 @@ export default function Survey() {
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              }}
-            >
-              <div className="profile-block" style={{ display: "grid", gap: 10 }}>
-                <div className="profile-block-title">Wyniki pomocnicze — część 1</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {result.bigFive.map((score) => (
-                    <span key={score.key} className="pill">
-                      {score.key}: {score.rawScore.toFixed(2)} / {score.normalizedScore.toFixed(3)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="profile-block" style={{ display: "grid", gap: 10 }}>
-                <div className="profile-block-title">Wyniki pomocnicze — część 2</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {result.teamwork.map((score) => (
-                    <span key={score.key} className="pill">
-                      {score.key}: {score.rawScore.toFixed(2)} / {score.normalizedScore.toFixed(3)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
 
             <div className="profile-block" style={{ display: "grid", gap: 10 }}>
               <div className="profile-block-title">Pełna lista 7 ról</div>
@@ -527,19 +542,16 @@ export default function Survey() {
                       }}
                     >
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                        <b>{role.key}</b>
-                        {role.recommended && <span className="pill">Top 3</span>}
-                        {isSelected && <span className="pill">wybrana rola</span>}
-                        <span className="pill">wynik końcowy: {role.finalScore.toFixed(3)}</span>
-                      </div>
+  <b>{role.key}</b>
+  {role.recommended && <span className="pill">rekomendowana</span>}
+  {isSelected && <span className="pill">wybrana rola</span>}
+</div>
 
-                      <div className="muted" style={{ marginTop: 0 }}>
-                        {role.explanation}
-                      </div>
+<RoleFit score={role.finalScore} />
 
-                      <div className="muted" style={{ marginTop: 0 }}>
-                        wynik bazowy: {role.baseScore.toFixed(3)} | korekta modułu zespołowego: {role.adjustmentScore.toFixed(3)}
-                      </div>
+<div className="muted" style={{ marginTop: 0 }}>
+  {role.explanation}
+</div>
 
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         <button

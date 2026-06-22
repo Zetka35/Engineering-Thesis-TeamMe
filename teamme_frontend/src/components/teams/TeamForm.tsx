@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { TeamExperienceLevel, TeamRecruitmentStatus } from "../../models/Team";
 import TechnologyInputs from "./TechnologyInputs";
 import RoleRequirementInputs from "./RoleRequirementInputs";
@@ -153,8 +153,8 @@ function validateForm(form: TeamFormValue): FormErrors {
     errors.projectArea = "Wybierz obszar projektu albo wpisz własny.";
   }
 
-  if (!Number.isFinite(form.maxMembers) || form.maxMembers < 1) {
-    errors.maxMembers = "Liczba miejsc musi być większa od 0.";
+  if (!Number.isFinite(form.maxMembers) || form.maxMembers < 2) {
+    errors.maxMembers = "Zespół musi mieć co najmniej 2 miejsca: dla właściciela oraz przynajmniej jednego członka.";
   }
 
   const hasAnyProjectRole = form.roleRequirements.some((role) =>
@@ -183,7 +183,12 @@ export default function TeamForm({
   const [projectAreaMode, setProjectAreaMode] = useState<"catalog" | "custom">(
     deriveProjectAreaMode(initialValue?.projectArea)
   );
-
+  const nameRef = useRef<HTMLInputElement>(null);
+  const projectAreaSelectRef = useRef<HTMLSelectElement>(null);
+  const customProjectAreaRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const maxMembersRef = useRef<HTMLInputElement>(null);
+  const roleRequirementsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setForm(buildInitialValue(initialValue));
     setErrors({});
@@ -200,17 +205,66 @@ export default function TeamForm({
     });
   }
 
+  const ERROR_FIELD_ORDER: Array<keyof FormErrors> = [
+  "name",
+  "projectArea",
+  "description",
+  "maxMembers",
+  "roleRequirements",
+];
+
+function getErrorTarget(field: keyof FormErrors): HTMLElement | null {
+  switch (field) {
+    case "name":
+      return nameRef.current;
+    case "projectArea":
+      return projectAreaMode === "custom"
+        ? customProjectAreaRef.current
+        : projectAreaSelectRef.current;
+    case "description":
+      return descriptionRef.current;
+    case "maxMembers":
+      return maxMembersRef.current;
+    case "roleRequirements":
+      return roleRequirementsRef.current;
+    default:
+      return null;
+  }
+}
+
+function scrollToFirstError(nextErrors: FormErrors) {
+  const firstErrorField = ERROR_FIELD_ORDER.find((field) => nextErrors[field]);
+
+  if (!firstErrorField) return;
+
+  if (firstErrorField === "roleRequirements") {
+    setShowRecruitmentDetails(true);
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      const target = getErrorTarget(firstErrorField);
+
+      if (!target) return;
+
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+
+      target.focus?.({ preventScroll: true });
+    });
+  });
+}
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     const nextErrors = validateForm(form);
+
 if (Object.keys(nextErrors).length > 0) {
   setErrors(nextErrors);
-
-  if (nextErrors.roleRequirements) {
-    setShowRecruitmentDetails(true);
-  }
-
+  scrollToFirstError(nextErrors);
   return;
 }
 
@@ -239,13 +293,13 @@ if (Object.keys(nextErrors).length > 0) {
     <div className="profile-block">
       <div className="profile-block-title">{title}</div>
 
-      <form onSubmit={handleSubmit} className="section-spacer">
+      <form onSubmit={handleSubmit} className="section-spacer" noValidate>
         <section className="form-section">
           <div className="form-section-header">
             <div>
               <h3 className="form-section-title">Informacje podstawowe</h3>
               <p className="form-section-subtitle">
-                Określ, czym zajmuje się projekt i jaki jest podstawowy skład zespołu.
+                Określ czego będzie dotyczył projekt i potrzebny skład zespołu.
               </p>
             </div>
           </div>
@@ -256,6 +310,7 @@ if (Object.keys(nextErrors).length > 0) {
                 Nazwa zespołu <span className="field-required">*</span>
               </label>
               <input
+                ref={nameRef}
                 id="team-name"
                 className={`input ${errors.name ? "input-error" : ""}`}
                 value={form.name}
@@ -275,6 +330,7 @@ if (Object.keys(nextErrors).length > 0) {
               </label>
 
               <select
+                ref={projectAreaSelectRef}
                 id="team-project-area"
                 className={`input ${errors.projectArea ? "input-error" : ""}`}
                 value={
@@ -314,6 +370,7 @@ if (Object.keys(nextErrors).length > 0) {
 
               {projectAreaMode === "custom" && (
                 <input
+                  ref={customProjectAreaRef}
                   className={`input ${errors.projectArea ? "input-error" : ""}`}
                   value={form.projectArea}
                   onChange={(e) => {
@@ -337,6 +394,7 @@ if (Object.keys(nextErrors).length > 0) {
               Opis projektu <span className="field-required">*</span>
             </label>
             <textarea
+              ref={descriptionRef}
               id="team-description"
               className={`input ${errors.description ? "input-error" : ""}`}
               rows={4}
@@ -345,11 +403,11 @@ if (Object.keys(nextErrors).length > 0) {
                 clearError("description");
                 setForm((prev) => ({ ...prev, description: e.target.value }));
               }}
-              placeholder="Napisz krótko: co chcecie zbudować, na jakim etapie jesteście i jaki jest cel projektu."
+              placeholder="Opisz co chcecie zbudować, na jakim etapie jesteście i jaki jest cel projektu."
               required
             />
             <p className="field-help">
-              Dobrze działają 2–4 zdania: cel projektu, etap prac i najważniejsze potrzeby zespołu.
+              Cel projektu, etap prac i najważniejsze potrzeby zespołu.
             </p>
             {errors.description && <p className="field-error">{errors.description}</p>}
           </div>
@@ -360,10 +418,12 @@ if (Object.keys(nextErrors).length > 0) {
                 Liczba miejsc <span className="field-required">*</span>
               </label>
               <input
+                ref={maxMembersRef}
                 id="team-max-members"
                 className={`input ${errors.maxMembers ? "input-error" : ""}`}
                 type="number"
-                min={1}
+                min={2}
+                step={1}
                 max={50}
                 value={form.maxMembers}
                 onChange={(e) => {
@@ -434,7 +494,7 @@ if (Object.keys(nextErrors).length > 0) {
             <div>
               <h3 className="form-section-title">Szczegóły rekrutacji i wymagania</h3>
               <p className="form-section-subtitle">
-                Te pola porządkują rekrutację. Dzięki nim kandydaci szybciej ocenią dopasowanie, a zapraszanie będzie bardziej precyzyjne.
+                Doprecyzuj wymagania projektowe i określ potrzeby zespołu. 
               </p>
             </div>
 
@@ -511,12 +571,18 @@ if (Object.keys(nextErrors).length > 0) {
               />
 
               {errors.roleRequirements && (
-                <div className="alert alert-error">{errors.roleRequirements}</div>
-              )}
+  <div
+    ref={roleRequirementsRef}
+    className="alert alert-error"
+    tabIndex={-1}
+  >
+    {errors.roleRequirements}
+  </div>
+)}
 
               <RoleRequirementInputs
   title="Poszukiwane role *"
-  subtitle="Dodaj przynajmniej jedną rolę projektową, jeśli rekrutacja jest otwarta. To pozwala kandydatom zrozumieć, kogo szukacie."
+  subtitle="Dodaj przynajmniej jedną rolę projektową. To pozwala kandydatom zrozumieć, kogo szukasz."
   items={form.roleRequirements}
   onChange={(items) => {
     clearError("roleRequirements");

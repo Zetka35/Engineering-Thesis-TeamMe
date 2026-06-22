@@ -332,10 +332,10 @@ function projectStatusLabel(value?: string | null) {
                           </div>
 
                           <div className="form-grid-2">
-                            <RatingSelect label="Zaangażowanie w projekt" description="Czy osoba realnie angażowała się w pracę, była aktywna i wnosiła wkład?" value={draft.engagementRating} onChange={(value) => updateDraft(item, { engagementRating: value })} />
+                            <RatingSelect label="Zaangażowanie w projekt" description="Czy osoba realnie angażowała się w pracę, była aktywna i realizowała swoje zadania?" value={draft.engagementRating} onChange={(value) => updateDraft(item, { engagementRating: value })} />
                             <RatingSelect label="Realizacja przyjętej roli" description="Jak dobrze poradziła sobie w roli projektowej, którą pełniła?" value={draft.roleExecutionRating} onChange={(value) => updateDraft(item, { roleExecutionRating: value })} />
                             <RatingSelect label="Współpraca zespołowa" description="Jak układała się codzienna współpraca z tą osobą?" value={draft.collaborationRating} onChange={(value) => updateDraft(item, { collaborationRating: value })} />
-                            <RatingSelect label="Odpowiedzialność i terminowość" description="Czy można było na niej polegać i czy domykała zadania?" value={draft.reliabilityRating} onChange={(value) => updateDraft(item, { reliabilityRating: value })} />
+                            <RatingSelect label="Odpowiedzialność i terminowość" description="Czy można było na niej polegać i czy wykonywała swoją pracę na czas?" value={draft.reliabilityRating} onChange={(value) => updateDraft(item, { reliabilityRating: value })} />
                             <RatingSelect label="Jakość wkładu merytorycznego" description="Czy jej rozwiązania, pomysły lub zadania były wartościowe?" value={draft.contributionQualityRating} onChange={(value) => updateDraft(item, { contributionQualityRating: value })} />
                           </div>
 

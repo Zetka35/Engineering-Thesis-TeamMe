@@ -9,7 +9,7 @@ export default function Placeholder({ title }: { title: string }) {
           <p className="card-subtitle">Widok w przygotowaniu.</p>
         </div>
         <div className="card-body">
-          <p>Dodaj tutaj treść / komponenty dla tego modułu.</p>
+          <p>TEST</p>
         </div>
       </section>
     </div>
