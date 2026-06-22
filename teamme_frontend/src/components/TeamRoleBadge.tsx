@@ -30,6 +30,16 @@ const ROLE_STYLES: Record<string, { background: string; border: string; color: s
     border: "#94a3b8",
     color: "#334155",
   },
+  "Filar Wsparcia": {
+    background: "#f1f5f9",
+    border: "#f7b1e8",
+    color: "#f828a5",
+  },
+  "Łowca Informacji": {
+    background: "#f1f5f9",
+    border: "#22fdbf",
+    color: "#00f7ff",
+  },
 };
 
 export default function TeamRoleBadge({ role }: Props) {

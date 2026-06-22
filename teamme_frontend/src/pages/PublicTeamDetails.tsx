@@ -7,13 +7,13 @@ import { extractApiMessage } from "../api/http";
 function recruitmentLabel(value?: string | null) {
   switch (value) {
     case "OPEN":
-      return "rekrutacja otwarta";
+      return "Rekrutacja otwarta";
     case "PAUSED":
-      return "rekrutacja wstrzymana";
+      return "Rekrutacja wstrzymana";
     case "CLOSED":
-      return "rekrutacja zamknięta";
+      return "Rekrutacja zamknięta";
     case "FULL":
-      return "komplet";
+      return "Zespół zapełniony";
     default:
       return value || "brak";
   }

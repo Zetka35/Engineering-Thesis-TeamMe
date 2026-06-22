@@ -347,6 +347,7 @@ export default function Survey() {
             <div className="profile-block" style={{ display: "grid", gap: 10 }}>
               <div><b>Po co wypełniasz tę ankietę?</b></div>
               <div className="muted">
+                Pierwsza część ankiety wykorzystuje IPIP-BFM-20, czyli krótki kwestionariusz samoopisowy odnoszący się do pięciu ogólnych wymiarów osobowości. W aplikacji wynik jest używany wyłącznie pomocniczo — jako jeden z elementów rekomendowania roli zespołowej.
                 Wynik ankiety jest wsparciem przy doborze roli w zespole oraz późniejszym dopasowywaniu do projektów.
                 Jest to rekomendacja — po zakończeniu nadal możesz samodzielnie wybrać dowolną rolę.
               </div>
@@ -361,11 +362,10 @@ export default function Survey() {
             >
               <div className="profile-block" style={{ display: "grid", gap: 8 }}>
                 <div className="profile-block-title" style={{ marginBottom: 0 }}>
-                  Część 1 z 2 — Mini-IPIP
+                  Część 1 z 2 — IPIP-BFM-20
                 </div>
                 <div className="muted">
-                  Ta część dotyczy Twoich ogólnych predyspozycji i stylu działania.
-                  Odpowiadaj, myśląc o sobie ogólnie, a nie tylko o jednej konkretnej sytuacji.
+                  Ta część jest oparta na krótkim kwestionariuszu IPIP-BFM-20, który odnosi się do pięciu ogólnych wymiarów osobowości. Odpowiadaj, myśląc o swoim typowym sposobie zachowania, a nie o jednej konkretnej sytuacji.
                 </div>
                 <div><b>Liczba pytań:</b> 20</div>
               </div>

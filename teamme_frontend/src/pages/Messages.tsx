@@ -237,6 +237,18 @@ const historyRequests = useMemo(
     return null;
   }
 
+  function teamPathForRequest(request: RecruitmentRequest) {
+  if (request.status === "ACCEPTED") {
+    return `/teams/${request.teamId}`;
+  }
+
+  if (request.requestType === "APPLICATION" && request.createdByUsername !== user?.username) {
+    return `/teams/${request.teamId}`;
+  }
+
+  return `/teams/public/${request.teamId}`;
+}
+
   function renderInvitationAcceptanceOptions(request: RecruitmentRequest) {
     if (!shouldAskVisibilityAndTeamRoleOnAccept(request)) return null;
 
@@ -283,7 +295,7 @@ const historyRequests = useMemo(
         {renderInvitationAcceptanceOptions(request)}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="btn btn-ghost" onClick={() => nav(`/teams/${request.teamId}`)}>Otwórz zespół</button>
+          <button className="btn btn-ghost" onClick={() => nav(teamPathForRequest(request))}>Otwórz zespół</button>
           {renderActions(request)}
         </div>
       </div>

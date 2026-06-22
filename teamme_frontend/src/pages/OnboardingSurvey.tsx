@@ -14,7 +14,7 @@ export default function OnboardingSurvey() {
         <div className="card-header">
           <h2 className="card-title">Moja rola w zespole</h2>
           <p className="card-subtitle">
-            Chcesz teraz wykonać krótką ankietę (Mini-IPIP, 20 pytań)? Na podstawie wyników zaproponujemy 2–3 role projektowe.
+           Chcesz teraz wykonać krótką ankietę roli zespołowej? Składa się ona z dwóch części. Pierwsza jest oparta na IPIP-BFM-20, czyli krótkim kwestionariuszu samoopisowym dotyczącym ogólnych cech i stylu działania. Druga część została opracowana na potrzeby aplikacji i odnosi się do Twoich preferencji w pracy zespołowej. Na podstawie odpowiedzi zaproponujemy role, które mogą pasować do Twojego sposobu współpracy.
           </p>
         </div>
 
