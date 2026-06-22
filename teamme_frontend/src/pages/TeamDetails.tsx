@@ -15,6 +15,7 @@ import {
   completeTeam,
   updateMyTeamVisibility,
   updateMyTeamRole,
+  removeTeamMember,
   type RecommendedCandidate,
   type TeamUpsertPayload,
 } from "../api/teams.api";
@@ -171,6 +172,7 @@ export default function TeamDetails() {
   const [savingComplete, setSavingComplete] = useState(false);
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [savingTeamRole, setSavingTeamRole] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState<TeamDetailsTab>("overview");
   const [editingTeam, setEditingTeam] = useState(false);
@@ -365,6 +367,30 @@ export default function TeamDetails() {
       setSavingInvite(false);
     }
   }
+
+  async function handleRemoveMember(member: TeamDetailsModel["members"][number]) {
+  if (!team) return;
+
+  const confirmed = window.confirm(
+    `Czy na pewno chcesz usunąć użytkownika ${member.fullName} (@${member.username}) z zespołu?`
+  );
+
+  if (!confirmed) return;
+
+  setRemovingMemberId(member.userId);
+  setError("");
+  setSuccessMsg("");
+
+  try {
+    const updated = await removeTeamMember(team.id, member.userId);
+    setTeam(updated);
+    setSuccessMsg(`Użytkownik ${member.fullName} został usunięty z zespołu.`);
+  } catch (e: unknown) {
+    setError(`Nie udało się usunąć członka zespołu. ${extractApiMessage(e)}`);
+  } finally {
+    setRemovingMemberId(null);
+  }
+}
 
   async function handleRespondRequest(requestId: number, decision: "ACCEPTED" | "REJECTED" | "CANCELLED", options?: { showOnPublicProfile?: boolean | null; teamRoleLabel?: string | null }) {
     setActingRequestId(requestId);
@@ -693,17 +719,70 @@ function taskStatusLabel(value?: string | null) {
             <div className="profile-block">
               <div className="profile-block-title">Członkowie</div>
               <div style={{ display: "grid", gap: 10 }}>
-                {team.members.map((member) => (
-                  <div key={member.userId} style={{ border: "1px solid var(--line)", borderRadius: 12, padding: 12, display: "grid", gap: 8 }}>
-                    <div><b>{member.fullName}</b> <span className="muted">(@{member.username})</span></div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <span className="pill">Rola projektowa: {member.roleLabel || "—"}</span>
-                      {member.teamRoleLabel ? <TeamRoleBadge role={member.teamRoleLabel} /> : <span className="pill">Rola zespołowa w projekcie: nie ustawiono</span>}
-                      {member.preferredTeamRoleLabel && member.preferredTeamRoleLabel !== member.teamRoleLabel && <span className="pill">Domyślna rola z profilu: {member.preferredTeamRoleLabel}</span>}
-                      <VisibilityBadge visible={member.showOnPublicProfile} />
-                    </div>
-                  </div>
-                ))}
+                {team.members.map((member) => {
+  const canRemoveMember =
+    isOwner &&
+    team.status !== "COMPLETED" &&
+    member.username !== team.ownerUsername;
+
+  return (
+    <div
+      key={member.userId}
+      style={{
+        border: "1px solid var(--line)",
+        borderRadius: 12,
+        padding: 12,
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+        }}
+      >
+        <div>
+          <b>{member.fullName}</b>{" "}
+          <span className="muted">(@{member.username})</span>
+        </div>
+
+        {canRemoveMember && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={removingMemberId === member.userId}
+            onClick={() => void handleRemoveMember(member)}
+          >
+            {removingMemberId === member.userId ? "Usuwanie…" : "Usuń z zespołu"}
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <span className="pill">Rola projektowa: {member.roleLabel || "—"}</span>
+
+        {member.teamRoleLabel ? (
+          <TeamRoleBadge role={member.teamRoleLabel} />
+        ) : (
+          <span className="pill">Rola zespołowa w projekcie: nie ustawiono</span>
+        )}
+
+        {member.preferredTeamRoleLabel &&
+          member.preferredTeamRoleLabel !== member.teamRoleLabel && (
+            <span className="pill">
+              Domyślna rola z profilu: {member.preferredTeamRoleLabel}
+            </span>
+          )}
+
+        <VisibilityBadge visible={member.showOnPublicProfile} />
+      </div>
+    </div>
+  );
+})}
               </div>
             </div>
           )}

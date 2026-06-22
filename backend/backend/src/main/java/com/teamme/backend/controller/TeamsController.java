@@ -88,6 +88,14 @@ public class TeamsController {
     return teamsService.updateMyTeamRole(teamId, req, currentUsername());
   }
 
+  @PostMapping("/{teamId}/members/{userId}/remove")
+  public TeamsService.TeamDetails removeMember(
+          @PathVariable Long teamId,
+          @PathVariable Long userId
+  ) {
+    return teamsService.removeMember(teamId, userId, currentUsername());
+  }
+
   @PostMapping("/{teamId}/meetings")
   public TeamsService.TeamDetails addMeeting(
           @PathVariable Long teamId,

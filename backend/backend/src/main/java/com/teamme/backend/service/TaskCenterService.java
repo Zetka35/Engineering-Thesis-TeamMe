@@ -91,7 +91,11 @@ public class TaskCenterService {
         TeamTask task = teamTaskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zadania."));
 
-        if (!teamMemberRepository.existsByTeam_IdAndUser_Username(task.getTeam().getId(), username)) {
+        TeamMember membership = teamMemberRepository
+                .findByTeam_IdAndUser_Username(task.getTeam().getId(), username)
+                .orElseThrow(() -> new IllegalArgumentException("Nie masz dostępu do tego zadania."));
+
+        if (membership.getLeftAt() != null) {
             throw new IllegalArgumentException("Nie masz dostępu do tego zadania.");
         }
 

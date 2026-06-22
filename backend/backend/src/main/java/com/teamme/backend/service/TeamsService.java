@@ -321,6 +321,22 @@ public class TeamsService {
   }
 
   @Transactional(readOnly = true)
+  private Team getAccessibleTeam(Long teamId, String username) {
+    Team team = teamRepository.findById(teamId)
+            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zespołu."));
+
+    TeamMember membership = teamMemberRepository
+            .findByTeam_IdAndUser_Username(teamId, username)
+            .orElseThrow(() -> new IllegalArgumentException("Nie masz dostępu do tego zespołu."));
+
+    if (membership.getLeftAt() != null) {
+      throw new IllegalArgumentException("Nie masz dostępu do tego zespołu.");
+    }
+
+    return team;
+  }
+
+  @Transactional(readOnly = true)
   public TeamPublicDetails getPublicTeam(Long teamId) {
     Team team = teamRepository.findById(teamId)
             .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zespołu."));
@@ -429,6 +445,46 @@ public class TeamsService {
     return toPrivateDetails(saved, username);
   }
 
+  public TeamDetails removeMember(Long teamId, Long userId, String username) {
+    Team team = getOwnedTeam(teamId, username);
+
+    if (!"ACTIVE".equals(team.getStatus())) {
+      throw new IllegalArgumentException("Członków można usuwać tylko z aktywnego projektu.");
+    }
+
+    if (team.getOwnerUser() != null && userId.equals(team.getOwnerUser().getId())) {
+      throw new IllegalArgumentException("Nie można usunąć właściciela zespołu.");
+    }
+
+    TeamMember membership = teamMemberRepository
+            .findByTeam_IdAndUser_Id(teamId, userId)
+            .orElseThrow(() -> new IllegalArgumentException("Ten użytkownik nie należy do zespołu."));
+
+    if (membership.getLeftAt() != null) {
+      return toPrivateDetails(team, username);
+    }
+
+    membership.setLeftAt(OffsetDateTime.now());
+    teamMemberRepository.save(membership);
+
+    List<TeamTask> tasks = teamTaskRepository.findByTeam_IdOrderByCreatedAtDesc(teamId);
+
+    List<TeamTask> changedTasks = tasks.stream()
+            .filter(task -> task.getAssigneeUser() != null)
+            .filter(task -> userId.equals(task.getAssigneeUser().getId()))
+            .peek(task -> task.setAssigneeUser(null))
+            .toList();
+
+    teamTaskRepository.saveAll(changedTasks);
+
+    if ("FULL".equals(team.getRecruitmentStatus())) {
+      team.setRecruitmentStatus("OPEN");
+      teamRepository.save(team);
+    }
+
+    return toPrivateDetails(team, username);
+  }
+
   public TeamDetails addMeeting(Long teamId, MeetingCreate req, String username) {
     Team team = getAccessibleTeam(teamId, username);
     User author = userRepository.findByUsername(username)
@@ -498,15 +554,6 @@ public class TeamsService {
     return toPrivateDetails(team, username);
   }
 
-  private Team getAccessibleTeam(Long teamId, String username) {
-    Team team = teamRepository.findById(teamId)
-            .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono zespołu."));
-    if (!teamMemberRepository.existsByTeam_IdAndUser_Username(teamId, username)) {
-      throw new IllegalArgumentException("Nie masz dostępu do tego zespołu.");
-    }
-    return team;
-  }
-
   private Team getOwnedTeam(Long teamId, String username) {
     Team team = getAccessibleTeam(teamId, username);
     if (team.getOwnerUser() == null || !username.equals(team.getOwnerUser().getUsername())) {
@@ -519,6 +566,7 @@ public class TeamsService {
     boolean isOwner = team.getOwnerUser() != null && username.equals(team.getOwnerUser().getUsername());
 
     List<MemberView> members = teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(team.getId()).stream()
+            .filter(tm -> tm.getLeftAt() == null)
             .map(tm -> new MemberView(
                     tm.getUser().getId(),
                     tm.getUser().getUsername(),
@@ -613,6 +661,11 @@ public class TeamsService {
             tasks
     );
   }
+  private long countActiveMembers(Long teamId) {
+    return teamMemberRepository.findByTeam_IdOrderByUser_UsernameAsc(teamId).stream()
+            .filter(member -> member.getLeftAt() == null)
+            .count();
+  }
 
   private TeamPublicDetails toPublicDetails(Team team) {
     return new TeamPublicDetails(
@@ -621,7 +674,7 @@ public class TeamsService {
             team.getDescription(),
             team.getExpectedTimeText(),
             team.getMaxMembers(),
-            teamMemberRepository.countByTeam_Id(team.getId()),
+            countActiveMembers(team.getId()),
             team.getStatus(),
             team.getRecruitmentStatus(),
             team.getProjectArea(),

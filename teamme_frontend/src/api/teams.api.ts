@@ -172,3 +172,10 @@ export function respondToRequest(
 ): Promise<RecruitmentRequest> {
   return post<RecruitmentRequest>(`/api/teams/requests/${requestId}/respond`, payload);
 }
+
+export function removeTeamMember(
+  teamId: number,
+  userId: number
+): Promise<TeamDetails> {
+  return post<TeamDetails>(`/api/teams/${teamId}/members/${userId}/remove`, {});
+}

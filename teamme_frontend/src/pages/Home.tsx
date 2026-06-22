@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import PublicNavbar from "../components/PublicNavbar";
 import { TeamworkIcon } from "../components/icons";
 import { TEAM_ROLES_INFO } from "../data/teamRolesInfo";
+import TeamRoleBadge from "../components/TeamRoleBadge";
 
 const featureCards = [
   {
@@ -10,9 +11,9 @@ const featureCards = [
     text: "Buduj zespoły na podstawie celu projektu, wymaganych kompetencji technicznych oraz preferowanego stylu współpracy.",
   },
   {
-    title: "Autorskie role zespołowe",
-    text: "System wspiera dopasowanie nie tylko do ról technicznych, ale też do sposobu działania w zespole.",
-  },
+  title: "Autorskie role zespołowe",
+  text: "Aplikacja uwzględnia nie tylko kompetencje techniczne, ale także preferowany sposób działania i współpracy w zespole.",
+},
   {
     title: "Rekrutacja i zaproszenia",
     text: "Twórz role projektowe, zapraszaj kandydatów i zarządzaj aplikacjami w jednym środowisku.",
@@ -26,7 +27,7 @@ const featureCards = [
 const processSteps = [
   {
     title: "1. Poznaj swój profil zespołowy",
-    text: "Użytkownik wypełnia ankietę, która pomaga określić dominujący styl współpracy i rolę zespołową.",
+    text: "Użytkownik wypełnia ankietę roli zespołowej, która pomaga określić preferowany styl współpracy."
   },
   {
     title: "2. Zbuduj zespół do konkretnego celu",
@@ -53,14 +54,13 @@ export default function Home() {
             <span className="landing-badge">Aplikacja wspierająca tworzenie zespołów projektowych</span>
 
             <h1 className="landing-title">
-              Twórz zespoły na podstawie kompetencji technicznych i jakości współpracy.
+              Twórz zespoły dopasowane do kompetencji technicznych i stylu współpracy.
             </h1>
 
             <p className="landing-lead">
-              TeamMe pomaga budować zespoły projektowe - łączy informacje o umiejętnościach technicznych, 
-              doświadczeniu oraz autorskich rolach zespołowych, aby wspierać skuteczne 
-              dopasowanie ludzi do projektów 
-              i do siebie nawzajem.
+              TeamMe pomaga budować zespoły projektowe — łączy informacje o umiejętnościach technicznych,
+              doświadczeniu oraz rolach zespołowych, aby wspierać dopasowanie osób do projektów
+              i do sposobu pracy innych członków zespołu.
             </p>
 
             <div className="landing-actions">
@@ -153,9 +153,11 @@ export default function Home() {
           <div className="landing-roles-grid">
             {TEAM_ROLES_INFO.map((role) => (
               <article key={role.name} className="landing-role-card">
-                <h3>{role.name}</h3>
-                <p className="landing-role-lead">{role.shortDescription}</p>
+  <div style={{ marginBottom: 10 }}>
+    <TeamRoleBadge role={role.name} />
+  </div>
 
+  <p className="landing-role-lead">{role.shortDescription}</p>
                 <div className="landing-role-block">
                   <div className="landing-role-label">Styl współpracy</div>
                   <p>{role.collaborationStyle}</p>
