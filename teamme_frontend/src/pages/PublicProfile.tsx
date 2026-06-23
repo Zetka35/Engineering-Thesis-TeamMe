@@ -232,7 +232,7 @@ export default function PublicProfile() {
 
         setProfile(profileResult);
 
-        const ownerTeams = (teamsResult ?? []).filter((team) => team.myRole === "Owner");
+        const ownerTeams = (teamsResult ?? []).filter((team) => team.myRole === "Właściciel");
         setOwnedTeams(ownerTeams);
       })
       .catch((e: unknown) => {
@@ -606,7 +606,7 @@ export default function PublicProfile() {
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <b>{item.teamName}</b>
                       <span className="pill">{item.roleLabel}</span>
-                      {item.current && <span className="pill">aktualny projekt</span>}
+                      {item.current && <span className="pill">Aktualny projekt</span>}
                     </div>
 
                     <div className="muted">
