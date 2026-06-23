@@ -172,11 +172,11 @@ function surveyStatusText(surveyState?: SurveyStateDto | null) {
 function projectStatusLabel(value?: string | null) {
   switch (value) {
     case "ACTIVE":
-      return "aktywny";
+      return "Aktywny projekt";
     case "COMPLETED":
-      return "zakończony";
+      return "Zakończony projekt";
     case "ARCHIVED":
-      return "zarchiwizowany";
+      return "Zarchiwizowany projekt";
     default:
       return value || "—";
   }
@@ -660,7 +660,7 @@ export default function Profile() {
 
                         <div className="profile-entry-pills">
   <span className="pill">{projectStatusLabel(project.teamStatus)}</span>
-  {project.current && <span className="pill">aktywny projekt</span>}
+  {project.current}
   <VisibilityBadge visible={project.showOnPublicProfile} />
 </div>
                       </div>
