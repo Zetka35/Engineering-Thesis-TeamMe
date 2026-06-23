@@ -468,7 +468,7 @@ export default function Profile() {
 
         <div className="profile-hero-content">
           <div className="profile-hero-topline">
-            <div className="profile-hero-breadcrumb">Profil użytkownika / Twoje konto</div>
+            <div className="profile-hero-breadcrumb">Profil użytkownika</div>
 
             <div className="profile-hero-actions">
               <button

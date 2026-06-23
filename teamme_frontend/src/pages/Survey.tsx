@@ -390,7 +390,8 @@ export default function Survey() {
             <div className="profile-block" style={{ display: "grid", gap: 10 }}>
               <div><b>Po co wypełniasz tę ankietę?</b></div>
               <div className="muted">
-                Pierwsza część ankiety wykorzystuje IPIP-BFM-20, czyli krótki kwestionariusz samoopisowy odnoszący się do pięciu ogólnych wymiarów osobowości. W aplikacji wynik jest używany wyłącznie pomocniczo — jako jeden z elementów rekomendowania roli zespołowej.
+                Pierwsza część ankiety wykorzystuje IPIP-BFM-20, czyli krótki kwestionariusz samoopisowy odnoszący się do pięciu ogólnych wymiarów osobowości. 
+                Druga część ankiety została opracowana na potrzeby aplikacji i dotyczy zachowań podczas pracy grupowej i funkcjonowania w zespole.
                 Wynik ankiety jest wsparciem przy doborze roli w zespole oraz późniejszym dopasowywaniu do projektów.
                 Jest to rekomendacja — po zakończeniu nadal możesz samodzielnie wybrać dowolną rolę.
               </div>
