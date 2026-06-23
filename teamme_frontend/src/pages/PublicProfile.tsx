@@ -295,6 +295,18 @@ export default function PublicProfile() {
     setSuccessMsg("");
   }
 
+  function formatProjectRoleLabel(roleLabel?: string | null) {
+  if (!roleLabel) return "—";
+
+  const label = roleLabel.trim();
+
+  if (label.toLowerCase() === "owner") {
+    return "Właściciel";
+  }
+
+  return label;
+}
+
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
 
@@ -605,7 +617,7 @@ export default function PublicProfile() {
                   >
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                       <b>{item.teamName}</b>
-                      <span className="pill">{item.roleLabel}</span>
+                      <span className="pill">{formatProjectRoleLabel(item.roleLabel)}</span>
                       {item.current && <span className="pill">Aktualny projekt</span>}
                     </div>
 
