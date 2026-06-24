@@ -589,7 +589,7 @@ export default function Survey() {
   const title =
     currentPart === "TEAMWORK"
       ? "Część 2 z 2 — Praca zespołowa"
-      : "Część 1 z 2 — Mini-IPIP";
+      : "Część 1 z 2 — IPIP-BFM-20";
 
   const subtitle =
     currentPart === "TEAMWORK"
