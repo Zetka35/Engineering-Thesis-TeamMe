@@ -320,11 +320,7 @@ public class TeamRecruitmentService {
             default -> "Aktualizacja zgłoszenia";
         };
 
-        String message = "Status zgłoszenia w zespole "
-                + request.getTeam().getName()
-                + " zmienił się na "
-                + request.getStatus()
-                + ".";
+        String message = recruitmentDecisionMessage(request);
 
         notificationWebSocketService.sendToUser(
                 recipientUsername,
@@ -339,6 +335,30 @@ public class TeamRecruitmentService {
                         request.getStatus()
                 )
         );
+    }
+
+    private String recruitmentDecisionMessage(TeamRecruitmentRequest request) {
+        String teamName = request.getTeam().getName();
+
+        if ("APPLICATION".equals(request.getRequestType())) {
+            return switch (request.getStatus()) {
+                case "ACCEPTED" -> "Twoja aplikacja do zespołu " + teamName + " została zaakceptowana.";
+                case "REJECTED" -> "Twoja aplikacja do zespołu " + teamName + " została odrzucona.";
+                case "CANCELLED" -> "Twoja aplikacja do zespołu " + teamName + " została anulowana.";
+                default -> "Zaktualizowano status Twojej aplikacji do zespołu " + teamName + ".";
+            };
+        }
+
+        if ("INVITATION".equals(request.getRequestType())) {
+            return switch (request.getStatus()) {
+                case "ACCEPTED" -> "Zaproszenie do zespołu " + teamName + " zostało przyjęte.";
+                case "REJECTED" -> "Zaproszenie do zespołu " + teamName + " zostało odrzucone.";
+                case "CANCELLED" -> "Zaproszenie do zespołu " + teamName + " zostało anulowane.";
+                default -> "Zaktualizowano status zaproszenia do zespołu " + teamName + ".";
+            };
+        }
+
+        return "Zaktualizowano status zgłoszenia w zespole " + teamName + ".";
     }
 
     private void acceptRequest(
@@ -422,9 +442,9 @@ public class TeamRecruitmentService {
                     .count();
 
             if (assigned >= requirement.getSlots()) {
-                requirement.setStatus("FILLED");
+                requirement.setStatus("Rola obsadzona");
             } else {
-                requirement.setStatus("OPEN");
+                requirement.setStatus("Rola dostępna");
             }
         }
 
