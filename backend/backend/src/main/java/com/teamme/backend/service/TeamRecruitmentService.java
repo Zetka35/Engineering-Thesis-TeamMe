@@ -442,9 +442,9 @@ public class TeamRecruitmentService {
                     .count();
 
             if (assigned >= requirement.getSlots()) {
-                requirement.setStatus("Rola obsadzona");
+                requirement.setStatus("FILLED");
             } else {
-                requirement.setStatus("Rola dostępna");
+                requirement.setStatus("OPEN");
             }
         }
 
