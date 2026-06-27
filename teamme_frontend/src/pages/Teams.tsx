@@ -266,7 +266,7 @@ export default function Teams() {
             )}
           </div>
 
-          <div className="profile-block">
+          {/* <div className="profile-block">
             <div
               style={{
                 display: "flex",
@@ -321,9 +321,9 @@ export default function Teams() {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
-          </div>
+              </div> */}
+            {/* )} */}
+          {/* </div> */}
         </div>
       </section>
     </div>
